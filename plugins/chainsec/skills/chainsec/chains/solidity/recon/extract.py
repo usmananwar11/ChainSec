@@ -77,6 +77,9 @@ STATE_RE = re.compile(r'(?<![\w.])(?:mapping\s*\(.*?\)|[A-Za-z_][\w.]*(?:\s*\[[^
 CALL_RE = re.compile(r'\.\s*(' + "|".join(CALL_KINDS) + r')\s*(\{[^}]*\})?\s*\(')
 AUTH_RE = re.compile(r'msg\.sender\s*[!=]=|[!=]=\s*msg\.sender|\b(?:' + "|".join(AUTH_CALLS) + r')\s*\(')
 WRITE_OPS = r'(?:=(?!=)|\+=|-=|\*=|/=|%=|\|=|&=|\^=|<<=|>>=|\+\+|--)'
+TUPLE_OPEN_RE = re.compile(r'(?<![\w.])\(')
+TUPLE_EQ_RE = re.compile(r'\s*=(?!=)')
+DECL_COMPONENT_RE = re.compile(r'^[\w.\[\]]+\s+[A-Za-z_]\w*$')
 
 
 def strip_comments(src):
@@ -115,6 +118,20 @@ def top_level_args(text, open_idx):
         elif c == "," and depth == 0:
             count += 1
     return count
+
+
+def split_components(inner):
+    parts, depth, start = [], 0, 0
+    for i, c in enumerate(inner):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            parts.append(inner[start:i])
+            start = i + 1
+    parts.append(inner[start:])
+    return parts
 
 
 def drop_parens(text):
@@ -253,6 +270,22 @@ def regex_file(facts, rel, src, text, units, state_vars, parents_of):
                         written.add(key)
                         facts["storage_writes"].append({"unit": unit["name"], "function": key[0], "file": rel,
                                                         "line": key[1], "target": key[2]})
+            for m in TUPLE_OPEN_RE.finditer(text, r["body"][0], r["body"][1]):
+                close = match_close(text, m.start(), "(", ")")
+                if close >= r["body"][1] or not TUPLE_EQ_RE.match(text, close + 1):
+                    continue
+                line = line_of(text, m.start())
+                for comp in split_components(text[m.start() + 1:close]):
+                    comp = comp.strip()
+                    if not comp or DECL_COMPONENT_RE.match(comp):
+                        continue
+                    base = re.match(r'[A-Za-z_]\w*', comp)
+                    if base and base.group(0) in names:
+                        key = (r["name"], line, base.group(0))
+                        if key not in written:
+                            written.add(key)
+                            facts["storage_writes"].append({"unit": unit["name"], "function": key[0], "file": rel,
+                                                            "line": key[1], "target": key[2]})
     facts["counters"][rel] = counters
 
 

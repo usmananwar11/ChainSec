@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 
-from helpers import CORE, FIXTURES, SCRIPTS, load, run
+from helpers import CORE, FIXTURES, SCRIPTS, load, make_tree, run
 
 sys.path.insert(0, SCRIPTS)
 from _schema import validate  # noqa: E402
@@ -84,6 +84,61 @@ class CompilerModeTest(Common, unittest.TestCase):
     def test_fixture_untouched(self):
         self.assertFalse(os.path.exists(os.path.join(PROJECT, "out")))
         self.assertFalse(os.path.exists(os.path.join(PROJECT, "cache")))
+
+
+PAIR_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Pair {
+    uint112 private reserve0;
+    uint112 private reserve1;
+    uint32 private blockTimestampLast;
+
+    function _update(uint256 balance0, uint256 balance1) internal {
+        (reserve0, reserve1, blockTimestampLast) =
+            (uint112(balance0), uint112(balance1), uint32(block.timestamp));
+    }
+
+    function _decode() internal pure returns (uint256, uint256) {
+        (uint256 x, uint256 y) = (1, 2);
+        return (x, y);
+    }
+}
+"""
+
+FOUNDRY_TOML = """[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+"""
+
+
+class TupleAssignmentTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.project = make_tree({"src/Pair.sol": PAIR_SRC, "foundry.toml": FOUNDRY_TOML})
+
+    def test_regex_mode_detects_tuple_writes(self):
+        out = os.path.join(tempfile.mkdtemp(), "facts.json")
+        r = run(["bash", EXTRACT, self.project, out],
+                env=dict(os.environ, CHAINSEC_PACK=PACK, CHAINSEC_NO_COMPILE="1"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        facts = load(out)
+        self.assertEqual(facts["mode"], "regex")
+        writes = {(w["function"], w["target"]) for w in facts["storage_writes"]}
+        self.assertEqual(writes, {("_update", "reserve0"), ("_update", "reserve1"),
+                                  ("_update", "blockTimestampLast")})
+
+    @unittest.skipUnless(shutil.which("forge"), "forge not installed")
+    def test_compiler_mode_detects_tuple_writes(self):
+        out = os.path.join(tempfile.mkdtemp(), "facts.json")
+        r = run(["bash", EXTRACT, self.project, out], env=dict(os.environ, CHAINSEC_PACK=PACK))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        facts = load(out)
+        self.assertEqual(facts["mode"], "compiler")
+        writes = {(w["function"], w["target"]) for w in facts["storage_writes"]}
+        self.assertEqual(writes, {("_update", "reserve0"), ("_update", "reserve1"),
+                                  ("_update", "blockTimestampLast")})
 
 
 if __name__ == "__main__":
