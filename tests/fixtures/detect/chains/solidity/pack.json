@@ -1,0 +1,1 @@
+{ "chain": "solidity", "detect": { "markers": ["foundry.toml", "hardhat.config.js", "hardhat.config.ts"], "contains": [], "fallback_glob": "**/*.sol" } }
