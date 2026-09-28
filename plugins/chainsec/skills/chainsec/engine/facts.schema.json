@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chainsec/facts.schema.json",
+  "title": "ChainSec code facts, written by a pack's extractor",
+  "type": "object",
+  "required": ["chain", "mode", "units", "entry_points", "auth_sites", "storage_writes", "external_calls", "value_transfers", "counters"],
+  "properties": {
+    "chain": { "type": "string", "minLength": 1 },
+    "mode": { "enum": ["compiler", "regex"] },
+    "root": { "type": "string" },
+    "units": { "type": "array", "items": {
+      "type": "object", "required": ["name", "file", "loc", "parents"],
+      "properties": {
+        "name": { "type": "string" }, "kind": { "type": "string" }, "file": { "type": "string" },
+        "line": { "type": "integer" }, "loc": { "type": "integer", "minimum": 0 },
+        "parents": { "type": "array", "items": { "type": "string" } } } } },
+    "entry_points": { "type": "array", "items": {
+      "type": "object", "required": ["unit", "name", "file", "line"],
+      "properties": {
+        "unit": { "type": "string" }, "name": { "type": "string" }, "file": { "type": "string" },
+        "line": { "type": "integer" }, "visibility": { "type": "string" }, "mutability": { "type": "string" },
+        "guards": { "type": "array", "items": { "type": "string" } } } } },
+    "auth_sites": { "type": "array", "items": {
+      "type": "object", "required": ["unit", "file", "line", "kind"],
+      "properties": { "unit": { "type": "string" }, "file": { "type": "string" },
+                      "line": { "type": "integer" }, "kind": { "type": "string" } } } },
+    "storage_writes": { "type": "array", "items": {
+      "type": "object", "required": ["unit", "function", "file", "line", "target"],
+      "properties": { "unit": { "type": "string" }, "function": { "type": ["string", "null"] },
+                      "file": { "type": "string" }, "line": { "type": "integer" }, "target": { "type": "string" } } } },
+    "external_calls": { "type": "array", "items": {
+      "type": "object", "required": ["unit", "function", "file", "line", "kind"],
+      "properties": { "unit": { "type": "string" }, "function": { "type": ["string", "null"] },
+                      "file": { "type": "string" }, "line": { "type": "integer" }, "kind": { "type": "string" } } } },
+    "value_transfers": { "type": "array", "items": {
+      "type": "object", "required": ["unit", "function", "file", "line", "asset"],
+      "properties": { "unit": { "type": "string" }, "function": { "type": ["string", "null"] },
+                      "file": { "type": "string" }, "line": { "type": "integer" },
+                      "asset": { "enum": ["native", "token", "unknown"] } } } },
+    "counters": { "type": "object", "additionalProperties": {
+      "type": "object", "required": ["loc"], "additionalProperties": { "type": "number" } } }
+  }
+}

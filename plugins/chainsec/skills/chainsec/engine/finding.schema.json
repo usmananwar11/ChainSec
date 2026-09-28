@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chainsec/finding.schema.json",
+  "title": "ChainSec finding (candidate files and verdict files are JSON arrays of these)",
+  "type": "object",
+  "required": ["id", "chain", "title", "severity", "category", "status", "locations", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "chain": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["Critical", "High", "Medium", "Low", "Info"] },
+    "category": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["candidate", "verified", "verified-conditional", "downgraded", "killed"] },
+    "locations": { "type": "array", "items": { "$ref": "#/$defs/location" } },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": { "enum": ["detect", "rescan", "per-unit", "state", "review"] },
+        "lens": { "type": ["string", "null"] },
+        "mindset": { "enum": ["attacker", "accountant", "spec-auditor", "edge-case", null] },
+        "consensus": { "enum": ["strong", "moderate", "single", null] },
+        "unit": { "type": ["string", "null"] }
+      }
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "root_cause": { "type": "string" },
+    "recommendation": { "type": "string" },
+    "vulnerable_code": { "type": "string" },
+    "harm": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "who": { "type": "string" },
+        "loses_what": { "type": "string" },
+        "magnitude": { "type": "string" }
+      }
+    },
+    "exploit_trace": { "type": "array", "items": { "type": "string" } },
+    "preconditions": { "type": "array", "items": { "$ref": "#/$defs/condition" } },
+    "postconditions": { "type": "array", "items": { "$ref": "#/$defs/condition" } },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gate": { "type": ["string", "null"] },
+        "reason": { "type": "string" },
+        "evidence_tag": { "type": ["string", "null"] },
+        "method": { "type": ["string", "null"] },
+        "original_severity": { "enum": ["Critical", "High", "Medium", "Low", "Info", null] }
+      }
+    },
+    "audit_trail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "step_execution": { "type": "string" },
+        "rules_applied": { "type": "array", "items": { "type": "string" } },
+        "depth_evidence": { "type": "array", "items": { "type": "string" } },
+        "missing_precondition": { "type": "string" },
+        "postconditions_created": { "type": "array", "items": { "type": "string" } },
+        "who_benefits": { "type": "string" }
+      }
+    },
+    "boundary": { "type": "boolean" },
+    "merged_from": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "required": ["file"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "line_start": { "type": "integer", "minimum": 1 },
+        "line_end": { "type": "integer", "minimum": 1 },
+        "unit": { "type": "string" },
+        "function": { "type": "string" }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "required": ["text", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["STATE", "ACCESS", "TIMING", "EXTERNAL", "BALANCE"] }
+      }
+    }
+  }
+}
