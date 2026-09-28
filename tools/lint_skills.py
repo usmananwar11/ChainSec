@@ -100,7 +100,11 @@ def lint_skill(name, sdir):
     if not desc or len(desc) > 1024:
         errors.append(f"{name}: description missing or over 1024 chars")
     oa = os.path.join(sdir, "agents", "openai.yaml")
-    if not os.path.isfile(oa) or "allow_implicit_invocation: false" not in open(oa, encoding="utf-8").read():
+    oa_valid = os.path.isfile(oa)
+    if oa_valid:
+        with open(oa, encoding="utf-8") as f:
+            oa_valid = "allow_implicit_invocation: false" in f.read()
+    if not oa_valid:
         errors.append(f"{name}: agents/openai.yaml must set allow_implicit_invocation: false")
     for dirpath, dirnames, files in os.walk(sdir):
         dirnames.sort()
