@@ -11,6 +11,11 @@
 
 - **Virtual shares/offset**: Does vault use `_decimalsOffset()` or dead shares? If not → classic inflation possible
 
+## 2. Round-Trip Profit Extraction
+
+- Check: `convertToAssets(convertToShares(X)) <= X` (rounding favors vault)
+- Check: `convertToShares(convertToAssets(S)) <= S` (rounding favors vault)
+
 ## 5. Virtual Shares Edge Cases
 
 If vault uses virtual shares/offset (OZ 4626 `_decimalsOffset`):

@@ -16,8 +16,7 @@ Check ALL entry points that increase totalAssets without proportional share mint
 ## 2. Round-Trip Profit Extraction
 
 - Trace: `deposit(X) → redeem(shares) → received`. Is `received <= X` always? Test at: X=1, X=1e6, X=MAX
-- Check: `convertToAssets(convertToShares(X)) <= X` (rounding favors vault)
-- Check: `convertToShares(convertToAssets(S)) <= S` (rounding favors vault)
+- Chain-specific checks: see the pack's modules/erc4626-vault-deep.md.
 - If ANY round-trip produces profit → drain via repeated operations
 
 ## 3. Withdrawal Queue Ordering
