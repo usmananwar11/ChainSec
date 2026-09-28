@@ -1,9 +1,0 @@
-{
-  "scope": {
-    "include": ["src/**/*.sol", "contracts/**/*.sol"],
-    "exclude": ["**/test/**", "**/tests/**", "**/mock/**", "**/mocks/**", "**/script/**", "**/scripts/**",
-                "**/lib/**", "**/node_modules/**", "**/out/**", "**/artifacts/**", "**/forge-std/**",
-                "**/*.t.sol", "**/*.s.sol"],
-    "fallback_include": ["**/*.sol"]
-  }
-}

@@ -1,0 +1,56 @@
+{
+  "chain": "solidity",
+  "id_prefix": "SOL",
+  "extensions": [".sol"],
+  "detect": {
+    "markers": ["foundry.toml", "hardhat.config.js", "hardhat.config.ts", "truffle-config.js"],
+    "contains": [],
+    "fallback_glob": "**/*.sol"
+  },
+  "scope": {
+    "include": ["src/**/*.sol", "contracts/**/*.sol"],
+    "exclude": ["**/test/**", "**/tests/**", "**/mock/**", "**/mocks/**", "**/script/**", "**/scripts/**",
+                "**/lib/**", "**/node_modules/**", "**/out/**", "**/artifacts/**", "**/forge-std/**",
+                "**/*.t.sol", "**/*.s.sol"],
+    "fallback_include": ["**/*.sol"]
+  },
+  "tools": {
+    "required": [
+      { "name": "python3", "check": "python3 --version", "install": "https://www.python.org/downloads/", "purpose": "ChainSec scripts" },
+      { "name": "forge", "check": "forge --version", "install": "curl -L https://foundry.paradigm.xyz | bash && foundryup", "purpose": "compiler-mode facts, PoC, fuzz" }
+    ],
+    "optional": [
+      { "name": "slither", "check": "slither --version", "install": "pipx install slither-analyzer", "purpose": "static-analysis signal table during recon" }
+    ]
+  },
+  "extractor": "recon/extract.sh",
+  "analyzers": [ { "name": "slither", "run": "recon/slither-summary.sh", "requires": "slither" } ],
+  "risk_weights": { "external_calls": 5, "state_writers": 4, "payable": 4, "assembly_blocks": 6, "unchecked_blocks": 3 },
+  "loc_weight": 0.05,
+  "novelty_bonus": 15,
+  "value_bonus": 10,
+  "novelty_allowlist": ["**/openzeppelin*/**", "**/@openzeppelin/**", "**/solmate/**", "**/solady/**"],
+  "unit_of_analysis": "inheritance_cluster",
+  "clustering": "recon/clustering.md",
+  "value_unit": { "name": "wei", "decimals": 18 },
+  "code_fence": "solidity",
+  "modules_by_protocol": {
+    "always": ["../../domains/defi/modules/access-control-state.md"],
+    "dex-amm": ["../../domains/defi/modules/amm-mev-deep.md", "../../domains/defi/modules/economic-design.md",
+                "../../domains/defi/modules/flash-loan-interaction.md", "../../domains/defi/primers/defi-dex-amm.md"],
+    "lending": ["../../domains/defi/modules/lending-liquidation-deep.md", "../../domains/defi/modules/oracle-analysis.md",
+                "modules/oracle-analysis.md", "../../domains/defi/modules/economic-design.md",
+                "../../domains/defi/primers/defi-lending.md"],
+    "vault": ["../../domains/defi/modules/vault-share-accounting.md", "modules/erc4626-vault-deep.md",
+              "../../domains/defi/modules/flash-loan-interaction.md"],
+    "governance": ["../../domains/defi/modules/governance-voting.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "staking": ["../../domains/defi/modules/economic-design.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "nft-gamefi": ["../../domains/defi/primers/gamefi-nft.md", "modules/eip-standard-compliance.md"],
+    "bridge": ["../../domains/defi/modules/cross-chain-bridge.md", "modules/cross-chain-bridge.md",
+               "../../domains/defi/primers/bridge-crosschain.md"],
+    "proxy-upgradeable": ["primers/proxy-upgrades.md"],
+    "wallet-aa": ["primers/wallet-safe-aa.md", "modules/account-abstraction-erc4337.md", "modules/eip7702-delegation.md"]
+  },
+  "poc": { "framework": "foundry", "run": "forge test --match-test <test> -vvv", "guide": "poc/guide.md" },
+  "fuzz": { "framework": "foundry-invariant", "run": "forge test --match-contract <contract> -vvv", "guide": "fuzz/guide.md" }
+}

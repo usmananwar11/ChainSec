@@ -43,7 +43,7 @@ Krait's detection layer combines original research with curated knowledge from t
 The `krait-poc` skill (Foundry exploit PoC construction) derives its patterns from
 additional corpora, including the Apache-2.0 **DeFiHackLabs**; those sources and the
 license reasoning are documented separately in
-see chains/solidity/poc/ATTRIBUTION.md (added with the Solidity pack). No
+[chains/solidity/poc/ATTRIBUTION.md](chains/solidity/poc/ATTRIBUTION.md). No
 third-party Solidity is vendored — only facts derived from analyzing the corpora.
 
 ## What's Original to Krait

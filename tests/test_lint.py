@@ -77,6 +77,10 @@ class LintTest(unittest.TestCase):
         errs = lint(tree(**{SK + "chainsec__engine__x.md": "[a](nope.md)\n"}))
         self.assertTrue(any("broken link" in e for e in errs), errs)
 
+    def test_code_fence_not_parsed_as_link(self):
+        body = "```solidity\nint256[] memory b = new int256[](toks.length);\n```\n"
+        self.assertEqual(lint(tree(**{SK + "chainsec__chains__x.md": body})), [])
+
     def test_repository_is_clean(self):
         self.assertEqual(lint(REPO), [])
 

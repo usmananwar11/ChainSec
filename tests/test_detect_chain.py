@@ -27,6 +27,12 @@ class DetectChainTest(unittest.TestCase):
     def test_nothing(self):
         self.assertEqual(detect("none"), [])
 
+    def test_real_solidity_pack_detects_fixture(self):
+        from helpers import FIXTURES as F
+        r = run_py("detect-chain.py", os.path.join(F, "solidity-basic"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "solidity", "root": "."}])
+
 
 if __name__ == "__main__":
     unittest.main()

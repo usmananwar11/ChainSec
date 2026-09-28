@@ -9,7 +9,7 @@ Checks every skill under plugins/chainsec/skills/:
   - no nested SKILL.md
   - backticked core paths (engine/, prompts/, runtimes/, domains/, chains/, scripts/)
     resolve against the core skill; ../chainsec/... resolves against the entry skill
-  - markdown links resolve against the file's folder
+  - markdown links (outside code fences) resolve against the file's folder
   - no legacy Krait paths or commands (except ATTRIBUTION files)
   - engine/, prompts/, runtimes/, domains/ contain no chain-specific terms
   - every chains/<chain>/pack.json validates and its referenced files exist
@@ -65,8 +65,11 @@ def lint_markdown(name, sdir, path, relp):
         lines = f.read().splitlines()
     neutral = name == "chainsec" and relp.split(os.sep)[0] in NEUTRAL_DIRS
     attribution = os.path.basename(path).upper().startswith("ATTRIBUTION")
+    in_fence = False
     for i, line in enumerate(lines, 1):
         where = f"{name}/{relp}:{i}"
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
         if not attribution and LEGACY.search(line):
             errors.append(f"{where}: legacy Krait path or command")
         if neutral and ALLOW_MARK not in line:
@@ -77,7 +80,7 @@ def lint_markdown(name, sdir, path, relp):
             target = resolve_backtick(sdir, ref)
             if target and not os.path.exists(target):
                 errors.append(f"{where}: unresolved path {ref.rstrip('.,:;')}")
-        for ref in MDLINK.findall(line):
+        for ref in ([] if in_fence else MDLINK.findall(line)):
             if re.match(r"^(https?:|mailto:|#)", ref):
                 continue
             target = os.path.normpath(os.path.join(os.path.dirname(path), ref.split("#")[0]))

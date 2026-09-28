@@ -11,7 +11,7 @@ from _schema import validate  # noqa: E402
 
 EXTRACT = os.path.join(CORE, "chains", "solidity", "recon", "extract.sh")
 PROJECT = os.path.join(FIXTURES, "solidity-basic")
-PACK = os.path.join(FIXTURES, "solidity-pack-scope.json")
+PACK = os.path.join(CORE, "chains", "solidity", "pack.json")
 
 
 def extract(**env):
