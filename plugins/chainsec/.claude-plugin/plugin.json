@@ -1,0 +1,10 @@
+{
+  "name": "chainsec",
+  "version": "0.1.0",
+  "description": "Multi-chain smart-contract security audit skills: shared engine plus per-chain packs.",
+  "author": { "name": "Usman Anwar", "url": "https://github.com/usmananwar11" },
+  "homepage": "https://github.com/usmananwar11/ChainSec",
+  "repository": "https://github.com/usmananwar11/ChainSec",
+  "license": "MIT",
+  "keywords": ["security", "audit", "smart-contracts", "solidity", "defi"]
+}

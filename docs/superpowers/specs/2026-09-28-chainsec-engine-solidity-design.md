@@ -327,3 +327,23 @@ In Claude Code, OpenCode and Antigravity: `install.sh` (or plugin install), then
 2. Cairo pack (Caracal, snforge; felt252 semantics, L1 handlers, `replace_class_syscall`, account abstraction, component storage collisions). Reuse Trail of Bits and starknet-skills content with credit.
 3. Soroban pack (require_auth scope and auth trees, storage type/TTL/archival, overflow-checks profile, panic vs Result, `update_current_contract_wasm` auth, SAC 7 decimals; Scout, stellar CLI, soroban-sdk testutils).
 4. Optional: generated native agent files per tool; per-chain plugins if packs grow large.
+
+## 11. Amendments (from implementation planning, 2026-09-28)
+
+1. `detect-chain.sh` → `scripts/detect-chain.py` (stdlib glob handling; removes the jq dependency).
+2. `pack.json` gains:
+   - `extensions` (file extensions owned by the chain, used for boundary tagging);
+   - `id_prefix` (finding ID prefix, e.g. `SOL`);
+   - `analyzers` (optional static-analyzer adapters);
+   - `detect.markers` / `detect.fallback_glob`;
+   - `scope.fallback_include`.
+   `tools.required` / `tools.optional` become objects `{name, check, install, purpose}` so preflight can print install hints.
+3. Solidity extractor = `recon/extract.sh` (build wrapper) + `recon/extract.py` (facts). `forge build --ast` writes to a temp dir, so the user's `out/` and `cache/` are untouched. Krait's macOS-incompatible `timeout` call is dropped.
+4. `counters.external_calls` counts only value/call primitives (`call`, `delegatecall`, `staticcall`, `send`, `transfer`, `transferFrom`, `safeTransfer*`) in both modes. Krait's compiler mode counted every member-access call. This is recorded in the benchmark notes because it can move risk tiers.
+5. `merge-findings.py --concat` concatenates per-unit/per-lens outputs without dedup.
+6. Solidity required tools: `python3`, `forge`. `jq` is no longer required.
+7. The canonical ATTRIBUTION lives in the core skill folder so it travels with copied skills. The root ATTRIBUTION.md points to it.
+8. Domain layer additions:
+   - `domains/defi/heuristics.md` (generic Krait heuristics) and `domains/defi/triggers.md` (domain module triggers);
+   - the pack's `module-triggers.md` (pack modules + chain-specific trigger evidence);
+   - the generic half of `erc4626-vault-deep.md` is named `vault-share-accounting.md`.

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "chainsec",
+  "owner": { "name": "Usman Anwar", "url": "https://github.com/usmananwar11" },
+  "metadata": {
+    "description": "Multi-chain smart-contract security audits: one engine, one pack per chain.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "chainsec",
+      "source": "./plugins/chainsec",
+      "description": "Smart-contract security audit pipeline (recon, multi-lens detection, state analysis, kill-gate verification, report) with per-chain packs. Solidity today; Cairo and Soroban planned.",
+      "category": "security",
+      "keywords": ["security", "audit", "smart-contracts", "solidity", "defi", "multi-chain"]
+    }
+  ]
+}

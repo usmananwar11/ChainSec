@@ -1,0 +1,5 @@
+interface:
+  display_name: "ChainSec core"
+  short_description: "Library used by the chainsec-* skills"
+policy:
+  allow_implicit_invocation: false

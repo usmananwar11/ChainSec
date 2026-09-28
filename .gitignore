@@ -1,0 +1,7 @@
+.audit/
+__pycache__/
+*.pyc
+.DS_Store
+out/
+cache/
+.superpowers/
