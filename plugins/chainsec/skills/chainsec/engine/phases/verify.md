@@ -374,5 +374,7 @@ Then state the summary:
 Input: the reject list printed by `scripts/validate-findings.py`. For each rejected id, re-open the
 code and either supply the missing field (a `file` + `line_start` location, a one-sentence
 `harm.who`/`harm.loses_what`, or a concrete step-by-step `exploit_trace`) or, if you cannot,
-lower the finding's status/severity per the Impact Premise. Edit `A/verdicts.json` in place.
+lower the finding's status/severity per the Impact Premise. A `duplicate-id` reject means two
+elements share an id: renumber every repeat after the first to an unused id (`--downgrade` never
+fixes this). Edit `A/verdicts.json` in place.
 Never invent line numbers or traces you did not verify in the code.

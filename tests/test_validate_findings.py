@@ -54,6 +54,37 @@ class ValidateFindingsTest(unittest.TestCase):
         r, out, _ = check([valid_finding(severity="Severe")], "--downgrade")
         self.assertEqual(r.returncode, 1)
 
+    def test_duplicate_id_reported_once_per_id(self):
+        r, out, _ = check([valid_finding(), valid_finding(), valid_finding(),
+                           valid_finding(id="SOL-002"), valid_finding(id="SOL-002")])
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual([(x["id"], x["rule"]) for x in out],
+                         [("SOL-001", "duplicate-id"), ("SOL-002", "duplicate-id")])
+
+    def test_downgrade_touches_only_offending_duplicate(self):
+        r, out, path = check([valid_finding(), valid_finding(exploit_trace=[])], "--downgrade")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertEqual([x["rule"] for x in out], ["duplicate-id"])
+        good, bad = load(path)
+        self.assertEqual((good["status"], good["severity"]), ("verified", "High"))
+        self.assertNotIn("original_severity", good["verdict"])
+        self.assertEqual((bad["status"], bad["severity"]), ("downgraded", "Low"))
+        self.assertIn("exploit_trace", bad["verdict"]["reason"])
+
+    def test_schema_only_ignores_hard_rules_and_duplicates(self):
+        r, out, _ = check([valid_finding(exploit_trace=[]), valid_finding(harm={})], "--schema-only")
+        self.assertEqual((r.returncode, out), (0, []), r.stdout)
+
+    def test_schema_only_reports_schema_errors(self):
+        r, out, _ = check([valid_finding(severity="Severe", exploit_trace=[])], "--schema-only")
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual({x["rule"] for x in out}, {"schema"})
+
+    def test_schema_only_input_error(self):
+        r, out, _ = check(valid_finding(), "--schema-only")
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(out[0]["rule"], "input")
+
 
 if __name__ == "__main__":
     unittest.main()

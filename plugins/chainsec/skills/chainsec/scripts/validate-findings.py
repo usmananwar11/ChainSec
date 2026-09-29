@@ -2,7 +2,7 @@
 """Validate ChainSec findings before the report.
 
 Usage:
-  validate-findings.py <findings.json> [--schema PATH] [--downgrade]
+  validate-findings.py <findings.json> [--schema PATH] [--downgrade | --schema-only]
 
 Prints a JSON list of rejects ({"id", "rule", "detail"}) to stdout.
 Exit 0: no rejects (or --downgrade resolved them). Exit 1: rejects remain. Exit 2: bad input.
@@ -12,8 +12,11 @@ severity Critical, High or Medium:
   location       at least one location with file and line_start
   harm           non-empty harm.who and harm.loses_what (the Impact Premise)
   exploit_trace  non-empty exploit_trace
+Every id must be unique: each repeated id gets one "duplicate-id" reject.
 With --downgrade, hard-rule rejects are rewritten in place to status "downgraded",
-severity "Low", with the reason recorded. Schema errors are never auto-fixed.
+severity "Low", with the reason recorded; only the offending element is touched.
+Schema errors and duplicate ids are never auto-fixed.
+With --schema-only, only schema rejects (and input errors) are reported.
 """
 import argparse
 import json
@@ -46,41 +49,52 @@ def hard_rule_failures(f):
     return fails
 
 
+NOT_AUTO_FIXED = {"schema", "duplicate-id"}
+
+
 def check(findings, schema):
+    """Return [(index, reject)]; index is the offending element's position, None for duplicate-id."""
     rejects = []
+    seen = {}
     for i, f in enumerate(findings):
         fid = f.get("id", f"#{i}") if isinstance(f, dict) else f"#{i}"
         for err in validate(f, schema):
-            rejects.append({"id": fid, "rule": "schema", "detail": err})
+            rejects.append((i, {"id": fid, "rule": "schema", "detail": err}))
         if isinstance(f, dict):
             for rule, detail in hard_rule_failures(f):
-                rejects.append({"id": fid, "rule": rule, "detail": detail})
+                rejects.append((i, {"id": fid, "rule": rule, "detail": detail}))
+            if "id" in f:
+                seen.setdefault(json.dumps(f["id"]), []).append(i)
+    for key, idxs in seen.items():
+        if len(idxs) > 1:
+            rejects.append((None, {"id": json.loads(key), "rule": "duplicate-id",
+                                   "detail": f"id used {len(idxs)} times (indexes {idxs}); renumber"}))
     return rejects
 
 
 def downgrade(findings, rejects):
     hard = {}
-    for r in rejects:
-        if r["rule"] != "schema":
-            hard.setdefault(r["id"], []).append(r["rule"])
-    for f in findings:
-        rules = hard.get(f.get("id")) if isinstance(f, dict) else None
-        if not rules:
-            continue
+    for i, r in rejects:
+        if r["rule"] not in NOT_AUTO_FIXED:
+            hard.setdefault(i, []).append(r["rule"])
+    for i, rules in hard.items():
+        f = findings[i]
         verdict = f.setdefault("verdict", {})
         verdict.setdefault("original_severity", f.get("severity"))
         f["status"] = "downgraded"
         f["severity"] = "Low"
         note = "auto-downgraded by validate-findings: missing " + ", ".join(rules)
         verdict["reason"] = f"{verdict.get('reason', '')} | {note}".strip(" |")
-    return [r for r in rejects if r["rule"] == "schema"]
+    return [(i, r) for i, r in rejects if r["rule"] in NOT_AUTO_FIXED]
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Validate ChainSec findings")
     ap.add_argument("findings")
     ap.add_argument("--schema", default=DEFAULT_SCHEMA)
-    ap.add_argument("--downgrade", action="store_true")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--downgrade", action="store_true")
+    mode.add_argument("--schema-only", action="store_true")
     args = ap.parse_args(argv)
     try:
         findings = load_json(args.findings)
@@ -92,9 +106,12 @@ def main(argv=None):
         print(json.dumps([{"id": None, "rule": "input", "detail": "top level must be a JSON array"}]))
         return 2
     rejects = check(findings, schema)
+    if args.schema_only:
+        rejects = [(i, r) for i, r in rejects if r["rule"] == "schema"]
     if args.downgrade and rejects:
         rejects = downgrade(findings, rejects)
         write_json(args.findings, findings)
+    rejects = [r for _, r in rejects]
     print(json.dumps(rejects, indent=2))
     return 1 if rejects else 0
 
