@@ -71,8 +71,9 @@ attacker uses its own capital, `vm.deal` (native) / `deal(token, addr, amt)` (ER
 
 ### 6. Compile → run → fix (the loop)
 
-Use the **forge MCP** (`mcp-servers/forge/`), not raw shell — it sandboxes the cwd and caps
-output. Call `forge_build`, then `forge_test` with your test filter.
+Run `forge build`, then `forge test --match-test <name> -vvv` from the project root (use `-vvvv`
+for full traces). If Krait's forge MCP server is installed, its `forge_build` / `forge_test`
+tools are an equivalent sandboxed alternative.
 
 On failure, read `chains/solidity/poc/references/debug-ladder.md` — it maps every common error class to its fix
 (missing interface, wrong constructor args, stale signature, fork RPC issue, `-vvvv` trace
