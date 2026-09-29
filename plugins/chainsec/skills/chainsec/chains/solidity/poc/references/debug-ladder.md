@@ -69,7 +69,8 @@ reproduce the claimed harm after that retry → `[POC-FAIL]`.
 
 ## Reading a trace efficiently
 
-- Run the failing test with `-vvvv` (full trace) via the forge MCP.
+- Run the failing test with `-vvvv` (full trace), running forge directly as in
+  `chains/solidity/poc/guide.md` step 6; Krait's forge MCP `forge_test` tool is an optional equivalent.
 - Read bottom-up: the deepest frame is where it actually reverted.
 - Labeled addresses make each frame legible — if you see raw hex, you skipped `vm.label`.
 - The `[Revert]` line's reason string (if any) usually names the failed `require`.

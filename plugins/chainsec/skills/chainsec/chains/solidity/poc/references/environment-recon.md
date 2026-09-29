@@ -53,7 +53,8 @@ If the finding **requires** a fork and no RPC is available, the correct outcome 
 Do not silently downgrade it. Record it as re-runnable in an environment with an RPC.
 
 ### 4. Does it compile as-is?
-Run `forge build` (via the forge MCP) before writing anything. If the project does not build
+Run `forge build` directly (Krait's forge MCP `forge_build` tool is an optional equivalent)
+before writing anything. If the project does not build
 out of the box — missing submodules (`forge install`), unresolved remappings, a wrong solc —
 resolve that first (within reason) or record `NO_BUILD_ENVIRONMENT`. You cannot PoC a project
 that does not compile.

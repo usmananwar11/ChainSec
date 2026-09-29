@@ -80,4 +80,5 @@ opcode error, set the version to match the chain at that block:
 forge test --match-contract ExploitTest --evm-version cancun -vvv
 ```
 
-Pass this through the forge MCP's `forge_test` args.
+Run forge directly (as in `chains/solidity/poc/guide.md` step 6); Krait's forge MCP `forge_test`
+tool is an optional equivalent (pass these flags as its args).
