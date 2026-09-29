@@ -24,6 +24,7 @@ If `A/review.json` exists, also load its revived findings (status `verified-cond
 `downgraded`); keep the "Second opinion — worth manual review" caveat from `verdict.reason` on them.
 
 Do NOT include: `killed` findings (FALSE POSITIVE, INSUFFICIENT EVIDENCE), `candidate` entries, or LOW-severity findings (unless user specifically requested them).
+Never include `severity: "Info"` findings (including review.json's REVIVE — Informational items): they would be padding (see Rules, "No padding").
 
 ### Step 2: Deduplication
 
@@ -128,8 +129,9 @@ In `A/findings.json` the adjusted finding has status `downgraded`, the new `seve
 
 ### Step 4: Assign IDs, write the findings index and the report
 
-1. **Rank** the findings: severity (Critical, High, Medium, Low, Info), then `verified` before
-   `verified-conditional` before `downgraded`, then by file and line.
+1. **Rank** the findings: severity (Critical, High, Medium, Low), then `verified` before
+   `verified-conditional` before `downgraded`, then by file and line. Drop any finding whose
+   severity is now Info (e.g. after the Step 3.5 downgrade); it does not get an ID.
 2. **Assign final IDs** `<id_prefix>-NNN` (`id_prefix` from `pack.json`; 001, 002, … in rank
    order). Record each finding's pre-report id(s) in `merged_from` so the candidate trail stays
    traceable.

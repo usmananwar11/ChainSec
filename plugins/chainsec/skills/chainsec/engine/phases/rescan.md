@@ -4,7 +4,7 @@
 > *(Methodology adapted from PlamenTSV/plamen, MIT — `phase3b-rescan-prompt.md`.)*
 
 Reads: `A/candidates/detect.json`, `A/recon.md`, `A/risk.json`
-Writes: `A/candidates/rescan.json`
+Writes: `A/candidates/rescan.json` (the `Reinforced:` ids go in each element's `audit_trail.step_execution`); when it is `[]`, the orchestrator records the `Reinforced:` ids in `A/preflight.json` `warnings`
 
 `A` = `TARGET/.audit/<chain>/`.
 
@@ -64,7 +64,7 @@ Do NOT re-analyze the patterns pass 1 already covered. Look in the gaps BETWEEN 
 - Every finding needs a specific `file:line` (a `locations[]` entry with `file` and `line_start`). No location → discard it yourself; the pipeline will drop it anyway.
 - If a candidate matches an exclusion-list entry on **location AND root cause**, skip it silently.
 - Same area, different exploit path = **not** a duplicate. Report it.
-- Do not report generic best practice ("use a safe-transfer wrapper", "add events", "missing zero-address check"). Kill gate A removes those unconditionally, so they only cost budget.
+- Do not report generic best practice ("use SafeERC20", "add events", "missing zero-address check"). Kill gate A removes those unconditionally, so they only cost budget.
 - Record concrete values you tested as depth-evidence tags (`audit_trail.depth_evidence`): `[BOUNDARY:reserve=0]`, `[TRACE:redeem(MAX)→revert L88]`.
 
 ## Output
@@ -116,4 +116,8 @@ Then state: `Rescan complete: N new candidates ({H} high, {M} medium, {L} low)`.
 ## Non-goals
 
 - Do NOT re-verify or overturn pass 1's findings. That's the Critic's job, then the Reviewer's.
-- Do NOT deepen an existing candidate. If you find more evidence for a known finding, note it as a one-liner under `Reinforced:` after the `Rescan complete` line — it strengthens the existing candidate, it is not a new one, and it does not go into `A/candidates/rescan.json`.
+- Do NOT deepen an existing candidate. If you find more evidence for a known finding, note it as a one-liner under `Reinforced:` after the `Rescan complete` line — it strengthens the existing candidate, it is not a new one, and it does not go into `A/candidates/rescan.json` as an element.
+  So the record survives, append `; Reinforced: <id> (<one-liner>), …` (the detect-candidate ids) to
+  `audit_trail.step_execution` of every element you write. If you write `[]`, the orchestrator adds one
+  string per reinforced id to `A/preflight.json` `warnings` ("rescan: reinforced <id> — <one-liner>")
+  from your reply.

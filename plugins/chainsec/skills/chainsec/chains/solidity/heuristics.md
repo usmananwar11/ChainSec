@@ -238,6 +238,7 @@ python3 CORE/chains/solidity/recon/slither-summary.py A/analyzers/slither.json A
   existing, not by the exit code.
 - Slither does not overwrite an existing JSON output file, hence the `rm -f`.
 - Run it from ROOT, where the project's Foundry/Hardhat setup compiles.
+- **IMPORTANT**: Many Slither detectors produce informational/low noise (reentrancy-benign, naming-convention, etc.). Only extract HIGH and MEDIUM severity Slither findings for the summary.
 
 ### Project identification (Step 1)
 

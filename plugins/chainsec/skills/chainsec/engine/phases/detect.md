@@ -286,13 +286,13 @@ Flag ANY inconsistency between functions.
 #### Module G: Factory/Deployment Patterns
 → See the pack's heuristics.md, section "Detector modules".
 
-#### Module H: → See `domains/defi/modules/access-control-state.md`
+#### Module H: → See `domains/defi/modules/access-control-state.md` and the pack's module of the same name, if present
 
 #### Module I: Weight/Proportionality
 - When operations involve multiple weighted items: are fees/royalties per-item by weight, or averaged?
 - If averaged: high-value items subsidize low-value → underpayment to fee recipients.
 
-#### Module J: → See `domains/defi/modules/external-protocol-integration.md`
+#### Module J: → See `domains/defi/modules/external-protocol-integration.md` and the pack's module of the same name, if present
 
 #### Module K: → See `domains/defi/modules/multi-tx-attack.md` and `domains/defi/modules/flash-loan-interaction.md`
 
@@ -324,14 +324,14 @@ For EVERY DoS vulnerability found (gas griefing, revert conditions, infinite loo
 
 #### Module O: Payment/Distribution Flow Tracing (MANDATORY)
 
-For EVERY function that distributes native assets or tokens to multiple recipients:
+For EVERY function that distributes ETH or tokens to multiple recipients:
 
 1. **Trace each payment**: For every outgoing value transfer — WHO is the actual recipient? Is it the contract's owner (deployer), the asset's holder, the caller, or a configured address? Verify the recipient is semantically correct (e.g., auction proceeds should go to token OWNER, not contract OWNER). (Chain transfer primitives and owner/holder accessors: the pack's heuristics.md, section "Detector modules".)
 2. **Double payout check**: Can the same recipient receive payment twice? If function pays royalties to artists AND separately pays creators, can the same address appear in both lists?
 3. **Payment-on-failure**: When a target call fails, are tokens/ETH properly refunded? Check: is the refund to the right address? Does the refund include ALL tokens (not just native ETH)?
 4. **Conditional payment with unconditional cost**: If payment is conditional (`if (recipient != address(0))`) but the cost was already deducted unconditionally, funds are silently lost.
 
-#### Module P: → See `domains/defi/modules/cross-chain-bridge.md`
+#### Module P: → See `domains/defi/modules/cross-chain-bridge.md` and the pack's module of the same name, if present
 
 #### Module Q: NFT Attribute & Randomness Integrity
 
@@ -342,7 +342,7 @@ For NFT/Gaming protocols with attribute assignment:
 3. **Type parameter validation**: If per-type limits exist, verify the type parameter matches the actual item type. `reRoll(tokenId, wrongFighterType)` bypassing per-type limits.
 4. **Initialization for new generations/collections**: When new NFT collections/generations are created, are ALL required mappings initialized? (numElements, maxSupply, etc.)
 
-#### Module R: → See `domains/defi/modules/governance-voting.md`
+#### Module R: → See `domains/defi/modules/governance-voting.md` and the pack's module of the same name, if present
 
 #### Module S: Cross-Contract State on Transfer
 
@@ -361,7 +361,7 @@ For protocols with batch/multicall/router patterns:
 3. **Shared state mutation order**: If batch operations A and B both read/write the same storage slot, does the order matter? Can reordering interactions within a batch create a different (exploitable) outcome?
 4. **Balance snapshot timing**: When are balances snapshotted for each operation in the batch? Before the batch starts (stale for later ops) or inline (affected by earlier ops)?
 
-#### Module U: → See `domains/defi/modules/external-protocol-integration.md` and `domains/defi/modules/oracle-analysis.md`
+#### Module U: → See `domains/defi/modules/external-protocol-integration.md` and `domains/defi/modules/oracle-analysis.md`, and the pack's modules of the same names, if present
 
 #### Module V: → See `domains/defi/modules/economic-design.md`
 

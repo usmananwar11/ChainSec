@@ -4,7 +4,7 @@
 > *(Methodology adapted from PlamenTSV/plamen, MIT — `phase3b-rescan-prompt.md` § Phase 3c.)*
 
 Reads: `A/facts.json`, `A/risk.json`, `A/recon.md`, `A/candidates/detect.json`, `A/candidates/rescan.json`
-Writes: `A/clusters.json` (orchestrator), `A/candidates/per-unit-<n>.json` (one per cluster); the pipeline concatenates them into `A/candidates/per-unit.json`
+Writes: `A/clusters.json` (orchestrator; each cluster's `coverage` and `excluded` are filled in from its subagent's reply), `A/preflight.json` `warnings` (orchestrator, unclustered files), `A/candidates/per-unit-<n>.json` (one per cluster); the pipeline concatenates them into `A/candidates/per-unit.json`
 
 `A` = `TARGET/.audit/<chain>/`. A **unit** is the pack's unit of analysis (`pack.json`
 `unit_of_analysis`, e.g. a contract, module or program); `A/facts.json` `units[]` lists them.
@@ -34,7 +34,9 @@ Record the cluster plan before starting:
 |---------|-------|-----|---------------------|
 
 Then write `A/clusters.json`, a JSON array with one object per cluster: `n` (1, 2, … in priority
-order), `units` (unit names) and `files` (paths relative to ROOT, as in `A/facts.json`):
+order), `units` (unit names) and `files` (paths relative to ROOT, as in `A/facts.json`). Two optional
+fields are added after the cluster's subagent returns (see "Record the subagent's reply" below):
+`coverage` and `excluded`.
 
 ```json
 [{"n":1,"units":["Vault","Owned"],"files":["src/Vault.<ext>","src/auth/Owned.<ext>"]},{"n":2,"units":["Router"],"files":["src/Router.<ext>"]}]
@@ -46,6 +48,21 @@ file to `A/preflight.json` `warnings` ("per-unit: no dedicated cluster for <file
 
 Dispatch one subagent per cluster (pipeline row 7), each running "Per-cluster run" below for its
 cluster `n`.
+
+### Record the subagent's reply
+
+When a cluster's subagent returns, copy its coverage checkpoint and exclusions from its reply (see
+"Output" below) into that cluster's object in `A/clusters.json`:
+
+- `coverage`: one object per cluster file, from the Step 4 table: `file`, `loc`, `opened`
+  (true/false), `functions` (number of functions analyzed).
+- `excluded`: one string per `EXCLUDED — …` record from Step 2 (empty list when none).
+
+```json
+{"n":1,"units":["Vault","Owned"],"files":["src/Vault.<ext>","src/auth/Owned.<ext>"],"coverage":[{"file":"src/Vault.<ext>","loc":412,"opened":true,"functions":14},{"file":"src/auth/Owned.<ext>","loc":96,"opened":true,"functions":5}],"excluded":["EXCLUDED — withdraw() skips reward checkpoint at Vault.<ext>:142 → stale rewards. Duplicate of [HIGH] src/Vault.<ext>:142."]}
+```
+
+The orchestrator writes `A/clusters.json`; subagents never do (they run in parallel).
 
 ## Per-cluster run
 
@@ -150,7 +167,9 @@ Example element (cluster 1):
 The cluster plan lives in `A/clusters.json`. Complete the coverage checkpoint (Step 4) and record
 your exclusions before writing the file; they are not part of the JSON output.
 
-Then state: `Per-unit complete: cluster <n>, M new candidates`.
+Then state: `Per-unit complete: cluster <n>, M new candidates`, followed in the same reply by the
+Step 4 coverage table and one line per `EXCLUDED — …` record (or `Excluded: none`). The orchestrator
+copies both into `A/clusters.json` (see "Record the subagent's reply").
 
 ## No iteration
 

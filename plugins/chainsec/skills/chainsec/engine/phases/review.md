@@ -97,7 +97,7 @@ The gate that killed a finding is its `verdict.gate` in `A/verdicts.json` (a gat
 
 ### DO NOT RE-EXAMINE (Reliably correct)
 
-**Gate A — "Generic Best Practice"**: These are genuinely noise. "Use a safe-transfer wrapper" without a specific failing token is never a real finding. Skip.
+**Gate A — "Generic Best Practice"**: These are genuinely noise. "Use SafeERC20" without a specific failing token is never a real finding. Skip.
 
 **Gate G — "Out of Context"**: Token behaviors for unlisted tokens, chain-specific issues on unsupported chains. These are definitionally out of scope. Skip.
 

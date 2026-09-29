@@ -82,7 +82,7 @@ For each `pack.json` `analyzers` entry whose `requires` tool is `OK` in `A/prefl
 - These findings serve as ADDITIONAL SIGNAL during Detection Phase — they are NOT automatically reported
 - Analyzer findings that overlap with ChainSec candidates increase confidence
 - Analyzer findings that ChainSec missed should be investigated (potential recall boost)
-- **IMPORTANT**: Many analyzer detectors produce informational/low noise. Only extract HIGH and MEDIUM severity analyzer findings for the summary.
+- **IMPORTANT**: Many analyzer detectors produce informational/low noise (examples: the pack's heuristics.md, section "Recon additions"). Only extract HIGH and MEDIUM severity analyzer findings for the summary.
 
 **If the tool is not available or fails:**
 - Skip silently. Note in recon.md: "<name> pre-scan: SKIPPED (not available)"
