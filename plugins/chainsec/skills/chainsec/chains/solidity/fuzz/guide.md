@@ -180,7 +180,10 @@ Use Foundry's invariant testing pattern:
 **Goal**: Run the tests and iteratively fix issues.
 
 For each test file:
-1. Run `forge test --match-path <file> --fuzz-runs 1000 -vvv`
+1. From the Foundry root (`TARGET/<root>`), run
+   `FOUNDRY_TEST=<absolute path to .audit/solidity/fuzz/tests> forge test --match-path '*/<file>' --fuzz-runs 1000 -vvv`.
+   `FOUNDRY_TEST` points forge's test directory at the fuzz folder, because tests outside the
+   project's test directory are otherwise reported as "No tests found".
 2. If all tests pass → invariants HOLD
 3. If tests fail, classify the failure:
    - **Compile error**: Fix syntax/imports/types

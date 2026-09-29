@@ -51,6 +51,6 @@
     "proxy-upgradeable": ["primers/proxy-upgrades.md"],
     "wallet-aa": ["primers/wallet-safe-aa.md", "modules/account-abstraction-erc4337.md", "modules/eip7702-delegation.md"]
   },
-  "poc": { "framework": "foundry", "run": "forge test --match-test <test> -vvv", "guide": "poc/guide.md" },
-  "fuzz": { "framework": "foundry-invariant", "run": "forge test --match-contract <contract> -vvv", "guide": "fuzz/guide.md" }
+  "poc": { "framework": "foundry", "run": "cd <TARGET>/<root> && FOUNDRY_TEST=<TARGET>/.audit/solidity/poc/<ID> forge test --match-path '*/<test file>' -vvv", "guide": "poc/guide.md" },
+  "fuzz": { "framework": "foundry-invariant", "run": "cd <TARGET>/<root> && FOUNDRY_TEST=<TARGET>/.audit/solidity/fuzz/tests forge test --match-path '*/<test file>' -vvv", "guide": "fuzz/guide.md" }
 }
