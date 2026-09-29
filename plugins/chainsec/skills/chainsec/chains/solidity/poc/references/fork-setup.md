@@ -74,10 +74,10 @@ Single-fork PoCs (the overwhelming majority) never hit this.
 
 State forked from a recent block may contain opcodes your default EVM version rejects
 (e.g. `MCOPY`/transient storage → needs `cancun`). If a fork PoC fails to execute with an
-opcode error, set the version to match the chain at that block:
+opcode error, set the version to match the chain at that block (from the Foundry root):
 
 ```
-forge test --match-contract ExploitTest --evm-version cancun -vvv
+FOUNDRY_TEST=<absolute path to .audit/solidity/poc/<ID>> forge test --match-path '*/<TestFile>.t.sol' --evm-version cancun -vvv
 ```
 
 Run forge directly (as in `chains/solidity/poc/guide.md` step 6); Krait's forge MCP `forge_test`

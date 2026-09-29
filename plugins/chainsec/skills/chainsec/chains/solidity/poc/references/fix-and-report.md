@@ -13,5 +13,5 @@ Supplements `engine/poc/fix-and-report.md`. Moved verbatim from Krait's `fix-and
 
 ## Report block values
 
-- **File**: test/Victim_exp.sol
-- **Command**: forge test --match-contract ExploitTest -vvv
+- **File**: .audit/solidity/poc/<ID>/Victim_exp.sol
+- **Command** (from the Foundry root): FOUNDRY_TEST=<absolute path to .audit/solidity/poc/<ID>> forge test --match-path '*/Victim_exp.sol' -vvv
