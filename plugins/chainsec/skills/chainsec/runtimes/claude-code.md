@@ -1,6 +1,6 @@
 # Runtime: Claude Code
 
-Detected by: the `Agent` tool (older versions: `Task`).
+Detected by: an `Agent` tool (older versions: a `Task` tool with a `subagent_type` parameter).
 
 - Paths: this skill's folder is `${CLAUDE_SKILL_DIR}`; CORE is `${CLAUDE_SKILL_DIR}/../chainsec`
   resolved with `cd ... && pwd`. (`${CLAUDE_PLUGIN_ROOT}` also works for plugin installs.)

@@ -65,13 +65,13 @@ If no chain produced `A/findings.json`, skip the merge and say so. If one chain 
 `engine/report-template.md`.
 
 ## Dispatch
-Work out your runtime from the subagent tool you have, then read the matching file and follow it
-for every **parallel** or **one subagent** row:
+Work out your runtime from your tools (first matching row wins), then read the matching file and
+follow it for every **parallel** or **one subagent** row, using the `subagent_type` it names:
 
 | You have | Runtime file |
 |---|---|
-| `Agent` or `Task` tool (Claude Code) | `runtimes/claude-code.md` |
-| `task` or `subagent` tool (OpenCode) | `runtimes/opencode.md` |
+| an `Agent` tool, or (older versions) a `Task` tool with a `subagent_type` parameter (Claude Code) | `runtimes/claude-code.md` |
+| a skill tool whose output has a line "Base directory for this skill", or a lowercase `task` or `subagent` tool (OpenCode) | `runtimes/opencode.md` |
 | a Codex sub-agent tool | `runtimes/codex.md` |
 | `invoke_subagent` (Antigravity) | `runtimes/antigravity.md` |
 | none of these, or unsure | `runtimes/generic.md` (sequential, in this conversation) |
