@@ -21,11 +21,13 @@ def main(argv=None):
     try:
         data = load_json(input_file)
         detectors = data["results"]["detectors"]
+        # Check if detectors is a list (empty list is OK, null/false/missing is error)
+        if not isinstance(detectors, list):
+            raise TypeError("detectors must be a list")
+        filtered = [d for d in detectors if d.get("impact") in ("High", "Medium")]
     except (OSError, ValueError, KeyError, TypeError):
         print("Invalid Slither JSON or no detectors found", file=sys.stderr)
         return 1
-
-    filtered = [d for d in detectors if d.get("impact") in ("High", "Medium")]
 
     lines = [
         "# Slither Pre-Scan Summary",
@@ -39,7 +41,13 @@ def main(argv=None):
     for i, d in enumerate(filtered, start=1):
         elements = d.get("elements") or []
         elem = elements[0] if elements else {}
+        # Treat non-dict element as empty
+        if not isinstance(elem, dict):
+            elem = {}
         source_mapping = elem.get("source_mapping", {})
+        # Treat non-dict source_mapping as empty
+        if not isinstance(source_mapping, dict):
+            source_mapping = {}
         file_ = source_mapping.get("filename_relative") or "unknown"
         elem_lines = source_mapping.get("lines") or []
         line = elem_lines[0] if elem_lines else "?"

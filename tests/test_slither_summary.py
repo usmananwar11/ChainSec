@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 
-from helpers import CORE, FIXTURES, run
+from helpers import CORE, FIXTURES, run, write_tmp_json
 
 SCRIPT = os.path.join(CORE, "chains", "solidity", "recon", "slither-summary.py")
 SAMPLE = os.path.join(FIXTURES, "slither", "sample.json")
@@ -91,6 +91,42 @@ class SlitherSummaryTest(unittest.TestCase):
         r = run([sys.executable, SCRIPT], cwd=cwd)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertTrue(os.path.exists(os.path.join(cwd, ".audit", "slither-summary.md")))
+
+    def test_null_detectors_exits_1(self):
+        """Detectors present but null should exit 1 with proper error message."""
+        input_json = write_tmp_json({"success": True, "results": {"detectors": None}})
+        out = os.path.join(tempfile.mkdtemp(), "out.md")
+        r = run_script(input_json, out)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("Invalid Slither JSON or no detectors found", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertFalse(os.path.exists(out))
+
+    def test_non_dict_elements_treated_as_empty(self):
+        """Elements with non-dict items should be treated as empty (file unknown, line ?)."""
+        input_json = write_tmp_json({
+            "success": True,
+            "results": {
+                "detectors": [
+                    {
+                        "check": "test-check",
+                        "impact": "High",
+                        "description": "Test finding",
+                        "elements": ["not-a-dict"]
+                    }
+                ]
+            }
+        })
+        out = os.path.join(tempfile.mkdtemp(), "out.md")
+        r = run_script(input_json, out)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.exists(out))
+
+        with open(out, encoding="utf-8") as f:
+            text = f.read()
+
+        self.assertIn("unknown:?", text)
+        self.assertIn("| 1 | test-check | High | unknown:? | Test finding |", text)
 
 
 if __name__ == "__main__":
