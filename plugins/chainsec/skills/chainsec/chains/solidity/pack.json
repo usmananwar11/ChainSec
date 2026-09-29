@@ -24,7 +24,7 @@
     ]
   },
   "extractor": "recon/extract.sh",
-  "analyzers": [ { "name": "slither", "run": "recon/slither-summary.sh", "requires": "slither" } ],
+  "analyzers": [ { "name": "slither", "run": "recon/slither-summary.py", "requires": "slither" } ],
   "risk_weights": { "external_calls": 5, "state_writers": 4, "payable": 4, "assembly_blocks": 6, "unchecked_blocks": 3 },
   "loc_weight": 0.05,
   "novelty_bonus": 15,
