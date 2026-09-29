@@ -1,1 +1,384 @@
-# review (in progress)
+# Reviewer — Second Opinion on Killed Findings
+
+> Post-audit review phase, run by `chainsec-review` after a completed audit. Re-examines findings killed by the Critic's gates to catch over-filtering.
+
+Reads: `A/verdicts.json`, `A/recon.md`, `A/candidates/detect.json` (plus `A/candidates/state.json`, `A/candidates/rescan.json`, `A/candidates/per-unit.json` if present)
+Writes: `A/review.json`
+
+`A` = `TARGET/.audit/<chain>/`. `A/verdicts.json`, `A/recon.md` and `A/candidates/detect.json`
+MUST exist. If any are missing, tell the user to run `chainsec-audit` (or `chainsec-audit --quick`) first.
+
+## Purpose
+
+The Critic's kill gates are tuned for **zero false positives** — they're intentionally aggressive. This is correct for the main report. But aggressive gates have a cost: **over-killing real findings**.
+
+The Reviewer exists to ask: **"What if the gate was wrong?"**
+
+This is NOT a second audit. It's a targeted re-examination of killed findings with a different mindset:
+- The Critic asks: "Can I DISPROVE this?" (innocent until proven guilty)
+- The Reviewer asks: "Did the gate DISMISS this too quickly?" (was the dismissal justified?)
+
+The output is a **Second Opinion** section — findings that survive re-review get surfaced as **"Worth Manual Review"**, not as verified findings. The auditor decides.
+
+## Which Gates to Re-Examine
+
+Not all gates deserve re-examination. Some are reliably correct. Others are known to over-kill.
+The gate that killed a finding is its `verdict.gate` in `A/verdicts.json` (a gate letter,
+`impact-premise`, `fp-pattern:<id>` or `insufficient-evidence`).
+
+### RE-EXAMINE (High over-kill risk)
+
+**Gate C — "Intentional Design"** (HIGHEST PRIORITY)
+- The gate kills anything that matches a reference implementation or has supporting comments
+- **Problem**: Devs intentionally design exploitable things constantly. "Intentional" ≠ "safe"
+- **Re-examination approach**:
+  1. Read the code the gate cited as "intentional"
+  2. Ask: Does this intentional design CREATE an exploitable condition?
+  3. Ask: Does the original reference implementation have the same issue? (If yes, it might be a known issue in the reference, not proof of safety)
+  4. Ask: Has the protocol MODIFIED the reference implementation in a way that changes the security properties?
+  5. If the design choice leads to value loss for users under normal usage (not attack), it's still a finding regardless of intent
+
+**Gate E — "Admin Trust"** (HIGH PRIORITY)
+- The gate kills anything requiring admin/owner action
+- **Problem**: Many contests accept admin-related Mediums, especially:
+  - Missing timelock on destructive admin actions (rug vectors)
+  - Admin can permanently brick user funds with no recovery path
+  - Admin privileges that should be behind a multisig/timelock but aren't
+  - Single-step ownership transfer (admin can accidentally brick governance)
+- **Re-examination approach**:
+  1. Is there a timelock? If no timelock on irreversible destructive action → potential Medium
+  2. Can admin drain user funds directly? If yes → potential Medium (rug vector)
+  3. Can admin accidentally brick the protocol with a single bad call? If yes → potential Medium
+  4. Is ownership transfer two-step? If single-step → note it
+  5. ONLY promote if the admin action is IRREVERSIBLE and DESTRUCTIVE to users
+
+**Gate B — "Theoretical / Not Exploitable"** (MEDIUM PRIORITY)
+- The gate kills findings where the critic couldn't construct an exploit
+- **Problem**: Some exploits are complex multi-step sequences that a single pass might miss
+- **Re-examination approach**:
+  1. Re-read the original candidate's mechanism description
+  2. Try to construct the exploit trace with FRESH EYES (don't re-read the critic's dismissal first)
+  3. Consider flash loan attack paths the critic might not have explored
+  4. Consider multi-block MEV sequences
+  5. If you still can't construct a concrete trace → confirm the kill
+
+**Gate F — "Dust / Economically Insignificant"** (MEDIUM PRIORITY)
+- The gate kills anything with max_loss × max_iterations < $100
+- **Problem**: The $100 threshold is context-free. Dust in a $100M TVL pool is different from a $10K pool. Also, dust that accumulates per-block over time can become significant.
+- **Re-examination approach**:
+  1. What's the protocol's expected TVL/volume?
+  2. Can the dust accumulate over time without bound?
+  3. Is the rounding direction attacker-controlled? (attacker-controlled rounding direction = finding even if individual amounts are small)
+  4. Can the dust be extracted via flash loan amplification?
+  5. Recalculate with realistic protocol parameters
+
+**Gate D — "Speculative / No Concrete Exploit"** (LOWER PRIORITY)
+- The gate kills vague "could be an issue" findings
+- **Re-examination approach**:
+  1. Try harder to construct the concrete trace
+  2. If the mechanism is valid but the exploit path is unclear, try different entry points
+  3. If still speculative after re-examination → confirm the kill
+
+**Gate D via Impact Premise — "Harm: MECHANISM-ONLY"** (HIGH PRIORITY — this is a distinct kill reason; `verdict.gate: impact-premise`)
+- The critic killed it because no **harm statement** could be written, not because the mechanism was disproven. That is a *description* failure, and descriptions are cheap to fix.
+- **Re-examination approach** — try to supply the harm yourself:
+  1. Take the stated mechanism and ask: *if this machinery does exactly what the candidate says, who ends up worse off?* Name the user class (depositors, borrowers, LPs, the last claimant, the protocol treasury).
+  2. Quantify the consequence in the units the protocol actually uses — share of pro-rata claim, blocked lifecycle action, escalated privilege, corrupted accounting total.
+  3. Check the *inverse*: if you assume the harm is zero, does the mechanism still make sense as written? Code that is pointless under the no-harm assumption usually hides the harm.
+  4. If you can now write "WHO loses WHAT" → **REVIVE**. The critic's kill was a wording failure, not a security judgment.
+  5. If after honest effort the mechanism still leads to no one losing anything → **CONFIRM KILL**. That is the gate working correctly.
+- Do NOT revive by restating the mechanism in more dramatic language. "State is corrupted, which is dangerous" is still mechanism-only.
+
+**FP-1 — "Authorization Handled Elsewhere"** (LOWER PRIORITY)
+- **Re-examination**: Verify that ALL call paths go through auth. One unguarded path = real finding.
+
+**FP-2 — "Validation in Called Functions"** (LOWER PRIORITY)
+- **Re-examination**: Is the validation COMPLETE? Does it cover all edge cases? Partial validation = real finding.
+
+### DO NOT RE-EXAMINE (Reliably correct)
+
+**Gate A — "Generic Best Practice"**: These are genuinely noise. "Use a safe-transfer wrapper" without a specific failing token is never a real finding. Skip.
+
+**Gate G — "Out of Context"**: Token behaviors for unlisted tokens, chain-specific issues on unsupported chains. These are definitionally out of scope. Skip.
+
+**Gate H — "Known / Acknowledged"**: Already in README known issues. Only re-examine if the mechanism match seems weak (same topic but different exploit path).
+
+## Execution
+
+### Step 1: Load Context
+
+Read these files:
+1. `A/verdicts.json` — get all killed findings (`status: killed`) with their gate/FP reasons (`verdict.gate`, `verdict.reason`)
+2. `A/recon.md` — understand the protocol
+3. `A/candidates/detect.json` — get the ORIGINAL candidate descriptions (before the critic filtered them); also `A/candidates/state.json`, `A/candidates/rescan.json` and `A/candidates/per-unit.json` when the killed id came from those phases
+
+Build a list of all killed findings, grouped by gate.
+
+### Step 2: Filter to Re-Examinable
+
+From the killed findings, extract ONLY those killed by gates C, E, B, F, D, FP-1, or FP-2 (`verdict.gate` `C`, `E`, `B`, `F`, `D`, `impact-premise`, `fp-pattern:FP-1`, `fp-pattern:FP-2`). Skip gates A, G, H (unless Gate H has a weak mechanism match — same topic but different path).
+
+Sort by priority:
+1. Gate C kills (intentional design)
+2. Gate E kills (admin trust)
+3. **Gate D kills marked `Harm: MECHANISM-ONLY`** (Impact Premise) — highest-yield class: the mechanism was never disproven, only under-described
+4. Gate B kills (theoretical)
+5. Gate F kills (dust)
+6. Gate D kills (speculative — mechanism actually untraceable)
+7. FP-1 / FP-2 kills
+
+### Step 3: Re-Examine Each Finding
+
+For each killed finding in priority order:
+
+1. **Read the original candidate** from `A/candidates/detect.json` (or `A/candidates/state.json`, …). Get the FULL description, not just the critic's summary.
+
+2. **Read the actual code** at the cited file:line. Fresh eyes — don't carry over the critic's judgment.
+
+3. **Apply the gate-specific re-examination approach** (see above).
+
+3a. **Use the methodology audit trail to prioritize and target re-examination** (`audit_trail` and the `preconditions` / `postconditions` arrays):
+- **`Step Execution`** with `✗(no reason)` or `?` on a lens/phase → that's an under-analyzed area; re-examine that lens here.
+- **`Rules Applied`** with `✗(no reason)` on a rule that SHOULD apply (e.g. R16 marked ✗ but the function reads an oracle, or R15 marked ✗ but a flash-loan-accessible balance is used) → likely a rule-application failure; revive.
+- **`Depth Evidence`** is empty or has 0 concrete tags → the agent never substituted real values; re-do that step yourself with concrete numbers before deciding.
+- **`Missing Precondition`** is named in the killing critic verdict → check whether ANY other finding's `Postconditions Created` field would create that precondition. If yes, the chain is live and the kill is wrong. Mechanically: match the killed finding's `preconditions[]` (and `audit_trail.missing_precondition`) against every other finding's `postconditions[]` (and `audit_trail.postconditions_created`) in `A/verdicts.json` — same `type` and the same state, access, timing, external or balance condition.
+- **`Postconditions Created`** is non-empty on a CONFIRMED finding upstream → check whether any KILLED finding's `Missing Precondition` matches; if so, the killed finding becomes exploitable via the chain.
+
+4. **Assign a review verdict**:
+
+   - **REVIVE — Worth Manual Review**: The gate dismissal was premature. The mechanism is plausible and deserves human auditor attention. Include WHY the gate was wrong and what the auditor should look for.
+
+   - **REVIVE — Informational**: Not exploitable for value loss, but worth noting as a design concern, hardening opportunity, or audit trail item. Include what the concern is.
+
+   - **CONFIRM KILL**: The gate was correct. The re-examination found no reason to reconsider. State what you checked.
+
+5. **For REVIVE verdicts**, provide:
+   - The original candidate ID and description
+   - Which gate killed it and why
+   - Why the gate might be wrong in this specific case
+   - What the auditor should manually verify
+   - Suggested severity if it turns out to be real
+
+### Step 4: Protocol Context Check
+
+After individual re-examination, do one cross-cutting check:
+
+- **Admin centralization cluster**: If multiple Gate E kills exist, do they collectively represent a significant centralization risk? Individual admin functions might be acceptable, but 6+ admin-controlled critical functions without timelocks could be a systemic concern worth noting.
+
+- **Dust accumulation cluster**: If multiple Gate F kills exist, can the individual dust amounts combine? Rounding in function A + rounding in function B + rounding in function C = significant leakage?
+
+- **Design assumption cluster**: If multiple Gate C kills exist around the same mechanism, the "intentional design" might have a systemic flaw that individual analysis missed.
+
+## Output
+
+Write a JSON array to `A/review.json`; each element conforms to `engine/finding.schema.json`,
+with id `RV-<n>`, `chain`, and `discovery: {"phase": "review", ...}`. Revived findings keep the
+original candidate's `locations`, `category` and `description` basis; put the original id in
+`merged_from`. Status per re-verification (`engine/verdicts.md`):
+
+| Review item | `status` | Fields |
+|---|---|---|
+| **REVIVE — Worth Manual Review** (and **New Finding**, **Systemic Pattern**) | `verified-conditional` | `severity` = suggested severity; `preconditions` = the "Verify" checklist items; `harm` = "Impact if real"; `exploit_trace` = the trace you built; `verdict.reason` starts `Second opinion — worth manual review:` then why the dismissal may be wrong and the audit-trail signal; `verdict.gate: null` |
+| Same, and your re-verification produced a concrete trace with values and a harm statement with no open conditions | `verified` | as above, `preconditions` empty |
+| **REVIVE — Informational** | `downgraded` | `severity: "Info"`, `verdict.original_severity` = the original severity, `verdict.reason` = the observation |
+| **CONFIRM KILL** | `killed` | `verdict.gate` = the original gate, `verdict.reason` starts `Confirmed kill:` then what re-examination checked |
+
+A Systemic Pattern (Step 4) is one element with `category: "systemic-pattern"` and one `locations`
+entry per affected area; `merged_from` lists the killed ids it combines. A New Finding (found by
+reading the code with fresh eyes, not from the killed list) has an empty `merged_from`.
+
+Revived findings are flags for human review, not verified TPs. Before finishing, run
+`python3 scripts/validate-findings.py A/review.json`: a revived Critical/High/Medium without a
+`file` + `line_start` location, a harm statement or an exploit trace is rejected — supply the
+field from the code or lower it to REVIVE — Informational.
+
+Example element (revived):
+
+```json
+{
+  "id": "RV-1",
+  "chain": "<chain>",
+  "title": "Owner can set the redemption fee to 100% with no timelock",
+  "severity": "Medium",
+  "category": "admin-trust",
+  "status": "verified-conditional",
+  "locations": [{"file": "src/Vault.<ext>", "line_start": 88, "line_end": 92, "unit": "Vault", "function": "setRedeemFee"}],
+  "discovery": {"phase": "review", "lens": null, "mindset": null, "consensus": null, "unit": "Vault"},
+  "description": "setRedeemFee() accepts any value up to 10000 bps and applies immediately, so a single owner call makes every pending redemption pay a 100% fee.",
+  "root_cause": "No upper bound and no timelock on an irreversible, user-destructive parameter change.",
+  "harm": {"who": "depositors with queued redemptions", "loses_what": "their entire redemption amount", "magnitude": "all assets in the redemption queue at the time of the change"},
+  "exploit_trace": [
+    "1. Users queue redemptions worth 500,000 tokens.",
+    "2. Owner calls setRedeemFee(10000); the new fee applies in the same block.",
+    "3. processRedemptions() pays 0 tokens to each user and sends 100% to the fee recipient."
+  ],
+  "preconditions": [
+    {"text": "Confirm no timelock or delay wraps setRedeemFee() (check the owner address and any proxy admin)", "type": "ACCESS"},
+    {"text": "Confirm processRedemptions() reads the fee at processing time, not at queue time", "type": "TIMING"}
+  ],
+  "postconditions": [{"text": "queued redemptions settle at zero", "type": "BALANCE"}],
+  "verdict": {"gate": null, "reason": "Second opinion — worth manual review: dismissed as admin trust, but the change is irreversible for queued users and has no timelock; in contests this is typically Medium. The killing verdict had no Depth Evidence tags.", "evidence_tag": "[CODE-TRACE]", "method": "code-trace", "original_severity": null},
+  "audit_trail": {
+    "step_execution": "Review: gate E re-examination 1=✓ 2=✓ 3=✓ 4=✓ 5=✓",
+    "rules_applied": ["R10:✓(assessed with a full redemption queue)"],
+    "depth_evidence": ["[BOUNDARY:fee=10000 bps → payout 0]"],
+    "missing_precondition": "",
+    "postconditions_created": ["queued redemptions settle at zero"],
+    "who_benefits": "Owner / fee recipient"
+  },
+  "merged_from": ["DA-7"]
+}
+```
+
+### Presentation to User
+
+When presenting results, use this structure. The goal: the auditor reads top to bottom, understands every item in under 30 seconds, and knows exactly what action to take. Build it from `A/review.json` (and `A/verdicts.json` for the counts).
+
+#### 1. Summary Banner
+
+```
+───────────────────────────────────────────────────
+ChainSec Second Opinion — [Protocol Name]
+
+X killed findings re-examined | Y skipped (reliable gates)
+Result: X revived for review | Y confirmed kills
+───────────────────────────────────────────────────
+```
+
+#### 2. Systemic Patterns (FIRST — most valuable)
+
+If the cluster analysis (Step 4) found cross-cutting patterns, lead with them. These are the findings that individual analysis missed.
+
+```markdown
+## Systemic Patterns
+
+### [Pattern title — plain English]
+
+**What's happening**: [2-3 sentences explaining the systemic issue. No gate codes, no candidate IDs — just describe the problem in terms the auditor understands.]
+
+**Affected areas**:
+- `file:XX` — [what this function does wrong]
+- `file:YY` — [what this function does wrong]
+- `file:ZZ` — [what this function does wrong]
+
+**Why individual analysis missed it**: [Each piece was dismissed individually because X, but together they create Y]
+
+**Risk if real**: [MEDIUM/HIGH] — [one-line impact]
+
+**Verify**:
+- [ ] [Specific actionable check]
+- [ ] [Specific actionable check]
+```
+
+If no systemic patterns found, skip this section entirely. Don't write "No systemic patterns found."
+
+#### 3. Revived Findings
+
+Each revived finding tells a complete story. The auditor should understand the issue without having to look up the original candidate or know what "Gate C" means.
+
+**For findings discovered NEW during review** (found by reading the code with fresh eyes, not from the killed list):
+
+```markdown
+## New Finding — [Descriptive Title]
+
+**File**: `path/to/file:XX-YY`
+**Suggested severity**: [MEDIUM/HIGH]
+
+**What's wrong**:
+[Clear explanation of the vulnerability in 2-4 sentences. What the code does, what it should do, and what breaks. Include the actual code behavior, not abstractions.]
+
+**Why the original audit missed it**:
+[One sentence — e.g., "The original audit focused on X but this function was only analyzed in the context of Y"]
+
+**Impact**:
+[Concrete impact — who loses what, under what conditions, approximately how much]
+
+**Depth Evidence** (if you reasoned with concrete values): [BOUNDARY:...], [VARIATION:...], [TRACE:...]
+**Postconditions Created** (optional, helps chain analysis): [What state/access/timing/external/balance changes does success leave behind]
+
+**Verify**:
+- [ ] [Specific check 1 — e.g., "Confirm _syncFunding() is not called anywhere in the addMargin() call chain"]
+- [ ] [Specific check 2 — e.g., "Calculate max staleness: block.timestamp - lastFundingTime after 24h of no trades"]
+- [ ] [Specific check 3]
+```
+
+**For killed findings being revived** (from the killed list):
+
+```markdown
+## Revisit — [Descriptive Title]
+
+**File**: `path/to/file:XX-YY`
+**Suggested severity**: [MEDIUM/HIGH]
+
+**What the finding claims**:
+[2-3 sentence plain-English summary of the original finding. What's the alleged vulnerability?]
+
+**Why it was dismissed**:
+[Plain English — NOT "killed by Gate C". Instead: "The critic dismissed this as an intentional design choice because the reference implementation (Uniswap V3) uses the same pattern." or "The critic ruled this as admin-trust because only the owner can trigger it."]
+
+**Why that dismissal may be wrong**:
+[Specific counterargument — e.g., "The reference implementation doesn't have X constraint that this protocol adds, which changes the security properties." or "The owner action is irreversible and there's no timelock — in Code4rena this typically qualifies as Medium."]
+
+**Audit-trail signal that justified revival**:
+[Plain English — e.g., "The critic verdict listed Missing Precondition = 'amountIn must be > MAX_RESERVE', but Detector candidate-007 has Postconditions Created = 'reserve can be inflated past MAX_RESERVE via fee accumulation'. The two compose into a working exploit." OR "The killing critic verdict had no Depth Evidence tags, so the dismissal was abstract reasoning rather than concrete-value verification."]
+
+**Impact if real**:
+[Concrete impact — who loses what, under what conditions]
+
+**Verify**:
+- [ ] [Specific check 1]
+- [ ] [Specific check 2]
+- [ ] [Specific check 3]
+```
+
+**For informational items** (not exploitable, but worth noting):
+
+```markdown
+## Note — [Descriptive Title]
+
+**File**: `path/to/file:XX`
+
+**Observation**: [1-2 sentences — what's unusual and why it's worth knowing, even though it's not exploitable. E.g., "Rewards silently redirect to STAKED_BEAR when InvarCoin is paused. No value loss (funds go to stakers), but users expecting rewards in token A will receive them in token B with no event or notification."]
+```
+
+#### 4. Confirmed Kills (Last — least important)
+
+Brief. The auditor doesn't need to re-read every confirmed kill. Just show the count and a collapsed summary.
+
+```markdown
+---
+
+**Confirmed kills**: X of Y re-examined findings were correctly dismissed.
+
+<details>
+<summary>View confirmed kills</summary>
+
+| # | Finding | Dismissed because | Confirmed because |
+|---|---------|-------------------|-------------------|
+| 1 | [Title] | [plain English reason] | [what re-examination checked] |
+| 2 | [Title] | [plain English reason] | [what re-examination checked] |
+</details>
+```
+
+### File Output
+
+The full second opinion is `A/review.json`; the presentation above is rebuilt from it (systemic
+patterns: `category: "systemic-pattern"`; new findings: empty `merged_from`; revisits: the other
+`verified-conditional` / `verified` items; notes: `downgraded` items; confirmed kills: `killed` items).
+
+### Key Formatting Rules
+
+- **No gate codes in user-facing output.** Never write "Gate C" or "FP-2". Always translate to plain English: "dismissed as intentional design" or "dismissed because validation exists in the called function."
+- **No candidate IDs without context.** Never write "was CANDIDATE-A04" without also explaining what that candidate was about. Better: skip the ID entirely and just describe the finding.
+- **Every finding must be self-contained.** The auditor should understand each item without cross-referencing other files.
+- **Verify checklists must be actionable.** Not "check this function" but "confirm that setFee() has a timelock > 24h and cannot be bypassed via emergencySetFee()."
+- **Lead with the interesting stuff.** Systemic patterns first, new findings second, revived findings third, confirmed kills last.
+
+## Rules
+
+- **This is a SECOND OPINION, not a verdict.** Revived findings are flags for human review, not verified TPs. Make this extremely clear.
+- **Fresh eyes.** Read the code first, THEN the critic's dismissal. Don't anchor on the gate's reasoning.
+- **Don't re-examine gates A/G.** They're reliably correct and re-examining them wastes time.
+- **Be specific about what to verify.** "Check this function" is not helpful. "Verify that the timelock delay on `setFee()` is > 24h and cannot be bypassed via `emergencySetFee()`" is helpful.
+- **Don't inflate.** If re-examination confirms the kill, say so. The value of this skill is precision, not volume.
+- **Cluster analysis matters.** Individual kills might be correct, but clusters of kills in the same area can reveal systemic issues the gates weren't designed to catch.

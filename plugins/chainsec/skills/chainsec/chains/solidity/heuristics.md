@@ -185,11 +185,108 @@ Solidity items of Krait's Lens D (`engine/mindsets.md`), verbatim:
 
 ## Detector modules (Solidity)
 
-(ported in a later task)
+Solidity items of Krait's detector (`engine/phases/detect.md`), verbatim.
+
+### Module A: Untrusted Recipient Analysis
+
+For every ETH/token transfer to an address that is NOT msg.sender or a known trusted protocol address:
+
+### Module B: Type Cast Safety
+Check EVERY explicit downcast: `uint128(x)`, `uint96(x)`, `int128(x)`, etc. Solidity 0.8+ does NOT revert on explicit type casts — they silently truncate. For each:
+- What is the maximum possible value of the source?
+- Can it exceed the target type's max? (uint128.max ≈ 3.4e38, uint96.max ≈ 7.9e28)
+- What breaks on truncation? (corrupted reserves, wrong prices, broken invariants)
+
+### Module F: Token Compatibility
+- setApprovalForAll: Some tokens revert if already set to same value. Check loops.
+- 0-value transfers: Check if fee/amount can be 0, and a transfer still happens.
+- Tokens with < 4/6 decimals: Check all `decimals() - N` calculations for underflow.
+
+### Module G: Factory/Deployment Patterns
+- CREATE2 with user-controlled salt: frontrun deployment? pre-deployment deposits?
+- Gap between deploy and initialize: can someone else initialize?
+
+### Module O: Payment/Distribution Flow Tracing
+
+1. **Trace each payment**: For every `.call{value:}`, `.transfer()`, `.send()`, `safeTransfer()` — WHO is the actual recipient? Is it `owner()` (contract deployer), `ownerOf(tokenId)` (NFT holder), `msg.sender`, or a configured address? Verify the recipient is semantically correct (e.g., auction proceeds should go to token OWNER, not contract OWNER).
+
+### Question additions
+
+- **Q3.7 [ACCESS CONTROL EXHAUSTIVE CHECK]**: List EVERY public/external function that writes state. For each: WHO can call it? Is that the right set of callers? Especially check: checkpoint/sync functions (often accidentally permissionless), functions that should be admin-only but aren't, functions that should validate msg.sender against a parameter but don't.
+- **Q6.3**: Can external calls FAIL SILENTLY? (ERC20 transfer returns false without reverting)
+
+### Rules
+
+- **Track OpenZeppelin/Solmate usage.** Don't flag standard implementations as custom bugs.
 
 ## Recon additions
 
-(ported in a later task)
+Solidity items of Krait's recon (`engine/phases/recon.md`), verbatim.
+
+### Analyzer command (Step 2b)
+
+Slither is invoked first to produce its JSON; the pack's analyzer script (`recon/slither-summary.py`,
+`pack.json` `analyzers[].run`) then summarizes it. `A` and `ROOT` are absolute paths.
+
+```bash
+mkdir -p A/analyzers && rm -f A/analyzers/slither.json
+(cd ROOT && slither . --json A/analyzers/slither.json 2>/dev/null)
+python3 CORE/chains/solidity/recon/slither-summary.py A/analyzers/slither.json A/analyzers/slither.md
+```
+
+- Slither may exit non-zero when it reports findings: judge success by `A/analyzers/slither.json`
+  existing, not by the exit code.
+- Slither does not overwrite an existing JSON output file, hence the `rm -f`.
+- Run it from ROOT, where the project's Foundry/Hardhat setup compiles.
+
+### Project identification (Step 1)
+
+- Package manifests (package.json, foundry.toml, Cargo.toml, hardhat.config)
+- **Key dependencies**: OpenZeppelin, Chainlink, Uniswap, Aave, Compound, Solmate, etc.
+
+### Scope expansion (Step 3)
+
+- Standard library imports (OpenZeppelin, Solmate) are excluded — only project-specific base contracts.
+- `novel_code_bonus` — `# +15 if NOT from OpenZeppelin/Solmate/standard library`
+
+### Risk-score counters (Step 3)
+
+Where:
+- **external_calls**: Count of `.call`, `.transfer`, `.safeTransfer`, interface method calls, `delegatecall`
+- **state_writing_functions**: Count of public/external functions that write storage (use `sstore` or assign to state variables)
+- **payable_functions**: Count of `payable` functions
+- **assembly_blocks**: Count of `assembly { }` blocks
+- **unchecked_blocks**: Count of `unchecked { }` blocks
+- **novel_code_bonus**: +15 if the contract is NOT a standard OpenZeppelin/Solmate contract (check imports — if it inherits from OZ but adds significant custom logic, it gets the bonus)
+- **value_handling_bonus**: +10 if the contract transfers ETH or ERC20 tokens
+
+### Untrusted Recipient Map (Step 3c)
+
+List every ETH/token transfer where the recipient is NOT msg.sender and NOT a hardcoded protocol address:
+- Royalty recipients (from ERC-2981 registry)
+- Callback receivers (onFlashLoan, onERC721Received)
+
+### Attacker mindset (Step 4)
+
+3. **What's novel?** What code was written specifically for this protocol (not copied from OpenZeppelin/Solmate/etc.)? Novel code = novel bugs. Flag any non-standard implementations of standard patterns.
+
+### Integration checklists (Step 5)
+
+**Chainlink Integration**: stale price (updatedAt + heartbeat), zero/negative answer, roundId validation, L2 sequencer feed.
+
+**Uniswap Integration**: slot0 is manipulable (never use as oracle), use TWAP via observe(), price impact/slippage, tick rounding on concentrated liquidity.
+
+## State audit additions
+
+Solidity original of the Phase 4 operation-ordering example in `engine/phases/state.md`, verbatim:
+
+```
+function withdraw(uint amount):
+  1. READ  shares[msg.sender]        ← reads coupled state
+  2. WRITE shares[msg.sender] -= x   ← updates primary
+  3. CALL  token.transfer(...)       ← EXTERNAL CALL
+  4. WRITE totalShares -= x          ← updates coupled AFTER external call!
+```
 
 ## Security strengths examples
 

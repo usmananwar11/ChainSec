@@ -29,6 +29,10 @@ The finding claims state manipulation via a view function:
 
 **Check**: Is the function actually view/pure? Does it matter if the value is temporarily wrong?
 
+### FP-9: Test/Script/Interface-Only (Solidity test files)
+Solidity item of FP-9 (`engine/phases/verify.md`), verbatim:
+- Test files (test/, t/, .t.sol)
+
 ## Gate overrides and examples
 
 Solidity examples for the gates in `engine/kill-gates.md`, keyed by gate letter. Moved verbatim
@@ -43,4 +47,7 @@ from Krait's critic Step 0 and detector pre-filter.
 
 ## Masking code examples
 
-(ported in a later task)
+Solidity masking patterns from Krait's state auditor Phase 7 (`engine/phases/state.md`), verbatim:
+
+- **Try/catch swallowing reverts**: A revert was expected to never happen. If it's being caught, the invariant it protects may be breakable.
+- **SafeMath without root cause**: Checked arithmetic prevents the revert but doesn't fix why the values diverged.

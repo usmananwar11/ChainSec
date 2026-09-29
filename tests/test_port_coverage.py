@@ -18,8 +18,6 @@ def corpus():
 
 
 class PortCoverageTest(unittest.TestCase):
-    # Stays red until Tasks 9-11 finish the port; Task 11 removes this decorator.
-    @unittest.expectedFailure
     def test_every_krait_id_survives(self):
         with open(IDS, encoding="utf-8") as f:
             ids = [l.strip() for l in f if l.strip()]
