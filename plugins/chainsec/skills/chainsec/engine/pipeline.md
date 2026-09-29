@@ -20,16 +20,18 @@ Run `python3 CORE/scripts/detect-chain.py TARGET -o TARGET/.audit/chains.json`.
 ## Per chain
 Process chains one after another. For each: `ROOT = TARGET/<root>`, `A = TARGET/.audit/<chain>`.
 With `--fresh`, first delete the pipeline outputs in `A`: the outputs in the table below plus
-`A/candidates/`, `A/analyzers/`, `A/clusters.json` and `A/pass1-brief.md` (keep `A/review.json`,
+`A/candidates/`, `A/analyzers/`, `A/clusters.json`, `A/pass1-brief.md` and `A/review.json` (keep
 `A/poc/` and `A/fuzz/`).
 
 **Resume:** skip a phase whose output already exists and say `resumed: <phase>`. JSON outputs must
 also parse; findings files must also pass `python3 CORE/scripts/validate-findings.py <file> --schema-only`.
 - A phase that runs instead of resuming first deletes the outputs of every later phase in the table
-  (other than its own).
+  (other than its own). When phase 9 (verify) runs, it also deletes `A/review.json`
+  (chainsec-review's second opinion on the old verdicts, which the report phase would read).
 - `A/preflight.json` records `"quick"`. If this run's `--quick` differs, treat phases 7–11 as not
   done (delete their outputs) and update `"quick"`.
-- When a phase listed in `incomplete_phases` completes, remove it from the list.
+- A phase listed in `incomplete_phases` is not done, even if its output exists: run it again, and
+  remove it from the list when it completes.
 
 | # | Phase | How | Output |
 |---|---|---|---|
@@ -38,7 +40,7 @@ also parse; findings files must also pass `python3 CORE/scripts/validate-finding
 | 3 | score | `python3 CORE/scripts/score-risk.py A/facts.json CORE/P/pack.json -o A/risk.json` | `A/risk.json` |
 | 4 | recon | follow `engine/phases/recon.md` | `A/recon.md`, `A/known-issues.md` |
 | 5 | detect | one subagent, `prompts/pass1-detector.md`, writing `A/candidates/detect-P1.json` and `A/pass1-brief.md`; then **parallel**: one subagent per lens A, B, C, D using `prompts/lens-detector.md`, each writing `A/candidates/detect-<lens>.json`; then follow the "Consensus merge" and "Pass 3 sweep" sections of `engine/phases/detect.md` | `A/candidates/detect.json` |
-| 6 | rescan | one subagent, `prompts/rescan.md` | `A/candidates/rescan.json` |
+| 6 | rescan | one subagent, `prompts/rescan.md`; if it writes `[]`, add one `A/preflight.json` `warnings` string per `REINFORCED:` line of its reply (`engine/phases/rescan.md`, "Non-goals") | `A/candidates/rescan.json` |
 | 7 | per-unit (skip if `--quick`) | build clusters per `engine/phases/per-unit.md`; delete `A/candidates/per-unit-*.json`; **parallel**: one subagent per cluster (max 8), `prompts/per-unit.md`, each writing `A/candidates/per-unit-<n>.json`; then `python3 CORE/scripts/merge-findings.py --concat -o A/candidates/per-unit.json A/candidates/per-unit-*.json` | `A/candidates/per-unit.json` |
 | 8 | state (skip if `--quick`) | one subagent, `prompts/state-auditor.md` | `A/candidates/state.json` |
 | 9 | verify | one subagent, `prompts/critic.md` | `A/verdicts.json` |
@@ -54,10 +56,10 @@ also parse; findings files must also pass `python3 CORE/scripts/validate-finding
    `A/verdicts.json` in place), then re-run step 1.
 3. Still exit 1 → `python3 CORE/scripts/validate-findings.py A/verdicts.json --downgrade`.
 4. Still exit 1 (schema errors or duplicate ids) → fix the JSON mechanically once more; if it
-   still fails, mark the chain's report phase `incomplete` and continue with the next chain.
+   still fails, record `report` in `incomplete_phases` and continue with the next chain.
 
 ## After all chains
-If no chain produced `A/findings.json`, skip the merge and say so. If one chain ran, run
+If no chain produced `A/findings.json`, skip the merge and say so. If exactly one did, run
 `python3 CORE/scripts/merge-findings.py --concat -o TARGET/.audit/findings.json A/findings.json`
 (keeps `A/report.md`'s order) and copy `A/report.md` to `TARGET/.audit/report.md`. Otherwise run
 `python3 CORE/scripts/merge-findings.py -o TARGET/.audit/findings.json TARGET/.audit/*/findings.json`
