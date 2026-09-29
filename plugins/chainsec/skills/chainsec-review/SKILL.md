@@ -13,3 +13,7 @@ argument-hint: "[path] [--chain <name>]"
 3. Follow `../chainsec/engine/phases/review.md` for that chain (dispatch per `../chainsec/engine/pipeline.md`
    "Dispatch", template `../chainsec/prompts/reviewer.md`, output `TARGET/.audit/<chain>/review.json`).
 4. Present the results exactly as review.md's "Presentation to User" section describes.
+5. If `review.json` has revived findings (status `verified-conditional` or `downgraded`), offer to
+   regenerate the report. On yes, re-run the report phase: `../chainsec/engine/phases/report.md`
+   via the reporter template `../chainsec/prompts/reporter.md` (dispatched as in step 3), which
+   reads `review.json`.
