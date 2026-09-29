@@ -14,6 +14,11 @@ argument-hint: "[path] [--chain <name>]"
    "Dispatch", template `../chainsec/prompts/reviewer.md`, output `TARGET/.audit/<chain>/review.json`).
 4. Present the results exactly as review.md's "Presentation to User" section describes.
 5. If `review.json` has revived findings (status `verified-conditional` or `downgraded`), offer to
-   regenerate the report. On yes, re-run the report phase: `../chainsec/engine/phases/report.md`
-   via the reporter template `../chainsec/prompts/reporter.md` (dispatched as in step 3), which
-   reads `review.json`.
+   regenerate the report. Say that the report is rebuilt from `verdicts.json` and `review.json`, so
+   final ids can shift and PoC results recorded by chainsec-poc (`verdict.evidence_tag` in
+   `findings.json`, `poc/<id>/` folders) are not carried over. On yes, for each reviewed chain
+   whose `TARGET/.audit/<chain>/report.md` exists, re-run the report phase:
+   `../chainsec/engine/phases/report.md` via the reporter template `../chainsec/prompts/reporter.md`
+   (dispatched as in step 3), which reads `review.json`. Then re-run the "After all chains"
+   section of `../chainsec/engine/pipeline.md` (with TARGET and CORE) so `TARGET/.audit/report.md`
+   and `TARGET/.audit/findings.json` match the regenerated chain reports.
