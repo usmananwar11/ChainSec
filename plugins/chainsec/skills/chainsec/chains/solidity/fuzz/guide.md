@@ -20,7 +20,7 @@ assert(totalSupply == _computeTotal());                     // INV: supply consi
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import {Vault} from "../src/Vault.sol";
+import {Vault} from "src/Vault.sol"; // project-root-relative: this file runs from .audit/solidity/fuzz/tests/
 
 contract InvariantTest_Vault is Test {
     Vault vault;
