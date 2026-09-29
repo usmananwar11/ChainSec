@@ -36,6 +36,9 @@ if [ -z "$DEST" ]; then
   esac
 fi
 mkdir -p "$DEST"
+if [ "$(cd "$DEST" && pwd -P)" = "$(cd "$SRC" && pwd -P)" ]; then
+  echo "refusing to install: the destination is ChainSec's own source folder ($SRC)" >&2; exit 2
+fi
 for skill in "$SRC"/*/; do
   name="$(basename "$skill")"
   target="$DEST/$name"
