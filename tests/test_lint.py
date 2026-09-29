@@ -81,6 +81,18 @@ class LintTest(unittest.TestCase):
         body = "```solidity\nint256[] memory b = new int256[](toks.length);\n```\n"
         self.assertEqual(lint(tree(**{SK + "chainsec__chains__x.md": body})), [])
 
+    def test_claude_vars_flagged_outside_claude_runtime(self):
+        for rel, body in [("chainsec-audit__SKILL.md", "---\nname: chainsec-audit\ndescription: a\n---\ncd ${CLAUDE_SKILL_DIR}\n"),
+                          ("chainsec__engine__x.md", "Use CLAUDE_PLUGIN_ROOT here.\n"),
+                          ("chainsec__scripts__x.py", "import os\nos.environ['CLAUDE_SKILL_DIR']\n"),
+                          ("chainsec__runtimes__generic.md", "Echo ${CLAUDE_FOO}.\n")]:
+            errs = lint(tree(**{SK + rel: body}))
+            self.assertTrue(any("Claude-only variable" in e for e in errs), (rel, errs))
+
+    def test_claude_vars_allowed_in_claude_runtime(self):
+        md = "Folder `${CLAUDE_SKILL_DIR}`; `${CLAUDE_PLUGIN_ROOT}` too.\n"
+        self.assertEqual(lint(tree(**{SK + "chainsec__runtimes__claude-code.md": md})), [])
+
     def test_repository_is_clean(self):
         self.assertEqual(lint(REPO), [])
 

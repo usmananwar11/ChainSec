@@ -12,6 +12,8 @@ Checks every skill under plugins/chainsec/skills/:
   - markdown links (outside code fences) resolve against the file's folder
   - no legacy Krait paths or commands (except ATTRIBUTION files)
   - engine/, prompts/, runtimes/, domains/ contain no chain-specific terms
+  - no Claude-only variables (${CLAUDE_..., CLAUDE_PLUGIN_ROOT, CLAUDE_SKILL_DIR) in any
+    skill file except chainsec/runtimes/claude-code.md
   - every chains/<chain>/pack.json validates and its referenced files exist
     (pack checks run once at least one pack.json exists)
 """
@@ -27,6 +29,8 @@ NEUTRAL_DIRS = ("engine", "prompts", "runtimes", "domains")
 BANNED = re.compile(r"\bsolidity\b|\bforge\b|\bfoundry\b|\bslither\b|openzeppelin|solmate|\.sol\b|msg\.sender", re.I)
 ALLOW_MARK = "<!-- neutrality:allow -->"
 LEGACY = re.compile(r"~/\.claude/skills|(?<![\w/-])/krait\b")
+CLAUDE_VARS = re.compile(r"\$\{CLAUDE_|CLAUDE_PLUGIN_ROOT|CLAUDE_SKILL_DIR")
+CLAUDE_VARS_ALLOWED = os.path.join("chainsec", "runtimes", "claude-code.md")
 BACKTICK = re.compile(r"`([^`\s]+)`")
 MDLINK = re.compile(r"\]\(([^)\s]+)\)")
 PACK_FILES = ("heuristics.md", "fp-patterns.md", "module-triggers.md")
@@ -89,6 +93,18 @@ def lint_markdown(name, sdir, path, relp):
     return errors
 
 
+def lint_claude_vars(name, path, relp):
+    if os.path.join(name, relp) == CLAUDE_VARS_ALLOWED:
+        return []
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except (OSError, UnicodeDecodeError):
+        return []
+    return [f"{name}/{relp}:{i}: Claude-only variable {m.group(0)!r} (allowed only in runtimes/claude-code.md)"
+            for i, line in enumerate(lines, 1) for m in [CLAUDE_VARS.search(line)] if m]
+
+
 def lint_skill(name, sdir):
     skill_md = os.path.join(sdir, "SKILL.md")
     meta = frontmatter(skill_md) if os.path.isfile(skill_md) else None
@@ -118,6 +134,7 @@ def lint_skill(name, sdir):
                 errors.append(f"{name}/{relp}: nested SKILL.md (tools may load it as a separate skill)")
             if fn.endswith(".md"):
                 errors += lint_markdown(name, sdir, path, relp)
+            errors += lint_claude_vars(name, path, relp)
     return errors
 
 
