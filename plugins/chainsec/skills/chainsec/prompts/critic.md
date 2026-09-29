@@ -17,6 +17,10 @@ Read, in order:
 4. {{A}}/candidates/detect.json, {{A}}/candidates/rescan.json, {{A}}/candidates/per-unit.json,
    {{A}}/candidates/state.json (a missing file counts as no candidates from that phase).
 
+Method D (executed PoC) is out of scope here: do not build or run a PoC. Where verify.md would
+escalate to one, add "PoC recommended" to that finding's `verdict.reason`; the user runs
+chainsec-poc afterwards.
+
 Write exactly one file, {{OUTPUT}} = {{A}}/verdicts.json: a JSON array conforming to
 {{CORE}}/engine/finding.schema.json containing EVERY candidate from every input file above, each
 with a final status (verified, verified-conditional, downgraded or killed) and, when killed, its

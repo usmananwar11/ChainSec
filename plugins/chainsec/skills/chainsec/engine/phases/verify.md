@@ -116,6 +116,10 @@ Code trace to confirm mechanism plausibility + concrete trace with values to ver
 Executable PoC: optional escalation via the `chainsec-poc` skill using the pack's PoC guide
 (`pack.json` `poc.guide`; method in `engine/poc/workflow.md`).
 
+**Out of scope inside the audit's critic subagent:** it never builds or runs a PoC. Where this
+section would escalate, it records "PoC recommended" in `verdict.reason` and keeps the verdict it
+can support by trace; the user runs `chainsec-poc` afterwards.
+
 A written trace is `[CODE-TRACE]` — fallible reasoning. For a Critical or High finding where the
 pack's PoC framework is available (`A/preflight.json` shows its tool OK), escalate to an
 **executed** PoC: it forks the chain or builds against in-scope source, asserts the actual HARM
