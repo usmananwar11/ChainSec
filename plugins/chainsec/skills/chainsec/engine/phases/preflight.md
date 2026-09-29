@@ -65,8 +65,9 @@ If `.audit/` is missing from `.gitignore`, **tell** the user what to add but **d
 
 If there is no `.gitignore` at all, say so and suggest creating one — don't create it.
 
-In report mode every failed soft check becomes one line in `warnings`. Gate mode does not run the
-soft checks, so they never appear in `A/preflight.json`.
+In report mode every failed soft check becomes one line in `warnings`. Gate mode runs no soft
+checks other than `tools.optional`, which fills `tools`/`mode`, not `warnings`, so failed soft
+checks never appear in `A/preflight.json`.
 
 ---
 
@@ -83,8 +84,9 @@ and continue with the next phase. Do not print the full table.
 - `mode`: `full` when every `tools.optional` entry is OK, otherwise `degraded`.
 - `tools`: one key per required and optional tool name, value `OK <version>` or `MISSING`.
 - `scope_files`: the source-file count from Step 2.
-- `warnings`: `[]`; gate mode runs no soft checks. Later phases append one string per note meant
-  for the report (e.g. per-unit's unclustered files).
+- `warnings`: `[]`; gate mode runs no soft checks other than `tools.optional`, which fills
+  `tools`/`mode`, not `warnings`. Later phases append one string per note meant for the report
+  (e.g. per-unit's unclustered files).
 - `incomplete_phases`: `[]`; the pipeline appends phases that could not complete.
 
 ```json

@@ -522,7 +522,8 @@ Run by the orchestrator after the Pass 1 subagent and all four lens subagents ha
 `A/candidates/detect-P1.json`, `A/candidates/detect-A.json`, `A/candidates/detect-B.json`,
 `A/candidates/detect-C.json`, `A/candidates/detect-D.json` (a missing file counts as `[]`; the
 pipeline's failure rules decide whether that run is repeated). Output: the merged array, held as a
-working result (in memory, or in `A/candidates/detect-merged.tmp.json`). Do NOT write
+working result (in memory, or in `A/candidates/detect-merged.tmp.json`; the orchestrator overwrites
+this temp file and never reuses one left by an earlier run). Do NOT write
 `A/candidates/detect.json` here: it is written once, after the Pass 3 sweep, so an interrupted run
 never leaves a `detect.json` without Pass 3 behind (the pipeline's resume rule would skip the phase).
 
@@ -537,8 +538,8 @@ never leaves a `detect.json` without Pass 3 behind (the pipeline's resume rule w
    - The consensus tag travels with the finding into state analysis and critic phases.
 5. **Multi-mindset convergence bonus**: If the SAME finding was discovered by different mindset questions across lenses (e.g., Lens A's [Attacker] question and Lens B's [Accountant] question both found the same drain path), this is the strongest possible signal — independent reasoning paths converged on the same bug. Say so in the kept `description`.
 
-Sources in step 4: Pass 1 counts 1 and each lens that reported the same root cause at overlapping
-lines counts 1 (5 at most). Set `discovery.consensus` to `strong`, `moderate` or `single`, and
+Sources in step 4: Pass 1 (if it reported it) and each lens that reported the same root cause at
+overlapping lines count 1 each (5 at most). Set `discovery.consensus` to `strong`, `moderate` or `single`, and
 record which runs found the candidate at the start of `audit_trail.step_execution`, e.g.
 `Found by: P1, B, C (3 sources); ` followed by the kept version's own step execution.
 
@@ -569,4 +570,6 @@ Separate pass focused exclusively on MISSING code. Do NOT combine with Pass 1/2:
 
 When the sweep is done, append its candidates to the merged result and write
 `A/candidates/detect.json` once: a JSON array whose elements conform to `engine/finding.schema.json`.
-Delete `A/candidates/detect-merged.tmp.json` if you used it.
+Delete `A/candidates/detect-merged.tmp.json` if you used it — the orchestrator overwrites this temp
+file and never reuses one left by an earlier run, so a leftover file from a previous run is not a
+source of stale candidates.

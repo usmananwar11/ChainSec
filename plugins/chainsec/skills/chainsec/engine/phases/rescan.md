@@ -64,7 +64,7 @@ Do NOT re-analyze the patterns pass 1 already covered. Look in the gaps BETWEEN 
 - Every finding needs a specific `file:line` (a `locations[]` entry with `file` and `line_start`). No location → discard it yourself; the pipeline will drop it anyway.
 - If a candidate matches an exclusion-list entry on **location AND root cause**, skip it silently.
 - Same area, different exploit path = **not** a duplicate. Report it.
-- Do not report generic best practice ("use SafeERC20", "add events", "missing zero-address check"). Kill gate A removes those unconditionally, so they only cost budget.
+- Do not report generic best practice ("use a safe-transfer wrapper", "add events", "missing zero-address check"). Kill gate A removes those unconditionally, so they only cost budget.
 - Record concrete values you tested as depth-evidence tags (`audit_trail.depth_evidence`): `[BOUNDARY:reserve=0]`, `[TRACE:redeem(MAX)→revert L88]`.
 
 ## Output
