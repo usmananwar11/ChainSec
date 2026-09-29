@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from helpers import FIXTURES, load, run_py, valid_finding, write_tmp_json
+from helpers import FIXTURES, SCRIPTS, load, run_py, valid_finding, write_tmp_json
 
 CHAINS = os.path.join(FIXTURES, "merge", "chains")
 
@@ -47,6 +47,39 @@ class MergeFindingsTest(unittest.TestCase):
     def test_concat(self):
         a, b = valid_finding(id="A"), valid_finding(id="B", status="killed")
         self.assertEqual([f["id"] for f in merge([a], [b], concat=True)], ["A", "B"])
+
+
+class MergeInputErrorsTest(unittest.TestCase):
+    def run_merge(self, *inputs):
+        out = os.path.join(tempfile.mkdtemp(), "merged.json")
+        r = run_py("merge-findings.py", "-o", out, "--chains-dir", CHAINS, *inputs)
+        return r, out
+
+    def assert_rejected(self, bad, needle):
+        r, out = self.run_merge(write_tmp_json([valid_finding()]), bad)
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn(bad, r.stderr)
+        self.assertIn(needle, r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertFalse(os.path.exists(out))
+
+    def test_missing_file(self):
+        self.assert_rejected(os.path.join(tempfile.mkdtemp(), "none.json"), "cannot read")
+
+    def test_invalid_json(self):
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with os.fdopen(fd, "w") as f:
+            f.write("[{")
+        self.assert_rejected(path, "cannot read")
+
+    def test_top_level_not_list(self):
+        self.assert_rejected(write_tmp_json(valid_finding()), "must be a JSON list of objects")
+
+    def test_element_not_object(self):
+        self.assert_rejected(write_tmp_json([valid_finding(), "x"]), "must be a JSON list of objects")
+
+    def test_script_is_executable(self):
+        self.assertTrue(os.access(os.path.join(SCRIPTS, "merge-findings.py"), os.X_OK))
 
 
 if __name__ == "__main__":

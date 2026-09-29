@@ -11,9 +11,11 @@ Default mode (final cross-chain merge):
     (via each pack's "extensions")
   - ranks by severity, then consensus (strong > moderate > single > none), then id
 --concat: concatenate inputs in order, nothing else (per-lens / per-unit outputs).
+Exit 2 when an input is missing, is not JSON, or is not a JSON list of objects.
 """
 import argparse
 import glob
+import json
 import os
 import sys
 
@@ -73,6 +75,19 @@ def merge(lists, exts):
     return sorted(kept, key=rank_key)
 
 
+def load_inputs(paths):
+    lists = []
+    for p in paths:
+        try:
+            data = load_json(p)
+        except (OSError, json.JSONDecodeError) as e:
+            raise ValueError(f"merge-findings: cannot read {p}: {e}")
+        if not isinstance(data, list) or not all(isinstance(f, dict) for f in data):
+            raise ValueError(f"merge-findings: {p} must be a JSON list of objects")
+        lists.append(data)
+    return lists
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Merge ChainSec findings")
     ap.add_argument("inputs", nargs="+")
@@ -80,7 +95,11 @@ def main(argv=None):
     ap.add_argument("--chains-dir", default=os.path.join(HERE, "..", "chains"))
     ap.add_argument("--concat", action="store_true")
     args = ap.parse_args(argv)
-    lists = [load_json(p) for p in args.inputs]
+    try:
+        lists = load_inputs(args.inputs)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
     if args.concat:
         result = [f for lst in lists for f in lst]
     else:
