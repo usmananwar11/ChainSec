@@ -31,7 +31,7 @@ The caller specifies one of two modes:
 ## Step 1 — Required tooling
 
 Read `chains/<chain>/pack.json`. For every entry in `tools.required` and `tools.optional`, run its
-`check` command. Run the checks in parallel via Bash.
+`check` command. Run the checks in parallel via the shell.
 
 For each, capture `OK <version>` or `MISSING`. Do not speculate on install commands for platforms
 you can't detect — use the entry's `install` value; if it has none, say "consult the project's docs."
@@ -84,13 +84,15 @@ and continue with the next phase. Do not print the full table.
 - `mode`: `full` when every `tools.optional` entry is OK, otherwise `degraded`.
 - `tools`: one key per required and optional tool name, value `OK <version>` or `MISSING`.
 - `scope_files`: the source-file count from Step 2.
+- `quick`: `true` when the audit runs with `--quick`, otherwise `false` (the pipeline's resume
+  rule compares it).
 - `warnings`: `[]`; gate mode runs no soft checks other than `tools.optional`, which fills
   `tools`/`mode`, not `warnings`. Later phases append one string per note meant for the report
   (e.g. per-unit's unclustered files).
 - `incomplete_phases`: `[]`; the pipeline appends phases that could not complete.
 
 ```json
-{"chain":"<chain>","mode":"degraded","tools":{"python3":"OK Python 3.12.4","<required-tool>":"OK 1.7.1","<optional-tool>":"MISSING"},"scope_files":12,"warnings":[],"incomplete_phases":[]}
+{"chain":"<chain>","mode":"degraded","tools":{"python3":"OK Python 3.12.4","<required-tool>":"OK 1.7.1","<optional-tool>":"MISSING"},"scope_files":12,"quick":false,"warnings":[],"incomplete_phases":[]}
 ```
 
 If ANY hard check fails: do not write `A/preflight.json` (the pipeline's resume rule treats an
