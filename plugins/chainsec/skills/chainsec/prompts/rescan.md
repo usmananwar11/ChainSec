@@ -12,7 +12,7 @@ Use absolute paths exactly as given.
 Read, in order:
 1. {{CORE}}/engine/phases/rescan.md — follow it in full.
 2. {{A}}/candidates/detect.json — this is your exclusion list; do not re-report anything on it
-   (subject to its exclusion source rule).
+   (per rescan.md's "Quality gates").
 3. {{A}}/recon.md, {{A}}/risk.json.
 
 Write exactly one file, {{OUTPUT}} = {{A}}/candidates/rescan.json: a JSON array of findings
@@ -22,4 +22,6 @@ exit rule fired. Do not write or modify any other file.
 
 The single DONE line replaces any closing statement or summary the phase file asks you to state;
 put nothing else in your reply except any orchestrator records this template lists below the DONE
-line. Reply with exactly one line: DONE {{OUTPUT}} <number of findings>
+line: the reinforced detect candidates. Reply with exactly one line: DONE {{OUTPUT}} <number of findings>
+Then, optionally, append one line per reinforced detect-candidate id as
+`REINFORCED: <id> — <one-liner>` (no lines when you reinforced nothing).

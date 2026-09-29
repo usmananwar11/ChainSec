@@ -4,7 +4,7 @@
 > *(Methodology adapted from PlamenTSV/plamen, MIT — `phase3b-rescan-prompt.md`.)*
 
 Reads: `A/candidates/detect.json`, `A/recon.md`, `A/risk.json`
-Writes: `A/candidates/rescan.json` (the `Reinforced:` ids go in each element's `audit_trail.step_execution`); when it is `[]`, the orchestrator records the `Reinforced:` ids in `A/preflight.json` `warnings`
+Writes: `A/candidates/rescan.json` (the `Reinforced:` ids go in each element's `audit_trail.step_execution`); when it is `[]`, the orchestrator records the reply's `REINFORCED:` lines in `A/preflight.json` `warnings`
 
 `A` = `TARGET/.audit/<chain>/`.
 
@@ -118,6 +118,7 @@ Then state: `Rescan complete: N new candidates ({H} high, {M} medium, {L} low)`.
 - Do NOT re-verify or overturn pass 1's findings. That's the Critic's job, then the Reviewer's.
 - Do NOT deepen an existing candidate. If you find more evidence for a known finding, note it as a one-liner under `Reinforced:` after the `Rescan complete` line — it strengthens the existing candidate, it is not a new one, and it does not go into `A/candidates/rescan.json` as an element.
   So the record survives, append `; Reinforced: <id> (<one-liner>), …` (the detect-candidate ids) to
-  `audit_trail.step_execution` of every element you write. If you write `[]`, the orchestrator adds one
-  string per reinforced id to `A/preflight.json` `warnings` ("rescan: reinforced <id> — <one-liner>")
-  from your reply.
+  `audit_trail.step_execution` of every element you write. Also reply with one
+  `REINFORCED: <id> — <one-liner>` line per id after your DONE line (`prompts/rescan.md`). If you
+  write `[]`, the orchestrator reads those lines and adds one string per id to `A/preflight.json`
+  `warnings` ("rescan: reinforced <id> — <one-liner>").
