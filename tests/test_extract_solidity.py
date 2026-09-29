@@ -113,6 +113,16 @@ libs = ["lib"]
 """
 
 
+class BadRootTest(unittest.TestCase):
+    def test_missing_root_exits_2(self):
+        missing = os.path.join(tempfile.mkdtemp(), "nope")
+        out = os.path.join(tempfile.mkdtemp(), "facts.json")
+        r = run(["bash", EXTRACT, missing, out], env=dict(os.environ, CHAINSEC_PACK=PACK))
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("no such root", r.stderr)
+        self.assertFalse(os.path.exists(out))
+
+
 class TupleAssignmentTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
