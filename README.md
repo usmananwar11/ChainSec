@@ -10,9 +10,10 @@ One audit engine, one pack per chain. Solidity today; Cairo and Soroban planned.
 `chainsec-audit` runs a fixed pipeline against your repository:
 
 1. **Preflight** — checks the chain's required/optional tools and stops or degrades gracefully.
-2. **Fact extraction** — compiler-based facts via `forge` (Solidity), with a regex fallback when
-   the compiler isn't available.
-3. **Deterministic risk scoring** — ranks units by risk from the extracted facts.
+2. **Fact extraction** — compiler-based facts via `forge build` (Solidity). Regex mode applies
+   when `forge build` fails or there is no `foundry.toml` (e.g. Hardhat-only projects); `forge`
+   is still required.
+3. **Deterministic risk scoring** — ranks files by risk from the extracted facts.
 4. **Recon** — protocol summary, actors, invariants, known issues.
 5. **Detection** — an unrestricted Pass 1 sweep, then four parallel lenses (A access/state, B
    value/economic, C external, D edge/math), a consensus merge, and a Pass 3 "what's missing"
@@ -88,6 +89,16 @@ Audit output lives under `.audit/` in the target repository:
     review.json          # written by chainsec-review
     fuzz/                 # written by chainsec-fuzz
 ```
+
+## Limitations
+
+- One root per chain (v0.1): if a repository has several roots for the same chain, the audit
+  stops and asks you to run `chainsec-audit <TARGET>/<root>` once per root.
+
+## Security
+
+Auditing runs the target's build toolchain (`forge build`, PoC and fuzz tests), which executes
+code from the audited repository. Audit untrusted repositories in a sandbox or container.
 
 ## Repository layout
 

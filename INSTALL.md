@@ -26,7 +26,8 @@ Commands:
 codex plugin marketplace add usmananwar11/ChainSec
 ```
 
-(Codex reads the Claude plugin manifest.) Or, in your project:
+**Unverified:** the `codex plugin marketplace add` command and Codex reading the Claude plugin
+manifest have not been confirmed yet (pending the Codex smoke test). Or, in your project:
 
 ```
 git clone https://github.com/usmananwar11/ChainSec
@@ -51,8 +52,11 @@ ChainSec/install.sh --tool antigravity
 ```
 
 installs to the project's `.agents/skills`; `--global` installs to `~/.gemini/config/skills`
-instead. The global path is unverified — it has not been through smoke testing yet, so treat
-it as best-effort until confirmed. Invoke `/chainsec-audit`.
+instead. Invoke `/chainsec-audit`.
+
+**Unverified:** the Antigravity paths are not yet confirmed by the smoke tests — whether the
+workspace folder is `.agents/skills` or `.agent/skills`, and the global path. Treat them as
+best-effort until confirmed.
 
 ## Cursor / Gemini CLI
 
@@ -70,6 +74,11 @@ install.sh --tool agents
 
 Re-run `install.sh` — it replaces only ChainSec's own folders, leaving everything else in your
 skills directory untouched. In Claude Code, `/plugin update` does the same for the plugin install.
+
+## Limitations
+
+One root per chain (v0.1): with several roots for one chain, the audit stops and asks you to run
+`chainsec-audit <TARGET>/<root>` for each root.
 
 ## Important
 
