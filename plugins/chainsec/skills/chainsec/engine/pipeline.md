@@ -71,6 +71,7 @@ After each subagent returns, confirm its output file exists and parses as JSON
 | Optional tool missing | continue; `preflight.json` mode `degraded`; say so in the report |
 | Extractor fails | it falls back to regex mode itself; if it exits non-zero, stop the chain and show stderr |
 | Subagent output missing/invalid | re-run that unit once sequentially in this conversation; if still bad, record the phase as `incomplete` in `A/preflight.json` → `incomplete_phases` and continue |
+| A lens replies `DONE <file> ERROR missing pass1-brief` | re-run Pass 1 once (the `pass1-detector` subagent), then re-dispatch the affected lenses; if the brief is still missing, record `detect` in `A/preflight.json` → `incomplete_phases` and continue |
 | Validation still failing | see "Validation and repair" step 4 |
 
 ## Final message

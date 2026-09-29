@@ -51,16 +51,27 @@ cluster `n`.
 
 ### Record the subagent's reply
 
-When a cluster's subagent returns, copy its coverage checkpoint and exclusions from its reply (see
-"Output" below) into that cluster's object in `A/clusters.json`:
+Each per-cluster subagent replies with the transport `prompts/per-unit.md` specifies: its DONE
+line, then zero or more `COVERAGE: <file>|<loc>|<opened true/false>|<functions analyzed>` lines
+(one per cluster file, from its Step 4 checkpoint) and zero or more `EXCLUDED: <the EXCLUDED —
+record>` lines (one per Step 2 exclusion), or a single `EXCLUDED: none` when it excluded nothing.
 
-- `coverage`: one object per cluster file, from the Step 4 table: `file`, `loc`, `opened`
-  (true/false), `functions` (number of functions analyzed).
-- `excluded`: one string per `EXCLUDED — …` record from Step 2 (empty list when none).
+Parse the lines after DONE and copy them into that cluster's object in `A/clusters.json`:
+
+- Each `COVERAGE:` line becomes one object in that cluster's `coverage` array: split the line on
+  `|` into `file`, `loc` (number), `opened` (boolean) and `functions` (number).
+- Each `EXCLUDED:` line other than `EXCLUDED: none` becomes one string in that cluster's
+  `excluded` array — the text after `EXCLUDED: `, verbatim. `EXCLUDED: none` → `excluded: []`.
 
 ```json
 {"n":1,"units":["Vault","Owned"],"files":["src/Vault.<ext>","src/auth/Owned.<ext>"],"coverage":[{"file":"src/Vault.<ext>","loc":412,"opened":true,"functions":14},{"file":"src/auth/Owned.<ext>","loc":96,"opened":true,"functions":5}],"excluded":["EXCLUDED — withdraw() skips reward checkpoint at Vault.<ext>:142 → stale rewards. Duplicate of [HIGH] src/Vault.<ext>:142."]}
 ```
+
+If a subagent's reply has no `COVERAGE:` line for one or more of its cluster's files (or has no
+`COVERAGE:` lines at all), do not fail the phase: leave that file out of the cluster's `coverage`
+array and add a line to `A/preflight.json` `warnings` for each missing file ("per-unit: cluster
+`<n>` returned no coverage line for `<file>`; coverage unknown"). A reply with no `EXCLUDED:` line
+at all is treated the same as `EXCLUDED: none`.
 
 The orchestrator writes `A/clusters.json`; subagents never do (they run in parallel).
 
@@ -167,9 +178,10 @@ Example element (cluster 1):
 The cluster plan lives in `A/clusters.json`. Complete the coverage checkpoint (Step 4) and record
 your exclusions before writing the file; they are not part of the JSON output.
 
-Then state: `Per-unit complete: cluster <n>, M new candidates`, followed in the same reply by the
-Step 4 coverage table and one line per `EXCLUDED — …` record (or `Excluded: none`). The orchestrator
-copies both into `A/clusters.json` (see "Record the subagent's reply").
+Reply with exactly one line: `DONE <output file> <number of findings>`. Then append one line per
+cluster file as `COVERAGE: <file>|<loc>|<opened true/false>|<functions analyzed>` (from the Step 4
+checkpoint) and one line per exclusion as `EXCLUDED: <the EXCLUDED — record>` (or `EXCLUDED: none`).
+The orchestrator copies both into `A/clusters.json` (see "Record the subagent's reply").
 
 ## No iteration
 
