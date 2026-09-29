@@ -12,8 +12,8 @@ Writes: `A/verdicts.json`
 - `A/candidates/per-unit.json` (Phase 7 — absent with `--quick`)
 - `A/candidates/state.json` (Phase 8 — absent with `--quick`)
 
-Do not read the partial files `A/candidates/detect-<lens>.json` or `A/candidates/per-unit-<n>.json`;
-their contents are already in the merged files above.
+Do not read the partial files `A/candidates/detect-P1.json`, `A/candidates/detect-<lens>.json` or
+`A/candidates/per-unit-<n>.json`; their contents are already in the merged files above.
 
 Every candidate from every file goes through the same gates. A candidate from a
 second-pass agent gets no benefit of the doubt and no extra suspicion.
@@ -61,7 +61,11 @@ Before applying verification methods, check the candidate's **consensus tag** fr
 
 - **STRONG consensus (3+ sources)**: This finding was independently discovered by multiple analysis passes with different mindsets. If it passed kill gates A-H, fast-track to VERIFIED — write the exploit trace for documentation but the convergent evidence is strong.
 - **MODERATE consensus (2 sources)**: Normal verification — full kill gate + exploit trace. The dual discovery adds confidence but doesn't skip any steps.
-- **NO consensus (1 source only)**: Apply EXTRA scrutiny. Ask: why did the other 4 passes miss this? Acceptable reasons: different lens domain, file wasn't in that lens's scope. Suspicious reasons: it's in a Tier 1 file that all lenses analyzed. Require an especially concrete exploit trace with specific values.
+- **NO consensus (1 source only)**: Apply EXTRA scrutiny. Ask: why did the other passes/lenses miss this? Acceptable reasons: different lens domain, file wasn't in that lens's scope. Suspicious reasons: it's in a Tier 1 file that all lenses analyzed. Require an especially concrete exploit trace with specific values.
+
+The consensus tag is set only on detect-phase candidates found by Pass 1 and the lenses A–D (sources =
+Pass 1 + each lens that found it). It is `null` on Pass 3, rescan, per-unit and state candidates: verify
+those normally, without the consensus adjustments above.
 
 ## Verification Methods
 

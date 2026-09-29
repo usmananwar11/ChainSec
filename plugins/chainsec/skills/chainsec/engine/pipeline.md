@@ -26,7 +26,7 @@ must also parse and, for findings files, pass `scripts/validate-findings.py` sch
 | 2 | extract | `bash CORE/P/<pack.extractor> ROOT A/facts.json` | `A/facts.json` |
 | 3 | score | `python3 CORE/scripts/score-risk.py A/facts.json CORE/P/pack.json -o A/risk.json` | `A/risk.json` |
 | 4 | recon | follow `engine/phases/recon.md` | `A/recon.md`, `A/known-issues.md` |
-| 5 | detect | **parallel**: one subagent per lens A, B, C, D using `prompts/lens-detector.md`, each writing `A/candidates/detect-<lens>.json`; then follow the "Consensus merge" section of `engine/phases/detect.md` | `A/candidates/detect.json` |
+| 5 | detect | one subagent, `prompts/pass1-detector.md`, writing `A/candidates/detect-P1.json` and `A/pass1-brief.md`; then **parallel**: one subagent per lens A, B, C, D using `prompts/lens-detector.md`, each writing `A/candidates/detect-<lens>.json`; then follow the "Consensus merge" and "Pass 3 sweep" sections of `engine/phases/detect.md` | `A/candidates/detect.json` |
 | 6 | rescan | one subagent, `prompts/rescan.md` | `A/candidates/rescan.json` |
 | 7 | per-unit (skip if `--quick`) | build clusters per `engine/phases/per-unit.md`; **parallel**: one subagent per cluster (max 8), `prompts/per-unit.md`, each writing `A/candidates/per-unit-<n>.json`; then `python3 CORE/scripts/merge-findings.py --concat -o A/candidates/per-unit.json A/candidates/per-unit-*.json` | `A/candidates/per-unit.json` |
 | 8 | state (skip if `--quick`) | one subagent, `prompts/state-auditor.md` | `A/candidates/state.json` |

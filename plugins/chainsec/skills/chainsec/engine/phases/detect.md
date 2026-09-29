@@ -2,13 +2,18 @@
 
 > Phase 5 of the ChainSec pipeline (`engine/pipeline.md`). Runs after Recon.
 
-Reads: `A/recon.md`, `A/known-issues.md`, `A/risk.json`, `A/facts.json` (plus `A/analyzers/*.md` if present)
-Writes: `A/candidates/detect-<lens>.json` (one lens run, lens A, B, C or D), `A/candidates/detect.json` (consensus merge + Pass 3 sweep)
+Reads: `A/recon.md`, `A/known-issues.md`, `A/risk.json`, `A/facts.json` (plus `A/analyzers/*.md` if present); lens runs also read `A/pass1-brief.md` and `A/candidates/detect-P1.json`
+Writes: `A/candidates/detect-P1.json` and `A/pass1-brief.md` (Pass 1 run), `A/candidates/detect-<lens>.json` (one lens run, lens A, B, C or D), `A/candidates/detect.json` (consensus merge + Pass 3 sweep, written once at the end)
 
-`A` = `TARGET/.audit/<chain>/`. This file has three sections:
-- **Lens run** — what one lens subagent does (pipeline row 5, one per lens A–D, in parallel).
-- **Consensus merge** — what the orchestrator does with the four lens files.
-- **Pass 3 sweep** — the mechanical "What's Missing" sweep, run after the merge and appended to `A/candidates/detect.json`.
+`A` = `TARGET/.audit/<chain>/`. Detection follows Krait's structure: Pass 1 runs once, then the
+four Pass 2 lenses, then the merge and Pass 3. This file has four sections:
+- **Pass 1 run** — what the one Pass 1 subagent does (pipeline row 5, first): Steps 1–4, unrestricted by lens.
+- **Lens run** — Pass 2 only: what one lens subagent does (pipeline row 5, one per lens A–D, in parallel, after Pass 1). Steps 5–6 are in this section.
+- **Consensus merge** — what the orchestrator does with the Pass 1 file and the four lens files.
+- **Pass 3 sweep** — the mechanical "What's Missing" sweep, run by the orchestrator after the merge; only then is `A/candidates/detect.json` written.
+
+Step 6 (Record Candidates) and the Rules, at the end of "Lens run", apply to every run that records
+candidates: Pass 1, each lens and the Pass 3 sweep.
 
 ## Purpose
 
@@ -20,12 +25,13 @@ The core philosophy and the four lens definitions (focus lists, mindset question
 
 ---
 
-## Lens run
+## Pass 1 run
 
-You are ONE lens (`A`, `B`, `C` or `D`, from your prompt). You run Steps 1–6 below restricted to
-your lens — its focus list, mindset questions, inline modules and mandatory heuristics from
-`engine/mindsets.md`, plus the activated modules that inject into it — over the files your tier
-strategy assigns. Write your candidates to `A/candidates/detect-<lens>.json`.
+You are the Pass 1 subagent. You run Krait's Pass 1 in full, unrestricted by lens: Step 1, then the
+Function-State Matrix (Step 2), all of Q1–Q9 (Step 3) and every triggered heuristic (Step 4), over
+the tiered files per the Adaptive Pass Strategy. Record your candidates per Step 6 (at the end of
+"Lens run") to `A/candidates/detect-P1.json`, then write the Pass 1 brief to `A/pass1-brief.md`.
+Do not run Pass 2 or Pass 3.
 
 ### Step 1: Load Context
 
@@ -37,7 +43,7 @@ Read `A/recon.md` and `A/known-issues.md` to understand:
 - **Fork origin** — If this is a fork, what is the original? Inherited behavior = intentional design (Gate C)
 - **Token context** — What SPECIFIC tokens does this protocol use? Every token-behavior finding must name a specific token from this list (Gate B)
 - **Detection primer** — Read the protocol-specific primer(s) listed under "Detection Primer" in recon.md (core-relative paths). The primer's CRITICAL checks are your DEEP DIVE priorities.
-- **Activated modules** — Read the "Activated Modules" table in recon.md. For each listed module that injects into your lens (module-to-lens table in `engine/mindsets.md`; a module's `**Inject into**` header is authoritative), read the full file at its core-relative path. These contain structured tables and step-by-step methodology. Spend 2-3x more time on activated modules vs general heuristics.
+- **Activated modules** (lens runs; Step 5) — Read the "Activated Modules" table in recon.md. For each listed module that injects into your lens (module-to-lens table in `engine/mindsets.md`; a module's `**Inject into**` header is authoritative), read the full file at its core-relative path. These contain structured tables and step-by-step methodology. Spend 2-3x more time on activated modules vs general heuristics.
 
 **Also read `A/facts.json`** — these are structural facts from the pack's extractor (compiler-verified when `mode` is `compiler`; pattern-matched and lower confidence when `mode` is `regex`):
 - **`units[].parents`** (the inheritance tree): Use to verify modifier presence. A "missing" modifier may exist in a parent listed here. Do NOT report missing modifiers without checking the full inheritance chain.
@@ -94,34 +100,8 @@ PASS 1 BRIEF:
 
 This brief is the INPUT to every Pass 2 lens. It ensures Pass 2 is INFORMED, not blind. The highest-impact findings in competitive benchmarks came from informed second passes (Ross 21-tool study: the "composite super-prompt" that fed prior results into a second pass found the single highest-severity finding that no individual tool caught alone).
 
-In ChainSec each lens subagent runs its own Pass 1 and compiles its own brief, then runs Pass 2 for its lens with that brief as input.
-
-**ANTI-ANCHORING RULE**: The brief tells you what was found — it does NOT tell you what is safe. If Pass 1 marked an area "no issues found," Pass 2 MUST NOT skip that area. Pass 1's "safe" verdicts are HYPOTHESES, not facts. 13% of all missed findings were in areas explicitly marked safe. Treat "no candidates in file X" as "file X is UNDER-ANALYZED," not "file X is clean."
-
-**Pass 2 — Parallel Lens Deep Dive (Tier 1 files ONLY, max 5):**
-
-Re-read the Tier 1 files from the recon.md risk table. Each lens receives the **Pass 1 Brief** as context. Each lens has TWO jobs:
-1. **Validate & deepen**: For Pass 1 candidates in this lens's domain, re-examine with fresh eyes. Can you strengthen the exploit trace? Find a deeper root cause? Identify a more severe impact?
-2. **Find what Pass 1 missed**: The brief tells you what was already found. Focus your time on areas/files where Pass 1 found NOTHING — those are the blind spots.
-
-Your lens definition — its "From Pass 1 Brief" priority, activated and inline modules, mandatory heuristics, the four mindset questions and the "Focus EXCLUSIVELY on" list — is in `engine/mindsets.md`. If a module is activated and maps to your lens, you MUST execute the module's full methodology (structured tables, step-by-step checks — not just skim).
-
-**Targeted analysis modules per lens** (Step 5 below). Krait's orchestrator assigns them as:
-
-| Lens | Step 5 modules |
-|---|---|
-| A — Access Control, State & Governance | H, L, R, W |
-| B — Value Flow & Economic Logic | D, I, K, O, V |
-| C — External Interactions & Cross-Contract | A, C, J, P, S |
-| D — Edge Cases, Math & Standards | B, E, F, G, M, X |
-
-Modules N, Q and T are not assigned to a lens by Krait: every lens applies them.
-
-**SAFE Verdict Challenge (applies to ALL lenses):** For every area verified as "safe," you MUST write: (a) the SPECIFIC invariant verified, (b) at least 3 edge cases explicitly checked. If you can't name 3 edge cases → not verified thoroughly enough. **13% of missed findings were in areas explicitly marked "safe."**
-
-**Parameter flow tracing (during Lens C or D):** Pick 3 most critical params. Trace from entry through ALL internal calls. Where is validation missing?
-
-Record any additional candidates from the deep dive.
+In ChainSec the Pass 1 subagent writes this brief, in exactly this format, to `A/pass1-brief.md`
+(after `A/candidates/detect-P1.json`); every lens subagent reads it.
 
 ### Step 2: Build Function-State Matrix
 
@@ -250,9 +230,49 @@ The mandatory-when-triggered set (each cost Krait a real finding in a prior shad
 
 Per-lens mandatory heuristics are listed under each lens in `engine/mindsets.md`.
 
+---
+
+## Lens run
+
+You are ONE lens (`A`, `B`, `C` or `D`, from your prompt). Pass 1 has already run. First run Step 1
+(in "Pass 1 run") for your lens, then read `A/pass1-brief.md` and `A/candidates/detect-P1.json`. You
+run Pass 2 for your lens only — its focus list, mindset questions, inline modules and mandatory
+heuristics from `engine/mindsets.md`, your Step 5 modules (table below) and the activated modules
+that inject into your lens — then Step 5b. Record your candidates per Step 6 to
+`A/candidates/detect-<lens>.json`. A Pass 1 candidate you confirm or deepen is recorded again in your
+file under your own id: that is how the consensus merge counts your lens as a source. Do not re-run
+Pass 1 or run Pass 3.
+
+**ANTI-ANCHORING RULE**: The brief tells you what was found — it does NOT tell you what is safe. If Pass 1 marked an area "no issues found," Pass 2 MUST NOT skip that area. Pass 1's "safe" verdicts are HYPOTHESES, not facts. 13% of all missed findings were in areas explicitly marked safe. Treat "no candidates in file X" as "file X is UNDER-ANALYZED," not "file X is clean."
+
+**Pass 2 — Parallel Lens Deep Dive (Tier 1 files ONLY, max 5):**
+
+Re-read the Tier 1 files from the recon.md risk table. Each lens receives the **Pass 1 Brief** as context. Each lens has TWO jobs:
+1. **Validate & deepen**: For Pass 1 candidates in this lens's domain, re-examine with fresh eyes. Can you strengthen the exploit trace? Find a deeper root cause? Identify a more severe impact?
+2. **Find what Pass 1 missed**: The brief tells you what was already found. Focus your time on areas/files where Pass 1 found NOTHING — those are the blind spots.
+
+Your lens definition — its "From Pass 1 Brief" priority, activated and inline modules, mandatory heuristics, the four mindset questions and the "Focus EXCLUSIVELY on" list — is in `engine/mindsets.md`. If a module is activated and maps to your lens, you MUST execute the module's full methodology (structured tables, step-by-step checks — not just skim).
+
+**Targeted analysis modules per lens** (Step 5 below). Krait's orchestrator assigns them as:
+
+| Lens | Step 5 modules |
+|---|---|
+| A — Access Control, State & Governance | H, L, R, W |
+| B — Value Flow & Economic Logic | D, I, K, O, V |
+| C — External Interactions & Cross-Contract | A, C, J, P, S |
+| D — Edge Cases, Math & Standards | B, E, F, G, M, X |
+
+Modules N, Q, T and U are not assigned to a lens by Krait: every lens applies them.
+
+**SAFE Verdict Challenge (applies to ALL lenses):** For every area verified as "safe," you MUST write: (a) the SPECIFIC invariant verified, (b) at least 3 edge cases explicitly checked. If you can't name 3 edge cases → not verified thoroughly enough. **13% of missed findings were in areas explicitly marked "safe."**
+
+**Parameter flow tracing (during Lens C or D):** Pick 3 most critical params. Trace from entry through ALL internal calls. Where is validation missing?
+
+Record any additional candidates from the deep dive.
+
 ### Step 5: Targeted Analysis Modules (MANDATORY)
 
-These modules address specific bug classes consistently missed by general interrogation. Apply each one assigned to your lens (table in Pass 2 above).
+These modules address specific bug classes consistently missed by general interrogation. Apply each one assigned to your lens (table in Pass 2 above), plus N, Q, T and U.
 
 #### Module A: Untrusted Recipient Analysis
 For every native-asset/token transfer to an address that is NOT the caller or a known trusted protocol address (chain wording: the pack's heuristics.md, section "Detector modules"):
@@ -389,9 +409,9 @@ After individual function interrogation:
 
 ### Step 6: Record Candidates
 
-For EVERY suspected vulnerability, create a candidate entry. Write a JSON array to
-`A/candidates/detect-<lens>.json`; each element conforms to `engine/finding.schema.json`. Write
-`[]` if you found nothing.
+For EVERY suspected vulnerability, create a candidate entry. Write a JSON array to your run's file
+(`A/candidates/detect-P1.json` in Pass 1, `A/candidates/detect-<lens>.json` in a lens run); each
+element conforms to `engine/finding.schema.json`. Write `[]` if you found nothing.
 
 **Severity calibration** (apply BEFORE recording):
 - **HIGH**: Direct fund loss, permanent fund lock, or permanent DoS on core function (deposit/withdraw/liquidate). If ANY user can lose >$100 or funds are permanently inaccessible → HIGH.
@@ -403,12 +423,12 @@ Field mapping (Krait candidate field → schema field):
 
 | Krait field | Schema field |
 |---|---|
-| `[CANDIDATE-XXX]` id | `id`: `D<lens>-<n>` (e.g. `DB-3`), numbered from 1 within your lens |
+| `[CANDIDATE-XXX]` id | `id`: `DP1-<n>` in Pass 1, `D<lens>-<n>` in a lens run (e.g. `DB-3`), numbered from 1 within your run (the Pass 3 sweep uses `DP3-<n>`) |
 | Title | `title` |
 | Severity (CRITICAL / HIGH / MEDIUM / LOW) | `severity` (`Critical` / `High` / `Medium` / `Low`) |
 | File / Lines | `locations[]` (`file` relative to ROOT, `line_start`, `line_end`, `unit`, `function`) |
 | Category | `category` |
-| Discovery Method | `discovery` (`phase: "detect"`, `lens`, `mindset` per `engine/mindsets.md`, `consensus: null`); name the question or heuristic that exposed it (e.g. `Q2.6`, `MODIFIER-01`) in the first line of `description` as `Discovery: ...` |
+| Discovery Method | `discovery` (`phase: "detect"`, `lens`: `P1` in Pass 1, your letter in a lens run, `P3` in the sweep; `mindset` per `engine/mindsets.md`, `null` in Pass 1 and Pass 3; `consensus: null`, the merge sets it); name the question or heuristic that exposed it (e.g. `Q2.6`, `MODIFIER-01`) in the first line of `description` as `Discovery: ...` |
 | Description | `description` |
 | Scenario | `exploit_trace` (one string per step) |
 | Vulnerable Code | `vulnerable_code` (the actual lines, pasted; use the pack's `code_fence` when rendering) |
@@ -464,6 +484,7 @@ Example element:
 These last six fields are the **methodology audit trail**. They are OPTIONAL but strongly encouraged — they show your work to downstream agents and feed future chain analysis.
 
 - **Step Execution** (`audit_trail.step_execution`): which Pass-2 lenses you ran on THIS candidate (A=access/auth, B=value-flow, C=external/composability, D=design/spec). Format: ✓=ran, ✗=skipped with reason, ?=ran but uncertain.
+  Pass 1 records the Pass 1 steps it ran instead (e.g. `Pass 1: Step 2=✓ Step 3=✓ Step 4=✓`); the consensus merge prefixes the runs that found the candidate.
 - **Rules Applied** (`audit_trail.rules_applied`): cross-cutting rules independent of the kill gates. Pick from R8/R10/R11/R12/R15/R16:
   - **R8** — Cached parameter / stored external state — multi-step ops only
   - **R10** — Worst-state severity — assess impact at the worst realistic state, not the current snapshot (always required)
@@ -480,7 +501,7 @@ These last six fields are the **methodology audit trail**. They are OPTIONAL but
 - **Missing Precondition / Precondition Type** (`preconditions[]` + `audit_trail.missing_precondition`): if the attack is currently blocked, name the blocker. Lets future chain analysis look for an enabler. Types: STATE / ACCESS / TIMING / EXTERNAL / BALANCE. Optional.
 - **Postconditions Created / Postcondition Types / Who Benefits** (`postconditions[]` + `audit_trail.postconditions_created`, `audit_trail.who_benefits`): if the attack succeeds, what conditions does it leave behind that another attack could chain off? Optional but valuable.
 
-Save ALL candidates to `A/candidates/detect-<lens>.json`.
+Save ALL candidates to your run's file.
 
 ### Rules
 
@@ -497,34 +518,41 @@ Save ALL candidates to `A/candidates/detect-<lens>.json`.
 
 ## Consensus merge
 
-Run by the orchestrator after all four lens subagents have returned. Input:
-`A/candidates/detect-A.json`, `A/candidates/detect-B.json`, `A/candidates/detect-C.json`,
-`A/candidates/detect-D.json` (a missing lens file counts as `[]`; the pipeline's failure rules
-decide whether that lens is re-run). Output: `A/candidates/detect.json`, a JSON array whose
-elements conform to `engine/finding.schema.json`.
+Run by the orchestrator after the Pass 1 subagent and all four lens subagents have returned. Input:
+`A/candidates/detect-P1.json`, `A/candidates/detect-A.json`, `A/candidates/detect-B.json`,
+`A/candidates/detect-C.json`, `A/candidates/detect-D.json` (a missing file counts as `[]`; the
+pipeline's failure rules decide whether that run is repeated). Output: the merged array, held as a
+working result (in memory, or in `A/candidates/detect-merged.tmp.json`). Do NOT write
+`A/candidates/detect.json` here: it is written once, after the Pass 3 sweep, so an interrupted run
+never leaves a `detect.json` without Pass 3 behind (the pipeline's resume rule would skip the phase).
 
 **After all 4 lenses complete — Consensus Merge:**
-1. Merge all candidates from all 4 lens files.
+1. Merge all candidates from Pass 1 + all 4 lenses
 2. Deduplicate: same file + same function + same root cause → keep the most detailed version. Two candidates are the same when they share a `file`, their line ranges (`line_start`–`line_end`) overlap, and they name the same root cause. Keep the richest `description` (and its `exploit_trace`, `root_cause`, `audit_trail`); list the ids of the others in `merged_from`.
 3. **Cross-lens amplification**: If Lens A found a missing guard AND Lens B found a value extraction on the same function → the combined finding is stronger than either alone. Combine into a single high-confidence candidate.
-4. **Consensus scoring** — count how many independent lenses reported the same root cause at overlapping lines, and set `discovery.consensus`:
+4. **Consensus scoring** — count how many independent sources (Pass 1 + 4 lenses) found each candidate:
    - **STRONG consensus (3+ sources)**: Almost certainly real. Tag as `consensus: strong`. Fast-track through critic.
    - **MODERATE consensus (2 sources)**: Confidence boost. Tag as `consensus: moderate`. Normal critic scrutiny.
    - **NO consensus (1 source)**: Tag as `consensus: single`. Critic applies extra scrutiny — why did the other passes miss it?
    - The consensus tag travels with the finding into state analysis and critic phases.
 5. **Multi-mindset convergence bonus**: If the SAME finding was discovered by different mindset questions across lenses (e.g., Lens A's [Attacker] question and Lens B's [Accountant] question both found the same drain path), this is the strongest possible signal — independent reasoning paths converged on the same bug. Say so in the kept `description`.
 
+Sources in step 4: Pass 1 counts 1 and each lens that reported the same root cause at overlapping
+lines counts 1 (5 at most). Set `discovery.consensus` to `strong`, `moderate` or `single`, and
+record which runs found the candidate at the start of `audit_trail.step_execution`, e.g.
+`Found by: P1, B, C (3 sources); ` followed by the kept version's own step execution.
+
 The merged finding keeps the id, `discovery.lens` and `discovery.mindset` of the version whose
-description was kept. Then run the Pass 3 sweep below and append its candidates.
+description was kept. Then run the Pass 3 sweep below.
 
 ---
 
 ## Pass 3 sweep
 
-Run by the orchestrator right after the consensus merge. Its candidates are appended to
-`A/candidates/detect.json` with ids `DP3-<n>` and `discovery: {"phase": "detect", "lens": "P3", "mindset": null, "consensus": "single", "unit": null}`,
-in the same format as Step 6. Skip a candidate that duplicates one already in `A/candidates/detect.json`
-(same file, overlapping lines, same root cause).
+Run by the orchestrator right after the consensus merge, on the merged working result. Its
+candidates get ids `DP3-<n>` and `discovery: {"phase": "detect", "lens": "P3", "mindset": null, "consensus": null, "unit": null}`
+(Pass 3 is not a consensus source), in the same format as Step 6. Skip a candidate that duplicates
+one already in the merged result (same file, overlapping lines, same root cause).
 
 **Pass 3 — Mechanical "What's Missing" Sweep (Tier 1 + Tier 2 files):**
 Separate pass focused exclusively on MISSING code. Do NOT combine with Pass 1/2:
@@ -538,3 +566,7 @@ Separate pass focused exclusively on MISSING code. Do NOT combine with Pass 1/2:
 
 `A/facts.json` helps make the sweep mechanical: `entry_points[]` with `storage_writes[]` for check 2,
 `auth_sites[]` and `entry_points[].guards` for checks 2 and 4, `external_calls[]` for check 7(b).
+
+When the sweep is done, append its candidates to the merged result and write
+`A/candidates/detect.json` once: a JSON array whose elements conform to `engine/finding.schema.json`.
+Delete `A/candidates/detect-merged.tmp.json` if you used it.
