@@ -31,7 +31,15 @@ The finding claims state manipulation via a view function:
 
 ## Gate overrides and examples
 
-(ported in a later task)
+Solidity examples for the gates in `engine/kill-gates.md`, keyed by gate letter. Moved verbatim
+from Krait's critic Step 0 and detector pre-filter.
+
+### Gate A — Generic Best Practice
+- Kill gate: "Use SafeERC20/safeTransfer" without naming specific failing token, "safeApprove" generically, ".transfer() gas limit" without specific failing recipient.
+- Detection pre-filter: Do NOT report: SafeERC20 usage, safeApprove, .transfer() gas limit, weak on-chain randomness (blockhash/prevrandao).
+
+### Gate C — Design Is Intentional
+- Detection pre-filter: patterns from reference implementations include OZ (OpenZeppelin).
 
 ## Masking code examples
 

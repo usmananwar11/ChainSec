@@ -64,7 +64,7 @@ token through the protocol (swap or flash loan) instead of `deal`.
 ## The harm assertion fails (compiled, ran, no harm)
 
 This is a **result**, not a bug in your PoC — but confirm it is not a setup error first.
-Apply the one-retry protocol in `assertion-protocol.md`. If the attack genuinely does not
+Apply the one-retry protocol in `engine/poc/assertion-protocol.md`. If the attack genuinely does not
 reproduce the claimed harm after that retry → `[POC-FAIL]`.
 
 ## Reading a trace efficiently

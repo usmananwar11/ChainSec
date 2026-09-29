@@ -160,9 +160,28 @@ Load together with `domains/defi/heuristics.md`.
 - [P] FLASH-CALLBACK-TRUST: Flash loan callback — verify `msg.sender` is the expected pool. If callback doesn't validate caller → attacker triggers fake callback
 - [P] EXTERNAL-SILENT-FAIL: External call silently returns without effect (mint returns without minting) → protocol continues with wrong assumptions
 
+## Lens B additions
+
+Solidity items of Krait's Lens B (`engine/mindsets.md`), verbatim:
+
+- **[Edge Case]** What happens with amount=0, amount=1 wei, amount=type(uint256).max, or first/last depositor?
+- **Payment destination correctness (Module O)**: Is `owner()` (deployer) vs `ownerOf(tokenId)` (NFT holder) correct? Double payout? Conditional payment with unconditional cost?
+
+## Lens C additions
+
+Solidity items of Krait's Lens C (`engine/mindsets.md`), verbatim:
+
+- Reentrancy via callbacks (ERC721/1155 onReceived, ETH receive)
+- Version compatibility: Safe version, OZ version, Solidity version
+
 ## Lens D additions
 
-(ported in a later task)
+Solidity items of Krait's Lens D (`engine/mindsets.md`), verbatim:
+
+- **[Spec Auditor]** Does this ERC implementation match the EIP spec exactly? Character-by-character for EIP-712.
+- Type cast safety: every uint128(x), uint96(x) — can source exceed target max?
+- EIP-712 typehash verification: character-by-character comparison
+- Standard compliance (ERC20/721/4626/3156): actual vs spec
 
 ## Detector modules (Solidity)
 
@@ -174,4 +193,13 @@ Load together with `domains/defi/heuristics.md`.
 
 ## Security strengths examples
 
-(ported in a later task)
+Solidity examples for the Security Strengths section of `engine/report-template.md`, verbatim
+from Krait's report template:
+
+- **Access control model**: What pattern is used (Ownable2Step, AccessControl, role-based)? Is it consistent across all privileged functions?
+- **Reentrancy protection**: Are state-mutating external calls guarded? CEI pattern followed? nonReentrant modifier coverage?
+- **Arithmetic safety**: Solidity 0.8+ checked math, explicit unchecked blocks only where safe, SafeCast usage for downcasts?
+- **Battle-tested dependencies**: Which libraries (OpenZeppelin vX.Y, Solmate, etc.)? Are they current versions?
+- **Upgrade safety**: If upgradeable — initializer guards, storage gap patterns, UUPS vs Transparent?
+
+Example bullet: `- **[Category]**: [Specific observation with contract/file names — e.g., "All 8 state-mutating functions in CfdEngine.sol follow CEI pattern with nonReentrant guards"]`

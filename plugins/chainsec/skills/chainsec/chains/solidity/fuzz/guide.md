@@ -2,6 +2,15 @@
 
 Follow engine/fuzz.md for invariant extraction; this file supplies the Foundry test patterns.
 
+## Require/assert mining examples
+
+For `engine/fuzz.md` Step 2 (verbatim from Krait's fuzzer):
+
+```solidity
+require(balances[msg.sender] >= amount, "insufficient");  // INV: balance >= withdrawal
+assert(totalSupply == _computeTotal());                     // INV: supply consistency
+```
+
 ## Test Generation Patterns
 
 ### Basic Invariant Test
