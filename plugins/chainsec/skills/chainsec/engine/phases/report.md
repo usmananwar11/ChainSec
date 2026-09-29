@@ -20,8 +20,8 @@ Read `A/verdicts.json`. Only include findings with status (`engine/verdicts.md`)
 - **`verified-conditional`** (LIKELY TRUE) — include with caveat noting the conditions required (its `preconditions`)
 - **`downgraded`** — include at its new severity
 
-If `A/review.json` exists, also load its revived findings (status `verified`, `verified-conditional`
-or `downgraded`); keep the "Second opinion — worth manual review" caveat from `verdict.reason` on them.
+If `A/review.json` exists, also load its revived findings (status `verified-conditional` or
+`downgraded`); keep the "Second opinion — worth manual review" caveat from `verdict.reason` on them.
 
 Do NOT include: `killed` findings (FALSE POSITIVE, INSUFFICIENT EVIDENCE), `candidate` entries, or LOW-severity findings (unless user specifically requested them).
 

@@ -179,7 +179,6 @@ original candidate's `locations`, `category` and `description` basis; put the or
 | Review item | `status` | Fields |
 |---|---|---|
 | **REVIVE — Worth Manual Review** (and **New Finding**, **Systemic Pattern**) | `verified-conditional` | `severity` = suggested severity; `preconditions` = the "Verify" checklist items; `harm` = "Impact if real"; `exploit_trace` = the trace you built; `verdict.reason` starts `Second opinion — worth manual review:` then why the dismissal may be wrong and the audit-trail signal; `verdict.gate: null` |
-| Same, and your re-verification produced a concrete trace with values and a harm statement with no open conditions | `verified` | as above, `preconditions` empty |
 | **REVIVE — Informational** | `downgraded` | `severity: "Info"`, `verdict.original_severity` = the original severity, `verdict.reason` = the observation |
 | **CONFIRM KILL** | `killed` | `verdict.gate` = the original gate, `verdict.reason` starts `Confirmed kill:` then what re-examination checked |
 
@@ -187,7 +186,8 @@ A Systemic Pattern (Step 4) is one element with `category: "systemic-pattern"` a
 entry per affected area; `merged_from` lists the killed ids it combines. A New Finding (found by
 reading the code with fresh eyes, not from the killed list) has an empty `merged_from`.
 
-Revived findings are flags for human review, not verified TPs. Before finishing, run
+Revived findings are flags for human review, not verified TPs: `status` is never `verified`
+(`verified-conditional` is the cap, however complete the re-verification). Before finishing, run
 `python3 scripts/validate-findings.py A/review.json`: a revived Critical/High/Medium without a
 `file` + `line_start` location, a harm statement or an exploit trace is rejected — supply the
 field from the code or lower it to REVIVE — Informational.
@@ -364,7 +364,7 @@ Brief. The auditor doesn't need to re-read every confirmed kill. Just show the c
 
 The full second opinion is `A/review.json`; the presentation above is rebuilt from it (systemic
 patterns: `category: "systemic-pattern"`; new findings: empty `merged_from`; revisits: the other
-`verified-conditional` / `verified` items; notes: `downgraded` items; confirmed kills: `killed` items).
+`verified-conditional` items; notes: `downgraded` items; confirmed kills: `killed` items).
 
 ### Key Formatting Rules
 
