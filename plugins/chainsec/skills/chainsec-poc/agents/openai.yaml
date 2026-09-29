@@ -1,0 +1,5 @@
+interface:
+  display_name: "ChainSec PoC"
+  short_description: "Executable proof-of-concept"
+policy:
+  allow_implicit_invocation: false

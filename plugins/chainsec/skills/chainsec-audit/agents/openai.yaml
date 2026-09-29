@@ -1,0 +1,5 @@
+interface:
+  display_name: "ChainSec Audit"
+  short_description: "Full smart-contract security audit"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "ChainSec Fuzz"
+  short_description: "Invariant fuzzing"
+policy:
+  allow_implicit_invocation: false

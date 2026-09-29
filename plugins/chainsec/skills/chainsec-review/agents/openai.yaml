@@ -1,0 +1,5 @@
+interface:
+  display_name: "ChainSec Review"
+  short_description: "Second opinion on killed findings"
+policy:
+  allow_implicit_invocation: false

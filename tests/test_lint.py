@@ -84,6 +84,11 @@ class LintTest(unittest.TestCase):
     def test_repository_is_clean(self):
         self.assertEqual(lint(REPO), [])
 
+    def test_expected_skills_present(self):
+        skills = os.path.join(REPO, "plugins", "chainsec", "skills")
+        self.assertEqual(sorted(os.listdir(skills)),
+                         ["chainsec", "chainsec-audit", "chainsec-fuzz", "chainsec-init", "chainsec-poc", "chainsec-review"])
+
 
 if __name__ == "__main__":
     unittest.main()
