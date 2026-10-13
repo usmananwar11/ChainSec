@@ -1,0 +1,20 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - DP1-1 | src/PrizeVault.sol:611-622 (claimYieldFeeShares) | High | `yieldFeeBalance -= _yieldFeeBalance` instead of `-= _shares`: a partial claim wipes the rest of the fee entitlement (it becomes liquidatable yield).
+  - DP1-2 | src/PrizeVault.sol:341-352, 415-438 (convertToShares, maxRedeem) | Low | Division by zero in the lossy branch when totalAssets == 0 and debt > 0; ERC4626 says these must not revert.
+- Files with NO candidates (need extra scrutiny in Pass 2):
+  - src/PrizeVaultFactory.sol (only the bot-known unchecked transferFrom was seen)
+  - src/TwabERC20.sol
+  - src/abstract/Claimable.sol
+  - src/abstract/HookManager.sol
+  - src/interfaces/IVaultHooks.sol (interface only; not opened for logic)
+- Suspicious areas flagged but not promoted to candidate:
+  - PrizeVault._depositAndMint (L843-877): sweeps the whole latent asset balance into yieldVault.mint. A large donation above yieldVault.maxDeposit headroom, or a capped/paused yield vault, makes every deposit revert. Costs the donor funds, so it was not promoted.
+  - PrizeVault.transferTokensOut (L659-700): the yield fee is rounded down. The fee shares are never minted; they live in yieldFeeBalance and are counted in debt. twabSupplyLimit ignores yieldFeeBalance, so a later claimYieldFeeShares could revert near the uint96 cap (README known issue).
+  - PrizeVault._withdraw (L928-941): the redeemed amount from yieldVault.redeem is not checked against the amount needed. It relies on previewWithdraw rounding up and on the final transfer reverting. The unchecked asset.transfer return is bot-known.
+  - PrizeVault.verifyTokensIn (L703-714): contributes _amountIn without checking that the tokens were received. Trust is placed in the liquidation pair (owner-trusted).
+  - Claimable.claimPrize: the user hook runs with a 150k gas limit and can revert or burn gas. This only hurts the winner's own claim unless Claimer lacks try/catch. External contract not in scope; check in Pass 2 whether it can DoS other winners in a batch.
+  - PrizeVault.depositWithPermit: the permit is skipped when allowance == _assets. A griefer cannot exploit this since owner == msg.sender is enforced.
+  - TwabERC20 overrides _transfer without zero-address checks. TwabController.transfer reverts on a zero `to`; the `from` is msg.sender or an approved owner, so it is non-zero. No issue found.
+  - Lossy-state paths (totalAssets < totalDebt): withdraw uses previewWithdraw (rounds up) and redeem uses convertToAssets (rounds down), which are consistent. The LossyDeposit check blocks deposits while lossy.
+- Analyzer findings NOT yet covered by a candidate: none (slither skipped; no A/analyzers files).

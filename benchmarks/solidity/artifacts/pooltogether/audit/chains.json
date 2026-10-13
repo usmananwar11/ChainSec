@@ -1,0 +1,8 @@
+{
+  "chains": [
+    {
+      "chain": "solidity",
+      "root": "pt-v5-vault"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+[
+  {
+    "id": "DB-1",
+    "chain": "solidity",
+    "title": "claimYieldFeeShares subtracts the full cached yieldFeeBalance instead of the claimed shares, destroying unclaimed fee entitlement",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [{"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"}],
+    "discovery": {"phase": "detect", "lens": "B", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Lens B accountant trace of the yield fee debit/credit. transferTokensOut credits yieldFeeBalance += fee (virtual shares counted in _totalDebt). claimYieldFeeShares(_shares) mints only _shares but debits yieldFeeBalance by the whole cached balance. Debits (shares minted + remaining entitlement) no longer equal credits: the unclaimed remainder drops out of totalDebt, so the backing assets appear as totalYieldBalance and become liquidatable for prize contributions (and the fee recipient cannot ever claim them). Deepening vs Pass 1: a recipient who wants to claim in several chunks (for example to respect the uint96 TWAB supply limit, which _twabSupplyLimit does not reduce by yieldFeeBalance) loses the rest on the first chunk.",
+    "root_cause": "`yieldFeeBalance -= _yieldFeeBalance;` uses the cached full balance rather than `_shares`.",
+    "vulnerable_code": "uint256 _yieldFeeBalance = yieldFeeBalance;\nif (_shares > _yieldFeeBalance) revert SharesExceedsYieldFeeBalance(_shares, _yieldFeeBalance);\n\nyieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+    "recommendation": "Use `yieldFeeBalance -= _shares;`.",
+    "harm": {"who": "yield fee recipient", "loses_what": "unclaimed yield fee shares (yieldFeeBalance - _shares per partial claim)", "magnitude": "up to 100% of accrued fees on a 1-share partial claim; assets are redirected to prize liquidations"},
+    "exploit_trace": [
+      "1. Liquidations accrue yieldFeeBalance = 1000.",
+      "2. yieldFeeRecipient calls claimYieldFeeShares(100); 100 shares are minted.",
+      "3. yieldFeeBalance becomes 0; totalDebt drops by 1000 while supply rose by only 100.",
+      "4. totalYieldBalance rises by 900; the liquidation pair can take it as yield; the 900 fee shares are unrecoverable."
+    ],
+    "preconditions": [{"text": "yieldFeeBalance > 0 and recipient claims fewer shares than the balance", "type": "STATE"}],
+    "postconditions": [{"text": "totalDebt understated by yieldFeeBalance - _shares", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Pass 2 Lens B: Step 5 modules D,I,K,O,V=✓ vault-share-accounting=✓ erc4626-vault-deep=✓",
+      "rules_applied": ["R10:✓(claim of 1 share)"],
+      "depth_evidence": ["[TRACE:balance 1000, claim 100 -> balance 0, minted 100]", "[BOUNDARY:_shares==balance -> correct; _shares<balance -> loss]"],
+      "missing_precondition": "",
+      "postconditions_created": ["yieldFeeBalance understated"],
+      "who_benefits": "prize pool via liquidation pair takers"
+    }
+  }
+]

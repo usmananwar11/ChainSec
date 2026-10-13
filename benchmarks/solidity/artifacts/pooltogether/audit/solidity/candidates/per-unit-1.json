@@ -1,0 +1,39 @@
+[
+ {
+  "id": "PC1-1",
+  "chain": "solidity",
+  "title": "Supply-limit checks ignore yieldFeeBalance, so fee shares can become unmintable when total supply reaches the uint96 cap",
+  "severity": "Low",
+  "category": "boundary-values",
+  "status": "candidate",
+  "locations": [
+   {"file": "src/PrizeVault.sol", "line_start": 631, "line_end": 654, "unit": "PrizeVault", "function": "liquidatableBalanceOf"},
+   {"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"},
+   {"file": "src/PrizeVault.sol", "line_start": 374, "line_end": 392, "unit": "PrizeVault", "function": "maxDeposit"}
+  ],
+  "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "PrizeVault"},
+  "description": "Discovery: per-unit step 3 (boundary values) on _twabSupplyLimit. maxDeposit and liquidatableBalanceOf(address(this)) cap new shares at type(uint96).max - totalSupply() but do not reserve room for yieldFeeBalance, which is later minted as real shares by claimYieldFeeShares via TwabController (uint96 total supply). If depositors or a share-denominated liquidation fill the supply to the cap, every claimYieldFeeShares call reverts in SafeCast/TwabController until others burn shares, so accrued fee entitlement is blocked (and, since yieldFeeBalance stays as debt, cannot be recycled). Only relevant for high-supply (e.g. 18-decimal, very large nominal supply) assets, hence Low.",
+  "root_cause": "_twabSupplyLimit(totalSupply) is used as the mintable headroom while the outstanding yieldFeeBalance is an additional pending mint against the same uint96 supply.",
+  "vulnerable_code": "uint256 twabSupplyLimit_ = _twabSupplyLimit(_totalSupply);",
+  "recommendation": "Compute the headroom from _totalDebt(_totalSupply) rather than totalSupply, or document the limitation.",
+  "harm": {"who": "yield fee recipient", "loses_what": "temporary inability to claim accrued fee shares", "magnitude": "yieldFeeBalance, blocked until supply drops below cap minus fee balance"},
+  "exploit_trace": [
+   "1. yieldFeeBalance = F > 0 after prior liquidations.",
+   "2. Depositors (or a share liquidation) raise totalSupply to within less than F of type(uint96).max; maxDeposit still reports headroom because F is not subtracted.",
+   "3. yieldFeeRecipient calls claimYieldFeeShares(F): _mint overflows uint96 and reverts."
+  ],
+  "preconditions": [
+   {"text": "total supply near 2^96-1 (asset with huge nominal supply)", "type": "BALANCE"},
+   {"text": "yieldFeeBalance > 0", "type": "STATE"}
+  ],
+  "postconditions": [{"text": "fee shares unclaimable until supply decreases", "type": "STATE"}],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✓ 6=✓",
+   "rules_applied": ["R10:✓(supply at uint96 max)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+   "depth_evidence": ["[BOUNDARY:totalSupply=2^96-1-F+1, F>0 -> claim reverts]", "[TRACE:claimYieldFeeShares->_mint->SafeCast.toUint96/TwabController.mint]"],
+   "missing_precondition": "supply approaching uint96 max",
+   "postconditions_created": ["fee shares unclaimable"],
+   "who_benefits": "none"
+  }
+ }
+]

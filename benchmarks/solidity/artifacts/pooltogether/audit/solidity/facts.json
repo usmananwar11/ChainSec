@@ -1,0 +1,705 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "root": "/private/tmp/chainsec-pooltogether.CIpeI6/target/pt-v5-vault",
+  "units": [
+    {
+      "name": "PrizeVault",
+      "kind": "contract",
+      "file": "src/PrizeVault.sol",
+      "line": 65,
+      "loc": 899,
+      "parents": [
+        "TwabERC20",
+        "Claimable",
+        "IERC4626",
+        "ILiquidationSource",
+        "Ownable"
+      ]
+    },
+    {
+      "name": "PrizeVaultFactory",
+      "kind": "contract",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 13,
+      "loc": 127,
+      "parents": []
+    },
+    {
+      "name": "TwabERC20",
+      "kind": "contract",
+      "file": "src/TwabERC20.sol",
+      "line": 19,
+      "loc": 87,
+      "parents": [
+        "ERC20",
+        "ERC20Permit"
+      ]
+    },
+    {
+      "name": "Claimable",
+      "kind": "contract",
+      "file": "src/abstract/Claimable.sol",
+      "line": 13,
+      "loc": 122,
+      "parents": [
+        "HookManager",
+        "IClaimable"
+      ]
+    },
+    {
+      "name": "HookManager",
+      "kind": "contract",
+      "file": "src/abstract/HookManager.sol",
+      "line": 9,
+      "loc": 26,
+      "parents": []
+    },
+    {
+      "name": "IVaultHooks",
+      "kind": "interface",
+      "file": "src/interfaces/IVaultHooks.sol",
+      "line": 17,
+      "loc": 31,
+      "parents": []
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "PrizeVault",
+      "name": "decimals",
+      "file": "src/PrizeVault.sol",
+      "line": 320,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "asset",
+      "file": "src/PrizeVault.sol",
+      "line": 329,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "totalAssets",
+      "file": "src/PrizeVault.sol",
+      "line": 336,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "convertToShares",
+      "file": "src/PrizeVault.sol",
+      "line": 341,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "convertToAssets",
+      "file": "src/PrizeVault.sol",
+      "line": 355,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "maxDeposit",
+      "file": "src/PrizeVault.sol",
+      "line": 374,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "maxMint",
+      "file": "src/PrizeVault.sol",
+      "line": 397,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "maxWithdraw",
+      "file": "src/PrizeVault.sol",
+      "line": 404,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "maxRedeem",
+      "file": "src/PrizeVault.sol",
+      "line": 415,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "previewDeposit",
+      "file": "src/PrizeVault.sol",
+      "line": 441,
+      "visibility": "public",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "previewMint",
+      "file": "src/PrizeVault.sol",
+      "line": 447,
+      "visibility": "public",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "previewWithdraw",
+      "file": "src/PrizeVault.sol",
+      "line": 454,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "previewRedeem",
+      "file": "src/PrizeVault.sol",
+      "line": 470,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "deposit",
+      "file": "src/PrizeVault.sol",
+      "line": 475,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "mint",
+      "file": "src/PrizeVault.sol",
+      "line": 482,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "withdraw",
+      "file": "src/PrizeVault.sol",
+      "line": 489,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "redeem",
+      "file": "src/PrizeVault.sol",
+      "line": 500,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "depositWithPermit",
+      "file": "src/PrizeVault.sol",
+      "line": 524,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "sponsor",
+      "file": "src/PrizeVault.sol",
+      "line": 552,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "totalDebt",
+      "file": "src/PrizeVault.sol",
+      "line": 573,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "totalYieldBalance",
+      "file": "src/PrizeVault.sol",
+      "line": 584,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "availableYieldBalance",
+      "file": "src/PrizeVault.sol",
+      "line": 591,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "currentYieldBuffer",
+      "file": "src/PrizeVault.sol",
+      "line": 597,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "claimYieldFeeShares",
+      "file": "src/PrizeVault.sol",
+      "line": 611,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyYieldFeeRecipient"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "liquidatableBalanceOf",
+      "file": "src/PrizeVault.sol",
+      "line": 631,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "transferTokensOut",
+      "file": "src/PrizeVault.sol",
+      "line": 659,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyLiquidationPair"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "verifyTokensIn",
+      "file": "src/PrizeVault.sol",
+      "line": 703,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyLiquidationPair"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "targetOf",
+      "file": "src/PrizeVault.sol",
+      "line": 717,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "isLiquidationPair",
+      "file": "src/PrizeVault.sol",
+      "line": 722,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "setClaimer",
+      "file": "src/PrizeVault.sol",
+      "line": 735,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "setLiquidationPair",
+      "file": "src/PrizeVault.sol",
+      "line": 742,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "setYieldFeePercentage",
+      "file": "src/PrizeVault.sol",
+      "line": 753,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "PrizeVault",
+      "name": "setYieldFeeRecipient",
+      "file": "src/PrizeVault.sol",
+      "line": 759,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "name": "deployVault",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 92,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "name": "totalVaults",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 136,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TwabERC20",
+      "name": "balanceOf",
+      "file": "src/TwabERC20.sol",
+      "line": 56,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TwabERC20",
+      "name": "totalSupply",
+      "file": "src/TwabERC20.sol",
+      "line": 63,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Claimable",
+      "name": "claimPrize",
+      "file": "src/abstract/Claimable.sol",
+      "line": 76,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyClaimer"
+      ]
+    },
+    {
+      "unit": "HookManager",
+      "name": "getHooks",
+      "file": "src/abstract/HookManager.sol",
+      "line": 22,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "HookManager",
+      "name": "setHooks",
+      "file": "src/abstract/HookManager.sol",
+      "line": 29,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 261,
+      "kind": "inline"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 269,
+      "kind": "inline"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 532,
+      "kind": "inline"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 611,
+      "kind": "modifier:onlyYieldFeeRecipient"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 659,
+      "kind": "modifier:onlyLiquidationPair"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 703,
+      "kind": "modifier:onlyLiquidationPair"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 735,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 742,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 753,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "PrizeVault",
+      "file": "src/PrizeVault.sol",
+      "line": 759,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Claimable",
+      "file": "src/abstract/Claimable.sol",
+      "line": 53,
+      "kind": "inline"
+    },
+    {
+      "unit": "Claimable",
+      "file": "src/abstract/Claimable.sol",
+      "line": 76,
+      "kind": "modifier:onlyClaimer"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "PrizeVault",
+      "function": "claimYieldFeeShares",
+      "file": "src/PrizeVault.sol",
+      "line": 617,
+      "target": "yieldFeeBalance"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "transferTokensOut",
+      "file": "src/PrizeVault.sol",
+      "line": 685,
+      "target": "yieldFeeBalance"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "setLiquidationPair",
+      "file": "src/PrizeVault.sol",
+      "line": 745,
+      "target": "liquidationPair"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "_setYieldFeePercentage",
+      "file": "src/PrizeVault.sol",
+      "line": 951,
+      "target": "yieldFeePercentage"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "_setYieldFeeRecipient",
+      "file": "src/PrizeVault.sol",
+      "line": 959,
+      "target": "yieldFeeRecipient"
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "function": "deployVault",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 103,
+      "target": "deployerNonces"
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "function": "deployVault",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 121,
+      "target": "deployedVaults"
+    },
+    {
+      "unit": "Claimable",
+      "function": "_setClaimer",
+      "file": "src/abstract/Claimable.sol",
+      "line": 130,
+      "target": "claimer"
+    },
+    {
+      "unit": "HookManager",
+      "function": "setHooks",
+      "file": "src/abstract/HookManager.sol",
+      "line": 30,
+      "target": "_hooks"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "PrizeVault",
+      "function": "_tryGetAssetDecimals",
+      "file": "src/PrizeVault.sol",
+      "line": 773,
+      "kind": "staticcall"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "_depositAndMint",
+      "file": "src/PrizeVault.sol",
+      "line": 854,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "_withdraw",
+      "file": "src/PrizeVault.sol",
+      "line": 939,
+      "kind": "transfer"
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "function": "deployVault",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 118,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "TwabERC20",
+      "function": "_transfer",
+      "file": "src/TwabERC20.sol",
+      "line": 101,
+      "kind": "transfer"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "PrizeVault",
+      "function": "_depositAndMint",
+      "file": "src/PrizeVault.sol",
+      "line": 854,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "PrizeVault",
+      "function": "_withdraw",
+      "file": "src/PrizeVault.sol",
+      "line": 939,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "PrizeVaultFactory",
+      "function": "deployVault",
+      "file": "src/PrizeVaultFactory.sol",
+      "line": 118,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "TwabERC20",
+      "function": "_transfer",
+      "file": "src/TwabERC20.sol",
+      "line": 101,
+      "kind": "transfer",
+      "asset": "token"
+    }
+  ],
+  "counters": {
+    "src/PrizeVault.sol": {
+      "loc": 962,
+      "external_calls": 3,
+      "state_writers": 13,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 4
+    },
+    "src/PrizeVaultFactory.sol": {
+      "loc": 139,
+      "external_calls": 1,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "src/TwabERC20.sol": {
+      "loc": 104,
+      "external_calls": 1,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "src/abstract/Claimable.sol": {
+      "loc": 134,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "src/abstract/HookManager.sol": {
+      "loc": 33,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "src/interfaces/IVaultHooks.sol": {
+      "loc": 47,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    }
+  }
+}

@@ -1,0 +1,400 @@
+[
+ {
+  "id": "DA-1",
+  "chain": "solidity",
+  "title": "claimYieldFeeShares subtracts the full cached yieldFeeBalance instead of the claimed shares",
+  "severity": "High",
+  "category": "accounting",
+  "status": "verified",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 611,
+    "line_end": 622,
+    "unit": "PrizeVault",
+    "function": "claimYieldFeeShares"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "accountant",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Cross-function state consistency (lens A): yieldFeeBalance is a debt counter read by _totalDebt, totalYieldBalance, availableYieldBalance, liquidatableBalanceOf and transferTokensOut. Its only decrementing writer, claimYieldFeeShares, mints _shares but zeroes the whole balance. After a partial claim the unclaimed fee entitlement leaves totalDebt, so the backing assets become available yield and can be liquidated by the liquidation pair to the prize pool. The fee recipient permanently loses the remainder.",
+  "root_cause": "`yieldFeeBalance -= _yieldFeeBalance` (cached full balance) instead of `-= _shares`.",
+  "vulnerable_code": "yieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+  "recommendation": "Use `yieldFeeBalance -= _shares;`.",
+  "harm": {
+   "who": "yield fee recipient",
+   "loses_what": "unclaimed fee shares left after a partial claim",
+   "magnitude": "yieldFeeBalance - _shares per partial claim (e.g. 900 of 1000 fee shares lost to prize pool)"
+  },
+  "exploit_trace": [
+   "1. Liquidations accrue yieldFeeBalance = 1000.",
+   "2. yieldFeeRecipient calls claimYieldFeeShares(100): 100 shares minted, yieldFeeBalance set to 0.",
+   "3. totalDebt drops by 900 relative to the correct value; 900 assets of backing are now counted as available yield.",
+   "4. liquidationPair liquidates that yield; the recipient can never claim the remaining 900."
+  ],
+  "preconditions": [
+   {
+    "text": "yieldFeeBalance > 0 and recipient claims fewer shares than the balance",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "yieldFeeBalance understated; fee entitlement lost",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(claim of 1 share)"
+   ],
+   "depth_evidence": [
+    "[TRACE:claim(100) with balance 1000 -> balance 0]",
+    "[BOUNDARY:_shares==balance is the only correct case]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "yieldFeeBalance understated"
+   ],
+   "who_benefits": "prize pool / liquidation pair takers"
+  },
+  "merged_from": [
+   "DP1-1",
+   "DB-1",
+   "DC-1",
+   "DD-1"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "Survived gates A-H. Read PrizeVault.sol claimYieldFeeShares (lines ~611-622): `yieldFeeBalance -= _yieldFeeBalance` subtracts the cached full balance while only _shares are minted; _totalDebt = totalSupply + yieldFeeBalance so totalDebt drops by (yieldFeeBalance - _shares) with no asset outflow, which flips to availableYieldBalance and is liquidatable via transferTokensOut. No other writer restores yieldFeeBalance; no guard prevents partial claim. Not in README/bot known issues. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "code-trace",
+   "original_severity": null
+  }
+ },
+ {
+  "id": "DD-2",
+  "chain": "solidity",
+  "title": "convertToShares and maxRedeem revert with division by zero when totalAssets == 0 (ERC4626 non-revert requirement)",
+  "severity": "Low",
+  "category": "erc4626-compliance",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 341,
+    "line_end": 352,
+    "unit": "PrizeVault",
+    "function": "convertToShares"
+   },
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 415,
+    "line_end": 438,
+    "unit": "PrizeVault",
+    "function": "maxRedeem"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": "moderate",
+   "unit": null
+  },
+  "description": "Confirms DP1-2. When totalAssets()==0 and totalDebt>0, convertToShares calls mulDiv(..., 0) and reverts. maxRedeem for a holder with shares > 0 has _maxWithdraw == 0 so it enters the branch and mulDiv(0, totalDebt, 0, Up) reverts. ERC4626 requires maxRedeem and convertToShares not to revert. convertToAssets and maxWithdraw handle the case, so this is an inconsistency among siblings. Requires total loss in the yield vault (README: not expected).",
+  "root_cause": "No _totalAssets == 0 guard in the lossy branches of convertToShares/maxRedeem.",
+  "vulnerable_code": "return _assets.mulDiv(totalDebt_, _totalAssets, Math.Rounding.Down);",
+  "recommendation": "Handle _totalAssets == 0 (return 0 from maxRedeem; define convertToShares behavior).",
+  "harm": {
+   "who": "integrators/UIs",
+   "loses_what": "view calls revert in total-loss state",
+   "magnitude": "integration liveness only"
+  },
+  "exploit_trace": [
+   "1. Yield vault total loss: totalAssets()==0, totalSupply>0.",
+   "2. Call maxRedeem(holder) or convertToShares(x): division by zero revert."
+  ],
+  "preconditions": [
+   {
+    "text": "yield vault total loss",
+    "type": "EXTERNAL"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✗ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:totalAssets=0, maxWithdraw=0, ownerShares>0 -> mulDiv(0,td,0) reverts]"
+   ],
+   "missing_precondition": "total loss in yield vault (excluded by README assumption)",
+   "postconditions_created": [],
+   "who_benefits": "none"
+  },
+  "merged_from": [
+   "DP1-2"
+  ],
+  "verdict": {
+   "gate": "B",
+   "reason": "Requires total loss in the yield vault (totalAssets==0 with debt>0); README states yield vaults are not expected to lose assets. Impact is limited to view-function reverts for integrators; no fund loss or core-lifecycle DoS (withdraw/redeem paths unaffected by the view revert). Harm is liveness of off-chain/integration reads only.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "DA-2",
+  "chain": "solidity",
+  "title": "yieldFeeRecipient may be address(0); accrued fee shares then become unclaimable and permanently lock yield out of liquidation",
+  "severity": "Low",
+  "category": "missing-validation",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 958,
+    "line_end": 961,
+    "unit": "PrizeVault",
+    "function": "_setYieldFeeRecipient"
+   },
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 611,
+    "line_end": 622,
+    "unit": "PrizeVault",
+    "function": "claimYieldFeeShares"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "edge-case",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Edge case (caller/recipient is address(0)): the constructor and setYieldFeeRecipient accept address(0) with no check, unlike every other address parameter (claimer, LP, yieldVault, owner). The factory is permissionless and forwards any _yieldFeeRecipient. With a nonzero yieldFeePercentage, transferTokensOut keeps accruing yieldFeeBalance, which counts as debt, but onlyYieldFeeRecipient can never be satisfied, so that share of yield is never claimable and stays permanently locked until the owner resets the recipient.",
+  "root_cause": "No zero-address validation in _setYieldFeeRecipient.",
+  "recommendation": "Revert on address(0) when yieldFeePercentage > 0, or in general.",
+  "harm": {
+   "who": "yield fee beneficiary",
+   "loses_what": "yield fee accrued while recipient is zero is stuck until owner fixes it",
+   "magnitude": "owner-recoverable misconfiguration; no third-party exploit"
+  },
+  "exploit_trace": [
+   "1. Vault deployed via factory with _yieldFeeRecipient = address(0) and yieldFeePercentage > 0.",
+   "2. Liquidations accrue yieldFeeBalance.",
+   "3. No address can call claimYieldFeeShares; the fee assets stay locked as debt."
+  ],
+  "preconditions": [
+   {
+    "text": "deployer or owner sets zero recipient",
+    "type": "ACCESS"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "fee shares unclaimable",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✗ B=✓ C=✓ D=✓ E=✗ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓"
+   ],
+   "depth_evidence": [
+    "[COMPARE:_setClaimer reverts on zero, _setYieldFeeRecipient does not]"
+   ],
+   "missing_precondition": "owner/deployer must set address(0) recipient",
+   "postconditions_created": [],
+   "who_benefits": "none"
+  },
+  "verdict": {
+   "gate": "E",
+   "reason": "Zero recipient can only be set by the vault deployer (constructor) or the trusted owner (setYieldFeeRecipient); it is a misconfiguration, owner-recoverable by resetting the recipient, and the fee entitlement is not lost (yieldFeeBalance stays as debt). Admin trust boundary; missing zero-address check is generic best practice (Gate A).",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "PC1-1",
+  "chain": "solidity",
+  "title": "Supply-limit checks ignore yieldFeeBalance, so fee shares can become unmintable when total supply reaches the uint96 cap",
+  "severity": "Low",
+  "category": "boundary-values",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 631,
+    "line_end": 654,
+    "unit": "PrizeVault",
+    "function": "liquidatableBalanceOf"
+   },
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 611,
+    "line_end": 622,
+    "unit": "PrizeVault",
+    "function": "claimYieldFeeShares"
+   },
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 374,
+    "line_end": 392,
+    "unit": "PrizeVault",
+    "function": "maxDeposit"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "PrizeVault"
+  },
+  "description": "Discovery: per-unit step 3 (boundary values) on _twabSupplyLimit. maxDeposit and liquidatableBalanceOf(address(this)) cap new shares at type(uint96).max - totalSupply() but do not reserve room for yieldFeeBalance, which is later minted as real shares by claimYieldFeeShares via TwabController (uint96 total supply). If depositors or a share-denominated liquidation fill the supply to the cap, every claimYieldFeeShares call reverts in SafeCast/TwabController until others burn shares, so accrued fee entitlement is blocked (and, since yieldFeeBalance stays as debt, cannot be recycled). Only relevant for high-supply (e.g. 18-decimal, very large nominal supply) assets, hence Low.",
+  "root_cause": "_twabSupplyLimit(totalSupply) is used as the mintable headroom while the outstanding yieldFeeBalance is an additional pending mint against the same uint96 supply.",
+  "vulnerable_code": "uint256 twabSupplyLimit_ = _twabSupplyLimit(_totalSupply);",
+  "recommendation": "Compute the headroom from _totalDebt(_totalSupply) rather than totalSupply, or document the limitation.",
+  "harm": {
+   "who": "yield fee recipient",
+   "loses_what": "temporary inability to claim accrued fee shares",
+   "magnitude": "yieldFeeBalance, blocked until supply drops below cap minus fee balance"
+  },
+  "exploit_trace": [
+   "1. yieldFeeBalance = F > 0 after prior liquidations.",
+   "2. Depositors (or a share liquidation) raise totalSupply to within less than F of type(uint96).max; maxDeposit still reports headroom because F is not subtracted.",
+   "3. yieldFeeRecipient calls claimYieldFeeShares(F): _mint overflows uint96 and reverts."
+  ],
+  "preconditions": [
+   {
+    "text": "total supply near 2^96-1 (asset with huge nominal supply)",
+    "type": "BALANCE"
+   },
+   {
+    "text": "yieldFeeBalance > 0",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "fee shares unclaimable until supply decreases",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✗ C=✓ D=✓ E=✓ F=✓ G=✓ H=✗",
+   "rules_applied": [
+    "R10:✓(supply at uint96 max)",
+    "R11:✗",
+    "R12:✗",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:totalSupply=2^96-1-F+1, F>0 -> claim reverts]",
+    "[TRACE:claimYieldFeeShares->_mint->SafeCast.toUint96/TwabController.mint]"
+   ],
+   "missing_precondition": "supply approaching uint96 max (known, unrealistic)",
+   "postconditions_created": [
+    "fee shares unclaimable"
+   ],
+   "who_benefits": "none"
+  },
+  "verdict": {
+   "gate": "H",
+   "reason": "README lists the uint96 total share supply cap (TwabController) as a known limitation; low-precision/huge-supply assets are out of scope. Requires total supply within yieldFeeBalance of 2^96-1, i.e. an unrealistic nominal supply (Gate B), and the block is temporary until shares are burned.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "STATE-1",
+  "chain": "solidity",
+  "title": "claimYieldFeeShares mints _shares but zeroes the entire yieldFeeBalance, desyncing totalSupply + yieldFeeBalance (totalDebt) from owed fee shares",
+  "severity": "High",
+  "category": "state-desync",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 611,
+    "line_end": 622,
+    "unit": "PrizeVault",
+    "function": "claimYieldFeeShares"
+   }
+  ],
+  "discovery": {
+   "phase": "state",
+   "lens": null,
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": "PrizeVault"
+  },
+  "description": "Coupled Pair: yieldFeeBalance (virtual fee shares) <-> totalSupply (minted fee shares), both summed in _totalDebt\nBreaking Operation: claimYieldFeeShares()\nCross-Feed: DA-1\nclaimYieldFeeShares(_shares) mints _shares real shares (totalSupply += _shares) but executes `yieldFeeBalance -= _yieldFeeBalance` (the cached full balance) rather than `-= _shares`. For a partial claim, totalDebt = totalSupply + yieldFeeBalance falls by (yieldFeeBalance - _shares) with no corresponding asset outflow, so that amount of backing assets flips into availableYieldBalance and can be liquidated to the prize pool via transferTokensOut. The unclaimed fee entitlement is destroyed. The only decrementing writer of yieldFeeBalance is this function (mutation matrix: transferTokensOut += only; claim -= full).",
+  "root_cause": "Invariant: totalSupply + yieldFeeBalance must only change by mint/burn of shares (claim moves value from yieldFeeBalance to totalSupply 1:1, so yieldFeeBalance must drop by exactly _shares). claimYieldFeeShares subtracts the cached full yieldFeeBalance, so totalDebt drops by (yieldFeeBalance - _shares) whenever _shares < yieldFeeBalance.",
+  "vulnerable_code": "yieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+  "recommendation": "Use `yieldFeeBalance -= _shares;`.",
+  "harm": {
+   "who": "yield fee recipient",
+   "loses_what": "unclaimed fee shares remaining after any partial claim; the backing assets are liquidated to the prize pool instead",
+   "magnitude": "yieldFeeBalance - _shares per partial claim"
+  },
+  "exploit_trace": [
+   "1. Liquidations accrue yieldFeeBalance = 1000 with 1000 assets of backing counted in totalDebt.",
+   "2. yieldFeeRecipient calls claimYieldFeeShares(100): 100 shares minted, yieldFeeBalance set to 0.",
+   "3. totalDebt falls by 900 versus the correct value; totalAssets - totalDebt now includes 900 extra assets as available yield.",
+   "4. liquidationPair calls transferTokensOut for that yield; the recipient can never claim the remaining 900."
+  ],
+  "preconditions": [
+   {
+    "text": "yieldFeeBalance > 0 and recipient claims fewer shares than yieldFeeBalance",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "yieldFeeBalance understated; fee entitlement permanently lost",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✓(cached yieldFeeBalance used in subtraction)",
+    "R10:✓(claim of 1 share)",
+    "R12:✓(enumerated writers of yieldFeeBalance: transferTokensOut, claimYieldFeeShares)"
+   ],
+   "depth_evidence": [
+    "[TRACE:claim(100) with balance 1000 -> balance 0, supply +100]",
+    "[BOUNDARY:_shares==yieldFeeBalance is the only correct case]"
+   ],
+   "missing_precondition": "n/a - duplicate",
+   "postconditions_created": [
+    "yieldFeeBalance understated"
+   ],
+   "who_benefits": "prize pool / liquidation pair takers"
+  },
+  "verdict": {
+   "gate": "duplicate",
+   "reason": "Duplicate of DA-1 (same function, line range, root cause and impact); merged into DA-1, which is verified. Not an independent finding.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  },
+  "merged_from": [
+   "DA-1"
+  ]
+ }
+]

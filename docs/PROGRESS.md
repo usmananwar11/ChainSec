@@ -14,12 +14,12 @@ ChainSec is a set of smart-contract audit skills: one audit engine shared by eve
 | Area | Status |
 |---|---|
 | Sub-project 1: engine + Solidity pack + support for other tools (v0.1) | Built, reviewed and merged to `main` |
-| Automated tests | 100 tests passing; structure lint clean; CI on GitHub Actions (with Foundry) |
+| Automated tests | 105 tests passing locally; structure lint clean; CI on GitHub Actions (with Foundry) |
 | Smoke test, Claude Code | Passed |
 | Smoke test, OpenCode | Passed |
 | Smoke test, Antigravity | Pending (run by the user) |
 | Smoke test, Codex | Not run (not installed locally) |
-| Benchmark against Krait (5 contests) | Pending (needs the user's go-ahead) |
+| Benchmark against Krait (5 contests) | PoolTogether PASS: 11.11% recall, 0 FP; other four pending |
 | Sub-project 2: Cairo pack | Planned |
 | Sub-project 3: Soroban pack | Planned |
 
@@ -101,6 +101,28 @@ The test project is `tests/fixtures/solidity-basic`, which contains a planted bu
 | Claude Code 2.1.285 | **PASS** | 21 min | Found the planted bug, plus a real bug in the fixture we hadn't planted (ETH and the token share one balance ledger) |
 | OpenCode 1.18.32 (free model `opencode/big-pickle`) | **PASS** | 1 h 44 min | Same three findings as Claude Code |
 
+### Smoke-test fixes — 2026-10-13
+
+Implemented at `bfd53d0` on `fix/smoke-test-scope-and-methodology` (not yet merged):
+- Reports now use `preflight.quick` to describe audit mode, explicitly mark per-unit and state
+  phases skipped in quick runs, and preserve incomplete-phase notes in per-chain and combined reports.
+- Preflight uses `scripts/scope-files.py`, sharing scope selection with the Solidity extractor.
+  Both apply pack includes/excludes and only use fallback includes when the primary scope is empty.
+- Five scope regression tests cover the smoke fixture (2 files), nested exclusions, fallback,
+  excluded-only projects and invalid roots. All 105 tests passed, including compiler-mode tests;
+  structure lint passed. Full agent smoke tests have not been repeated after these fixes.
+
+### First benchmark — PoolTogether
+
+- Full audit completed in Claude Code 2.1.296 (`claude-sonnet-5-5`): compiler facts, six scoped
+  files, 11 completed subagents, no incomplete phases; Slither unavailable.
+- One exact match (H-01), no partial matches, zero false positives: 11.11% recall, matching
+  Krait's PoolTogether baseline. Single-target comparison passed; full acceptance is pending.
+- Per-unit analysis found a supply-cap/fee-reservation candidate overlapping official M-05/M-07,
+  but it was rated Low and killed as known. Next improvement: enforce Gate H's mechanism-level
+  matching and review severity calibration for this class.
+- [Run, grading and artifact links](benchmark-pooltogether.md). No answer-key-informed rerun.
+
 ---
 
 ## Planned
@@ -113,12 +135,14 @@ The test project is `tests/fixtures/solidity-basic`, which contains a planted bu
    - the contents of `.audit/`.
 
    This also checks whether Antigravity reads skills from `.agents/skills`, a path still marked unverified in INSTALL.md.
-2. **Benchmark (Task 17).** Run 5 full audits against the Code4rena contests Krait was scored on: PoolTogether, InitCapital, GoodEntry, Arcade and Frankencoin. Grade each against the official findings, then run `tools/score_benchmark.py compare`.
+2. **Benchmark (Task 17).** PoolTogether is complete and passed its matched baseline comparison.
+   InitCapital, GoodEntry, Arcade and Frankencoin remain. Grade each against the official findings,
+   then run `tools/score_benchmark.py compare` across all five.
    - **Pass bar:** aggregate recall of at least 17.42% and zero false positives.
-   - **Cost:** probably 1–3 hours of agent time per contest. It's worth starting with PoolTogether (648 lines).
-3. **Small fixes the smoke tests turned up:**
-   - In `--quick` runs, the report's Methodology section still lists "State Analysis".
-   - Preflight's `scope_files` count includes `test/`, because it ignores the pack's `scope.exclude`.
+   - **Cost:** originally estimated at 1–3 hours per contest; PoolTogether (648 lines) took about
+     7 min 23 sec with the current model. Larger targets may take longer.
+3. **Smoke-test fixes:** implemented on the feature branch above; a fresh agent smoke run remains
+   useful to confirm that the updated report instructions are followed.
 4. **Minor items from the final review**, deferred and fine to leave for now:
    - a stale top-level report is left behind when no chain produces findings;
    - the runtime detection row is ambiguous in Claude Code sessions without an Agent tool;

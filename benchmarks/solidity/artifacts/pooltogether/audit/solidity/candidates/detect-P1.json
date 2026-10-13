@@ -1,0 +1,64 @@
+[
+  {
+    "id": "DP1-1",
+    "chain": "solidity",
+    "title": "claimYieldFeeShares zeroes the entire yieldFeeBalance regardless of shares claimed",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [{"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"}],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q3.2 / Q1.1 (paired accounting). claimYieldFeeShares(_shares) mints only _shares to the fee recipient but subtracts the whole cached _yieldFeeBalance from yieldFeeBalance instead of _shares. A partial claim therefore deletes the unclaimed remainder of the fee entitlement.",
+    "root_cause": "Line 617 uses `yieldFeeBalance -= _yieldFeeBalance` (the full cached balance) rather than `-= _shares`, so the debt counter drops by more than the shares minted.",
+    "vulnerable_code": "uint256 _yieldFeeBalance = yieldFeeBalance;\nif (_shares > _yieldFeeBalance) revert SharesExceedsYieldFeeBalance(_shares, _yieldFeeBalance);\n\nyieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+    "recommendation": "Subtract _shares: yieldFeeBalance -= _shares.",
+    "harm": {"who": "yield fee recipient", "loses_what": "all accrued fee shares not included in a partial claim; the corresponding assets become ordinary liquidatable yield", "magnitude": "yieldFeeBalance - _shares per partial claim"},
+    "exploit_trace": [
+      "1. Liquidations accrue yieldFeeBalance = 1000 shares.",
+      "2. yieldFeeRecipient calls claimYieldFeeShares(100); 100 shares are minted to it.",
+      "3. yieldFeeBalance is set to 1000 - 1000 = 0, so the remaining 900 shares of entitlement are no longer in totalDebt.",
+      "4. The 900 assets of backing are now counted as available yield and are liquidated for prizes; the fee recipient can never claim them."
+    ],
+    "preconditions": [{"text": "yieldFeeBalance > 0 and recipient claims fewer shares than the balance", "type": "STATE"}],
+    "postconditions": [{"text": "totalDebt understated relative to minted shares plus remaining fee entitlement", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(worst state is partial claim of 1 share)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:_shares=1, balance=1000 -> balance becomes 0]", "[TRACE:claim(100)->mint 100, balance 0->900 lost]"],
+      "missing_precondition": "",
+      "postconditions_created": ["yieldFeeBalance understated"],
+      "who_benefits": "Prize pool / liquidation pair takers"
+    }
+  },
+  {
+    "id": "DP1-2",
+    "chain": "solidity",
+    "title": "convertToShares and maxRedeem revert (division by zero) when totalAssets is zero but debt is nonzero",
+    "severity": "Low",
+    "category": "erc4626-compliance",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/PrizeVault.sol", "line_start": 341, "line_end": 352, "unit": "PrizeVault", "function": "convertToShares"},
+      {"file": "src/PrizeVault.sol", "line_start": 415, "line_end": 438, "unit": "PrizeVault", "function": "maxRedeem"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q5.2 / Q5.6 (boundary). In the undercollateralised branch, mulDiv(totalDebt_, _totalAssets) divides by zero when the yield vault has lost everything (totalAssets == 0). ERC4626 requires convertToShares and maxRedeem not to revert, so integrators querying them in total-loss state get reverts.",
+    "root_cause": "No guard for _totalAssets == 0 in the lossy branches of convertToShares/maxRedeem (previewWithdraw explicitly reverts with ZeroTotalAssets, but these view helpers do not handle it).",
+    "vulnerable_code": "return _assets.mulDiv(totalDebt_, _totalAssets, Math.Rounding.Down);",
+    "harm": {"who": "integrators/UIs calling view functions", "loses_what": "view calls revert in total-loss state", "magnitude": "liveness of integrations only; no fund loss"},
+    "exploit_trace": [
+      "1. Underlying yield vault loses all assets so totalAssets() == 0 while totalSupply > 0.",
+      "2. Anyone calls convertToShares(x) or maxRedeem(holder) where holder shares > 0.",
+      "3. mulDiv reverts on division by zero instead of returning a value."
+    ],
+    "preconditions": [{"text": "yield vault total loss (README says yield vaults are not expected to lose assets)", "type": "EXTERNAL"}],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R10:✓(worst state totalAssets=0)"],
+      "depth_evidence": ["[BOUNDARY:totalAssets=0 -> div by zero]"],
+      "missing_precondition": "total loss in yield vault",
+      "postconditions_created": [],
+      "who_benefits": "none"
+    }
+  }
+]

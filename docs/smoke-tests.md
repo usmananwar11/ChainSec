@@ -32,3 +32,12 @@ Neither run reported Low findings, as the report rule requires. The kill gates r
 - In the maintainer's Claude Code environment, a local hook blocked the reporter subagent from writing `report.md`; the orchestrator saved the returned text itself. The hook is not part of ChainSec.
 - `preflight.json` `scope_files` counted 3 (it included `test/VaultTest.sol`), while the pack scope has 2 files. The preflight `find` ignores pack `scope.exclude`.
 - The OpenCode default model (`opencode-go/qwen3.8-max`) requires an OpenCode Go subscription; the run used a free model via `-m`.
+
+## Fixes — 2026-10-13
+
+On `fix/smoke-test-scope-and-methodology`, the report template and phase instructions now use
+`preflight.quick` to mark per-unit deep dives and State Analysis as skipped in quick audits.
+Preflight now calls a shared scope selector that applies the pack's include, exclude and fallback
+rules, also used by the Solidity extractor. Its regression test counts exactly the two source files
+in this fixture. All 105 automated tests and structure lint pass. The agent smoke runs above predate
+these fixes; they have not been repeated yet.

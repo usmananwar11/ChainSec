@@ -1,0 +1,66 @@
+[
+  {
+    "id": "DD-1",
+    "chain": "solidity",
+    "title": "claimYieldFeeShares subtracts the full cached yieldFeeBalance instead of _shares",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [{"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"}],
+    "discovery": {"phase": "detect", "lens": "D", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Confirms DP1-1 with concrete value trace. With yieldFeeBalance=1000 and a claim of _shares=100, 100 shares are minted but yieldFeeBalance becomes 0. totalDebt = totalSupply + yieldFeeBalance then drops by 900 more than the fee entitlement actually claimed, so 900 assets of backing are reclassified as liquidatable yield (availableYieldBalance rises by 900) and can be sold to the liquidation pair for prize tokens. The fee recipient permanently loses the unclaimed remainder. Boundary: _shares=1 wipes an arbitrarily large balance.",
+    "root_cause": "Line 617 `yieldFeeBalance -= _yieldFeeBalance;` uses the cached full balance instead of `_shares`.",
+    "vulnerable_code": "uint256 _yieldFeeBalance = yieldFeeBalance;\nif (_shares > _yieldFeeBalance) revert SharesExceedsYieldFeeBalance(_shares, _yieldFeeBalance);\n\nyieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+    "recommendation": "yieldFeeBalance -= _shares;",
+    "harm": {"who": "yield fee recipient", "loses_what": "unclaimed fee shares (yieldFeeBalance - _shares) on any partial claim", "magnitude": "up to the whole accrued fee balance per partial claim"},
+    "exploit_trace": [
+      "1. Liquidations accrue yieldFeeBalance = 1000.",
+      "2. yieldFeeRecipient calls claimYieldFeeShares(100): 100 shares minted, yieldFeeBalance = 1000 - 1000 = 0.",
+      "3. totalDebt falls by 900 relative to true obligations; availableYieldBalance increases by 900.",
+      "4. Liquidation pair buys the 900 as ordinary yield; fee recipient cannot recover it."
+    ],
+    "preconditions": [{"text": "yieldFeeBalance > 0 and recipient claims less than the full balance", "type": "STATE"}],
+    "postconditions": [{"text": "yieldFeeBalance understated; backing assets liquidatable", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens D: arithmetic trace of TOP complex functions; Step 5 modules B,E,F,G,M,X",
+      "rules_applied": ["R10:✓(_shares=1 vs balance 1000)"],
+      "depth_evidence": ["[TRACE: balance=1000, claim(100) -> mint 100, balance 0]", "[BOUNDARY:_shares=1]"],
+      "missing_precondition": "",
+      "postconditions_created": ["yieldFeeBalance understated"],
+      "who_benefits": "Liquidation pair / prize pool"
+    },
+    "merged_from": ["DP1-1"]
+  },
+  {
+    "id": "DD-2",
+    "chain": "solidity",
+    "title": "convertToShares and maxRedeem revert with division by zero when totalAssets == 0 (ERC4626 non-revert requirement)",
+    "severity": "Low",
+    "category": "erc4626-compliance",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/PrizeVault.sol", "line_start": 341, "line_end": 352, "unit": "PrizeVault", "function": "convertToShares"},
+      {"file": "src/PrizeVault.sol", "line_start": 415, "line_end": 438, "unit": "PrizeVault", "function": "maxRedeem"}
+    ],
+    "discovery": {"phase": "detect", "lens": "D", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "Confirms DP1-2. When totalAssets()==0 and totalDebt>0, convertToShares calls mulDiv(..., 0) and reverts. maxRedeem for a holder with shares > 0 has _maxWithdraw == 0 so it enters the branch and mulDiv(0, totalDebt, 0, Up) reverts. ERC4626 requires maxRedeem and convertToShares not to revert. convertToAssets and maxWithdraw handle the case, so this is an inconsistency among siblings. Requires total loss in the yield vault (README: not expected).",
+    "root_cause": "No _totalAssets == 0 guard in the lossy branches of convertToShares/maxRedeem.",
+    "vulnerable_code": "return _assets.mulDiv(totalDebt_, _totalAssets, Math.Rounding.Down);",
+    "recommendation": "Handle _totalAssets == 0 (return 0 from maxRedeem; define convertToShares behavior).",
+    "harm": {"who": "integrators/UIs", "loses_what": "view calls revert in total-loss state", "magnitude": "integration liveness only"},
+    "exploit_trace": [
+      "1. Yield vault total loss: totalAssets()==0, totalSupply>0.",
+      "2. Call maxRedeem(holder) or convertToShares(x): division by zero revert."
+    ],
+    "preconditions": [{"text": "yield vault total loss", "type": "EXTERNAL"}],
+    "audit_trail": {
+      "step_execution": "Lens D: boundary tracing with totalAssets=0",
+      "rules_applied": ["R10:✓"],
+      "depth_evidence": ["[BOUNDARY:totalAssets=0, maxWithdraw=0, ownerShares>0 -> mulDiv(0,td,0) reverts]"],
+      "missing_precondition": "total loss in yield vault",
+      "postconditions_created": [],
+      "who_benefits": "none"
+    },
+    "merged_from": ["DP1-2"]
+  }
+]
