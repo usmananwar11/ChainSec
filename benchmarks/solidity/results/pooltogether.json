@@ -1,0 +1,92 @@
+{
+  "id": "pooltogether",
+  "tool": "chainsec",
+  "official_total": 9,
+  "exact": 1,
+  "partial": 0,
+  "fp": 0,
+  "matches": [
+    {
+      "official_id": "H-01",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/59",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-001"
+      ],
+      "reason": "Same claimYieldFeeShares root cause and lines 611-622: subtracts the entire fee balance instead of the claimed amount."
+    },
+    {
+      "official_id": "M-01",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/345",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-02",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/336",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-03",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/335",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-04",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/274",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-05",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/244",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "Candidate PC1-1 covered the supply-cap/fee-reservation mechanism but was rated Low and killed by Gate H; absent from final findings, so no credit."
+    },
+    {
+      "official_id": "M-06",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/235",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-07",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/91",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "Candidate PC1-1 covered the supply-cap/fee-reservation mechanism but was rated Low and killed by Gate H; absent from final findings, so no credit."
+    },
+    {
+      "official_id": "M-08",
+      "official_url": "https://github.com/code-423n4/2024-03-pooltogether-findings/issues/51",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    }
+  ],
+  "false_positives": [],
+  "notes": {
+    "chainsec_commit": "bfd53d0705dceb154347d6e9ea5de143a8fbd75c",
+    "target_commit": "480d58b9e8611c13587f28811864aea138a0021a",
+    "runtime": "Claude Code 2.1.296",
+    "model": "claude-sonnet-5-5",
+    "facts_mode": "compiler",
+    "tooling_mode": "degraded (slither unavailable)",
+    "quick": false,
+    "incomplete_phases": [],
+    "elapsed_seconds": 443.23,
+    "reported_cost_usd": 3.4200717,
+    "artifacts": "../artifacts/pooltogether",
+    "scope": "6 files from contest scope.txt; source/tests unchanged",
+    "comparison": "Single-target comparison only; five-contest acceptance remains pending. Baseline model/tooling are not controlled.",
+    "grading": "Only final report findings receive credit. No PoC was run. Published findings were kept out of the audit session."
+  }
+}

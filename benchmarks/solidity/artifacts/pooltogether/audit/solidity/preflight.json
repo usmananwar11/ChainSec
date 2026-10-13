@@ -1,0 +1,1 @@
+{"chain": "solidity", "mode": "degraded", "tools": {"python3": "OK Python 3.14.6", "forge": "OK 1.7.1", "slither": "MISSING"}, "scope_files": 6, "quick": false, "warnings": ["rescan: REINFORCED DA-1 \u2014 claimYieldFeeShares zeroes yieldFeeBalance, shrinking totalDebt so lost fee entitlement can be liquidated via asset and share paths"], "incomplete_phases": []}

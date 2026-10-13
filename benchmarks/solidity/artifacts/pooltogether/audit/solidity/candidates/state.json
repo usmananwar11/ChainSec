@@ -1,0 +1,70 @@
+[
+ {
+  "id": "STATE-1",
+  "chain": "solidity",
+  "title": "claimYieldFeeShares mints _shares but zeroes the entire yieldFeeBalance, desyncing totalSupply + yieldFeeBalance (totalDebt) from owed fee shares",
+  "severity": "High",
+  "category": "state-desync",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "src/PrizeVault.sol",
+    "line_start": 611,
+    "line_end": 622,
+    "unit": "PrizeVault",
+    "function": "claimYieldFeeShares"
+   }
+  ],
+  "discovery": {
+   "phase": "state",
+   "lens": null,
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": "PrizeVault"
+  },
+  "description": "Coupled Pair: yieldFeeBalance (virtual fee shares) <-> totalSupply (minted fee shares), both summed in _totalDebt\nBreaking Operation: claimYieldFeeShares()\nCross-Feed: DA-1\nclaimYieldFeeShares(_shares) mints _shares real shares (totalSupply += _shares) but executes `yieldFeeBalance -= _yieldFeeBalance` (the cached full balance) rather than `-= _shares`. For a partial claim, totalDebt = totalSupply + yieldFeeBalance falls by (yieldFeeBalance - _shares) with no corresponding asset outflow, so that amount of backing assets flips into availableYieldBalance and can be liquidated to the prize pool via transferTokensOut. The unclaimed fee entitlement is destroyed. The only decrementing writer of yieldFeeBalance is this function (mutation matrix: transferTokensOut += only; claim -= full).",
+  "root_cause": "Invariant: totalSupply + yieldFeeBalance must only change by mint/burn of shares (claim moves value from yieldFeeBalance to totalSupply 1:1, so yieldFeeBalance must drop by exactly _shares). claimYieldFeeShares subtracts the cached full yieldFeeBalance, so totalDebt drops by (yieldFeeBalance - _shares) whenever _shares < yieldFeeBalance.",
+  "vulnerable_code": "yieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+  "recommendation": "Use `yieldFeeBalance -= _shares;`.",
+  "harm": {
+   "who": "yield fee recipient",
+   "loses_what": "unclaimed fee shares remaining after any partial claim; the backing assets are liquidated to the prize pool instead",
+   "magnitude": "yieldFeeBalance - _shares per partial claim"
+  },
+  "exploit_trace": [
+   "1. Liquidations accrue yieldFeeBalance = 1000 with 1000 assets of backing counted in totalDebt.",
+   "2. yieldFeeRecipient calls claimYieldFeeShares(100): 100 shares minted, yieldFeeBalance set to 0.",
+   "3. totalDebt falls by 900 versus the correct value; totalAssets - totalDebt now includes 900 extra assets as available yield.",
+   "4. liquidationPair calls transferTokensOut for that yield; the recipient can never claim the remaining 900."
+  ],
+  "preconditions": [
+   {
+    "text": "yieldFeeBalance > 0 and recipient claims fewer shares than yieldFeeBalance",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "yieldFeeBalance understated; fee entitlement permanently lost",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✓(mint after write, no external call) 5=✓(compared with transferTokensOut fee writer) 6=✓(liquidate -> partial claim -> liquidate) 7=✗(no clamps hiding this; _totalYieldBalance clamp only masks undercollateralisation) 8=✓",
+   "rules_applied": [
+    "R8:✓(cached yieldFeeBalance used in subtraction)",
+    "R10:✓(claim of 1 share)",
+    "R12:✓(enumerated writers of yieldFeeBalance: transferTokensOut, claimYieldFeeShares)"
+   ],
+   "depth_evidence": [
+    "[TRACE:claim(100) with balance 1000 -> balance 0, supply +100]",
+    "[BOUNDARY:_shares==yieldFeeBalance is the only correct case]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "yieldFeeBalance understated"
+   ],
+   "who_benefits": "prize pool / liquidation pair takers"
+  }
+ }
+]

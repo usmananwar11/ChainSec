@@ -1,0 +1,97 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "size": "SMALL",
+  "files": [
+    {
+      "file": "src/PrizeVault.sol",
+      "score": 152.1,
+      "breakdown": {
+        "external_calls": 15,
+        "state_writers": 52,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 12,
+        "loc": 48.1,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/PrizeVaultFactory.sol",
+      "score": 40.95,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 6.95,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/TwabERC20.sol",
+      "score": 35.2,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 5.2,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/abstract/Claimable.sol",
+      "score": 25.7,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 6.7,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/abstract/HookManager.sol",
+      "score": 20.65,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.65,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/interfaces/IVaultHooks.sol",
+      "score": 17.35,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.35,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    }
+  ]
+}

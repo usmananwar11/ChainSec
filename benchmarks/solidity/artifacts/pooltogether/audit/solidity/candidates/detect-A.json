@@ -1,0 +1,65 @@
+[
+  {
+    "id": "DA-1",
+    "chain": "solidity",
+    "title": "claimYieldFeeShares subtracts the full cached yieldFeeBalance instead of the claimed shares",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [{"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"}],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Cross-function state consistency (lens A): yieldFeeBalance is a debt counter read by _totalDebt, totalYieldBalance, availableYieldBalance, liquidatableBalanceOf and transferTokensOut. Its only decrementing writer, claimYieldFeeShares, mints _shares but zeroes the whole balance. After a partial claim the unclaimed fee entitlement leaves totalDebt, so the backing assets become available yield and can be liquidated by the liquidation pair to the prize pool. The fee recipient permanently loses the remainder.",
+    "root_cause": "`yieldFeeBalance -= _yieldFeeBalance` (cached full balance) instead of `-= _shares`.",
+    "vulnerable_code": "yieldFeeBalance -= _yieldFeeBalance;\n\n_mint(msg.sender, _shares);",
+    "recommendation": "Use `yieldFeeBalance -= _shares;`.",
+    "harm": {"who": "yield fee recipient", "loses_what": "unclaimed fee shares left after a partial claim", "magnitude": "yieldFeeBalance - _shares per partial claim"},
+    "exploit_trace": [
+      "1. Liquidations accrue yieldFeeBalance = 1000.",
+      "2. yieldFeeRecipient calls claimYieldFeeShares(100): 100 shares minted, yieldFeeBalance set to 0.",
+      "3. totalDebt drops by 900 relative to the correct value; 900 assets of backing are now counted as available yield.",
+      "4. liquidationPair liquidates that yield; the recipient can never claim the remaining 900."
+    ],
+    "preconditions": [{"text": "yieldFeeBalance > 0 and recipient claims fewer shares than the balance", "type": "STATE"}],
+    "postconditions": [{"text": "yieldFeeBalance understated; fee entitlement lost", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Pass 2 lens A: write-set review of yieldFeeBalance",
+      "rules_applied": ["R10:✓(claim of 1 share)"],
+      "depth_evidence": ["[TRACE:claim(100) with balance 1000 -> balance 0]", "[BOUNDARY:_shares==balance is the only correct case]"],
+      "missing_precondition": "",
+      "postconditions_created": ["yieldFeeBalance understated"],
+      "who_benefits": "prize pool / liquidation pair takers"
+    }
+  },
+  {
+    "id": "DA-2",
+    "chain": "solidity",
+    "title": "yieldFeeRecipient may be address(0); accrued fee shares then become unclaimable and permanently lock yield out of liquidation",
+    "severity": "Low",
+    "category": "missing-validation",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/PrizeVault.sol", "line_start": 958, "line_end": 961, "unit": "PrizeVault", "function": "_setYieldFeeRecipient"},
+      {"file": "src/PrizeVault.sol", "line_start": 611, "line_end": 622, "unit": "PrizeVault", "function": "claimYieldFeeShares"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "Edge case (caller/recipient is address(0)): the constructor and setYieldFeeRecipient accept address(0) with no check, unlike every other address parameter (claimer, LP, yieldVault, owner). The factory is permissionless and forwards any _yieldFeeRecipient. With a nonzero yieldFeePercentage, transferTokensOut keeps accruing yieldFeeBalance, which counts as debt, but onlyYieldFeeRecipient can never be satisfied, so that share of yield is never claimable and stays permanently locked until the owner resets the recipient.",
+    "root_cause": "No zero-address validation in _setYieldFeeRecipient.",
+    "recommendation": "Revert on address(0) when yieldFeePercentage > 0, or in general.",
+    "harm": {"who": "yield fee beneficiary", "loses_what": "yield fee accrued while recipient is zero is stuck until owner fixes it", "magnitude": "owner-recoverable misconfiguration; no third-party exploit"},
+    "exploit_trace": [
+      "1. Vault deployed via factory with _yieldFeeRecipient = address(0) and yieldFeePercentage > 0.",
+      "2. Liquidations accrue yieldFeeBalance.",
+      "3. No address can call claimYieldFeeShares; the fee assets stay locked as debt."
+    ],
+    "preconditions": [{"text": "deployer or owner sets zero recipient", "type": "ACCESS"}],
+    "postconditions": [{"text": "fee shares unclaimable", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Pass 2 lens A: sibling-setter comparison (MODIFIER-01 / MISSING-01)",
+      "rules_applied": ["R10:✓"],
+      "depth_evidence": ["[COMPARE:_setClaimer reverts on zero, _setYieldFeeRecipient does not]"],
+      "missing_precondition": "",
+      "postconditions_created": [],
+      "who_benefits": "none"
+    }
+  }
+]
