@@ -117,18 +117,36 @@ Format in the report:
 
 ## Methodology
 
-This audit was performed using ChainSec's multi-phase analysis:
-1. **Recon**: Architecture mapping, fund flow analysis, trust boundary identification
-2. **Detection**: Feynman first-principles interrogation (7 question categories, 28+ questions per function) + 40 exploit-derived heuristic checks
-3. **State Analysis**: Coupled state dependency mapping, mutation matrix cross-checking, parallel path comparison, masking code detection
-4. **Verification**: Devil's advocate falsification of every H/M finding, mandatory proof-of-concept traces, systematic FP elimination
+**Audit mode**: [Quick (`--quick`) or full pipeline, from `A/preflight.json.quick`.]
 
-[Mode notes: facts mode (`compiler`/`regex`), preflight mode (`full`/`degraded`), incomplete phases — from `A/preflight.json` and `A/facts.json`.]
+[List the phases actually completed, using the Methodology rules below.]
+
+[Skipped or incomplete phases, followed by facts mode (`compiler`/`regex`), preflight tooling
+mode (`full`/`degraded`), and warnings — from `A/preflight.json` and `A/facts.json`.]
 
 Methodology derived from Krait by Zealynx Security.
 ````
 
 The **Evidence** line is one of the evidence-tier lines in `engine/verdicts.md`.
+
+### Methodology rules
+
+Use `A/preflight.json.quick` to select the audit mode; `mode: "full"` describes tool
+availability and does not mean the full pipeline ran. Build the completed-phase list from:
+
+- **Recon** (`recon`): Architecture mapping, fund flows, trust boundaries.
+- **Detection** (`detect`): Pass 1, four lenses and the final sweep.
+- **Rescan** (`rescan`): Re-examination of candidates and coverage gaps.
+- **Per-unit deep dives** (`per-unit`): Focused analysis of unit clusters.
+- **State Analysis** (`state`): Coupled state dependencies and cross-function inconsistencies.
+- **Verification** (`verify`): Kill gates, impact premises and concrete exploit traces.
+
+When `quick` is true, omit Per-unit deep dives and State Analysis from completed phases
+and state: "Per-unit deep dives and State Analysis were skipped (--quick)." When false,
+include them unless listed in `incomplete_phases`. For every phase in `incomplete_phases`,
+describe it as incomplete in the mode notes, never as completed. Preserve `warnings` there too.
+If an older preflight has no `quick`, report the audit mode as unknown and only claim per-unit
+or state completion when their current-run artifacts confirm it; do not infer this from tooling mode.
 
 ## Findings index (`A/findings.json`)
 
@@ -189,7 +207,8 @@ When more than one chain was audited, write `TARGET/.audit/report.md` with:
    the finding format above, using the fence language of that finding's chain pack.
 4. `## Boundary findings`: every finding with `boundary: true` (by id and title, with the chains
    its locations span).
-5. `## Mode notes`: per chain, the facts mode (`compiler`/`regex`), preflight mode
-   (`full`/`degraded`) and incomplete phases.
+5. `## Mode notes`: per chain, the audit mode (`quick`), facts mode (`compiler`/`regex`), preflight
+   tooling mode (`full`/`degraded`), skipped and incomplete phases, and warnings.
 6. The Security Strengths, Architecture Observations and Methodology sections, combined across
-   chains, ending with `Methodology derived from Krait by Zealynx Security.`
+   chains, preserving each chain's completed/skipped/incomplete phase distinctions under the
+   Methodology rules above, ending with `Methodology derived from Krait by Zealynx Security.`

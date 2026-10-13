@@ -54,3 +54,19 @@ def glob_match(relpath, pattern):
 
 def matches_any(relpath, patterns):
     return any(glob_match(relpath, p) for p in patterns)
+
+
+def scope_files(root, scope):
+    """Select pack scope, applying exclusions before deciding whether to fall back."""
+    skip_dirs = {".git", ".audit", "node_modules", "out", "cache", "artifacts", "build"}
+    rels = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in skip_dirs)
+        for name in sorted(filenames):
+            rels.append(os.path.relpath(os.path.join(dirpath, name), root).replace(os.sep, "/"))
+    exclude = scope.get("exclude", [])
+    for key in ("include", "fallback_include"):
+        chosen = [r for r in rels if matches_any(r, scope.get(key, [])) and not matches_any(r, exclude)]
+        if chosen:
+            return chosen
+    return []

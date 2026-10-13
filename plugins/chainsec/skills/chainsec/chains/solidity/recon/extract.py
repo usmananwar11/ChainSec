@@ -17,32 +17,17 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "..", "scripts")))
-from _common import load_json, matches_any, write_json  # noqa: E402
+from _common import load_json, scope_files, write_json  # noqa: E402
 
 CALL_KINDS = ("call", "delegatecall", "staticcall", "send", "transfer", "transferFrom",
               "safeTransfer", "safeTransferFrom", "safeTransferETH")
 TOKEN_KINDS = {"transferFrom", "safeTransfer", "safeTransferFrom"}
 AUTH_CALLS = ("_checkOwner", "_checkRole", "hasRole")
-SKIP_DIRS = {".git", ".audit", "node_modules", "out", "cache", "artifacts", "build"}
 VIS = ("external", "public", "internal", "private")
 MUT = ("pure", "view", "payable")
 
 
 # ------------------------------------------------------------------ shared
-
-def scope_files(root, scope):
-    rels = []
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
-        for name in sorted(filenames):
-            rels.append(os.path.relpath(os.path.join(dirpath, name), root).replace(os.sep, "/"))
-    exclude = scope.get("exclude", [])
-    for key in ("include", "fallback_include"):
-        chosen = [r for r in rels if matches_any(r, scope.get(key, [])) and not matches_any(r, exclude)]
-        if chosen:
-            return chosen
-    return []
-
 
 def empty_facts(root, mode):
     return {"chain": "solidity", "mode": mode, "root": root, "units": [], "entry_points": [],

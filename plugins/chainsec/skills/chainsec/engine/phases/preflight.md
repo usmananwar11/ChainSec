@@ -23,7 +23,7 @@ The caller specifies one of two modes:
 | Check | Hard (gate-fails the audit) | Why |
 |-------|------------------------------|-----|
 | every `tools.required` entry of the pack | yes | the pack's extractor, PoC and fuzz steps depend on them (each entry's `purpose` says why) |
-| ≥ 1 source file with a pack `extensions` suffix under ROOT | yes | nothing to audit otherwise |
+| ≥ 1 source file selected by the pack's `scope` under ROOT | yes | nothing to audit otherwise |
 | every `tools.optional` entry of the pack | no | optional signal, skipped silently if absent; the audit runs in `degraded` mode |
 | the core folder is reachable | no | warn; the entry skill resolves CORE, a broken install shows up here |
 | `.audit/` in `.gitignore` | no | cosmetic; warn |
@@ -40,15 +40,18 @@ Install hints (only mention when relevant) come from each entry's `install` fiel
 
 ## Step 2 — Project shape
 
-Verify the target looks like a project for this chain: a source file with one of the pack's
-`extensions` exists somewhere under ROOT. For each extension use:
+Resolve the pack's scope with the same helper used by fact extraction:
 
 ```
-find ROOT -type f -name '*<ext>' -not -path '*/node_modules/*' -not -path '*/lib/*' -not -path '*/target/*' | head -20
+python3 "CORE/scripts/scope-files.py" --root "ROOT" --pack "CORE/chains/<chain>/pack.json"
 ```
 
-Count the matching files (the same `find` piped to `wc -l`) and record the count as
-`scope_files`. Report the approximate source-file count. Zero source files → hard fail.
+Substitute the resolved paths. The command prints JSON with `scope_files` (the exact count)
+and `files` (ROOT-relative paths), without writing audit artifacts. It applies `scope.include`
+and `scope.exclude`; only if no files remain does it try `scope.fallback_include`, still
+applying exclusions. Generated/dependency directories are skipped by the shared helper.
+Record its `scope_files` value in preflight and use its `files` for any scope preview.
+Zero in-scope files → hard fail in gate mode; report a failed check in report mode.
 
 ## Step 3 — Core folder and output hygiene (soft)
 

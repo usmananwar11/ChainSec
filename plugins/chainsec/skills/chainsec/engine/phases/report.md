@@ -144,7 +144,9 @@ In `A/findings.json` the adjusted finding has status `downgraded`, the new `seve
    rank order under their final IDs, code blocks fenced with the pack's `code_fence`, the Evidence
    line from Step 2.75, the Security Strengths section (examples: the pack's heuristics.md,
    section "Security strengths examples"), and the mode notes from `A/preflight.json` (`mode`,
-   `incomplete_phases`, `warnings`) and `A/facts.json` (`mode`).
+   `quick`, `incomplete_phases`, `warnings`) and `A/facts.json` (`mode`). Follow the template's
+   Methodology rules: list completed phases, explicitly note quick-mode skips, and identify
+   incomplete phases without claiming they completed.
 5. **Validate before finishing**: run `python3 scripts/validate-findings.py A/findings.json` (from
    the core folder, or with its absolute path). Exit 0 → done. Exit 1 → fix each listed reject from
    `A/verdicts.json` and the code (never invent a location, harm or trace), rewrite both files and
