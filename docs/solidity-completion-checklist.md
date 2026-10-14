@@ -4,7 +4,7 @@ The Solidity pack is implemented. Mark it **complete** only when every release i
 
 ## Release items
 
-- [ ] **Finalize the five-contest baseline.** Review and commit the pending Frankencoin denominator correction (20 to 21 official High/Medium findings), or document a different verified count. Make `benchmarks/solidity/baselines/krait-v8.json`, `benchmarks/solidity/scoring.md`, the scorer test, and `docs/PROGRESS.md` agree on the resulting aggregate target. The current working-tree calculation is 11.5 / 67 = **17.16%** recall, with zero baseline false positives.
+- [x] **Finalize the five-contest baseline.** Completed 2026-10-14. Reviewed the Frankencoin denominator correction committed in `81bad63` against the official report: 6 High + 15 Medium = **21** findings. The baseline JSON, [scoring evidence](../benchmarks/solidity/scoring.md#finalized-five-contest-baseline--2026-10-14), scorer regression test, and `docs/PROGRESS.md` agree on **11.5 / 67 = 17.16%** recall, with **zero baseline false positives**. Verified with the baseline scoring command and `python3 -m unittest discover -s tests -p 'test_score_benchmark.py' -v`.
 
 - [ ] **Make the acceptance command require all five targets.** `tools/score_benchmark.py compare` currently prints `PASS` for PoolTogether alone because it compares only shared IDs. Add a full-acceptance mode (or change the command) that fails when any of PoolTogether, InitCapital, GoodEntry, Arcade, or Frankencoin is missing, duplicated, or has an inconsistent official total. Keep an explicit way to compare one target during development. Cover the missing-target case with a test.
 

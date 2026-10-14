@@ -1,6 +1,6 @@
 # ChainSec — Progress
 
-_Last updated: 2026-10-13_
+_Last updated: 2026-10-14_
 
 ChainSec is a set of smart-contract audit skills: one audit engine shared by every chain, plus a "pack" for each chain. It runs in Claude Code, OpenCode, Codex and Antigravity. The engine and the Solidity pack are derived from [Krait](https://github.com/zealynx/krait) by Zealynx Security (MIT).
 
@@ -72,7 +72,10 @@ Built in 15 tasks. Each task was done by an implementer subagent and then checke
 **Benchmark tooling** (`benchmarks/solidity/`)
 - A registry of 50 contests taken from Krait.
 - A single scoring rule: exact match = 1, partial = 0.5.
-- Krait's v8 results re-scored under that rule. Aggregate recall is **17.42%**, with **0** false positives.
+- Krait's v8 baseline finalized on 2026-10-14: **11.5 / 67 = 17.16%** aggregate recall,
+  with **0** false positives. Reviewed the Frankencoin correction committed in `81bad63`:
+  its official report lists 6 High + 15 Medium findings, so its denominator is 21.
+  [Baseline evidence and per-contest counts](../benchmarks/solidity/scoring.md#finalized-five-contest-baseline--2026-10-14).
 - `tools/score_benchmark.py` runs the PASS/FAIL comparison.
 
 **Proof that nothing was lost from Krait**
@@ -138,7 +141,7 @@ Implemented at `bfd53d0` on `fix/smoke-test-scope-and-methodology` (not yet merg
 2. **Benchmark (Task 17).** PoolTogether is complete and passed its matched baseline comparison.
    InitCapital, GoodEntry, Arcade and Frankencoin remain. Grade each against the official findings,
    then run `tools/score_benchmark.py compare` across all five.
-   - **Pass bar:** aggregate recall of at least 17.42% and zero false positives.
+   - **Pass bar:** aggregate recall of at least 11.5 / 67 (17.16% displayed) and zero false positives.
    - **Cost:** originally estimated at 1–3 hours per contest; PoolTogether (648 lines) took about
      7 min 23 sec with the current model. Larger targets may take longer.
 3. **Smoke-test fixes:** implemented on the feature branch above; a fresh agent smoke run remains

@@ -14,6 +14,29 @@ findings (21 total), while the imported registry lists 20. Krait's recorded matc
 are unchanged. The corrected five-target baseline is 17.16% (11.5 / 67), replacing the historical
 17.42% (11.5 / 66). The registry remains an unchanged historical import.
 
+### Finalized five-contest baseline — 2026-10-14
+
+Reviewed the correction committed in `81bad63` against the official report's
+High Risk Findings (6) and Medium Risk Findings (15), covering H-01–H-06 and
+M-01–M-15. The accepted Frankencoin denominator is **21**.
+
+| Target | Official H/M total | Exact | Partial | Weighted TP | FP |
+|---|---:|---:|---:|---:|---:|
+| PoolTogether | 9 | 1 | 0 | 1 | 0 |
+| InitCapital | 15 | 0 | 1 | 0.5 | 0 |
+| GoodEntry | 14 | 5 | 0 | 5 | 0 |
+| Arcade | 8 | 2 | 1 | 2.5 | 0 |
+| Frankencoin | 21 | 2 | 1 | 2.5 | 0 |
+| **Total** | **67** | **10** | **3** | **11.5** | **0** |
+
+The acceptance target is **11.5 / 67** recall (**17.16%** displayed), with
+**zero false positives**. Use the unrounded fraction for comparisons.
+Reproduce the score with
+`python3 tools/score_benchmark.py score benchmarks/solidity/baselines/krait-v8.json`.
+The regression test in `tests/test_score_benchmark.py` checks all five entries,
+their counts, and the aggregate score. This finalizes the baseline; full ChainSec
+acceptance still requires the remaining contest runs and a comparison across all five.
+
 ## Running a target
 1. `git clone <repo> /tmp/bench/<id>` at the contest commit (registry `repo`).
 2. Open a fresh agent session in that folder; run `chainsec-audit` (no flags).

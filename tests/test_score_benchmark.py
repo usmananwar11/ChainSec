@@ -57,9 +57,26 @@ class ScoreBenchmarkTest(unittest.TestCase):
 
     def test_shipped_baseline_aggregate(self):
         base = os.path.join(REPO, "benchmarks", "solidity", "baselines", "krait-v8.json")
+        with open(base, encoding="utf-8") as f:
+            entries = json.load(f)
+        expected = {
+            "pooltogether": (9, 1, 0, 0),
+            "initcapital": (15, 0, 1, 0),
+            "goodentry": (14, 5, 0, 0),
+            "arcade": (8, 2, 1, 0),
+            "frankencoin": (21, 2, 1, 0),
+        }
+        self.assertEqual(len(entries), len(expected))
+        self.assertEqual(
+            {e["id"]: (e["official_total"], e["exact"], e["partial"], e["fp"])
+             for e in entries},
+            expected,
+        )
+        self.assertEqual(sum(e["official_total"] for e in entries), 67)
+        self.assertEqual(sum(e["exact"] + 0.5 * e["partial"] for e in entries), 11.5)
         r = run([sys.executable, TOOL, "score", base])
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("aggregate recall 17.16", r.stdout)
+        self.assertIn("aggregate recall 17.16 total fp 0", r.stdout)
 
 
 if __name__ == "__main__":
