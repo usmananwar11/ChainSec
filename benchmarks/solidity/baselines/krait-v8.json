@@ -3,5 +3,5 @@
   {"id": "initcapital",  "tool": "krait-v8", "official_total": 15, "exact": 0, "partial": 1, "fp": 0, "notes": "registry.yaml v8"},
   {"id": "goodentry",    "tool": "krait-v8", "official_total": 14, "exact": 5, "partial": 0, "fp": 0, "notes": "registry.yaml v8"},
   {"id": "arcade",       "tool": "krait-v8", "official_total": 8,  "exact": 2, "partial": 1, "fp": 0, "notes": "registry.yaml v8"},
-  {"id": "frankencoin",  "tool": "krait-v8", "official_total": 20, "exact": 2, "partial": 1, "fp": 0, "notes": "registry.yaml v8"}
+  {"id": "frankencoin",  "tool": "krait-v8", "official_total": 21, "exact": 2, "partial": 1, "fp": 0, "notes": "registry.yaml v8 counts retained; official_total corrected from 20 to 21 (6 High + 15 Medium), https://code4rena.com/reports/2023-04-frankencoin"}
 ]

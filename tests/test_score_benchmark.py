@@ -59,7 +59,7 @@ class ScoreBenchmarkTest(unittest.TestCase):
         base = os.path.join(REPO, "benchmarks", "solidity", "baselines", "krait-v8.json")
         r = run([sys.executable, TOOL, "score", base])
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("aggregate recall 17.42", r.stdout)
+        self.assertIn("aggregate recall 17.16", r.stdout)
 
 
 if __name__ == "__main__":

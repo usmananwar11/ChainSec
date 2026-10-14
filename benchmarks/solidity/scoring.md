@@ -8,6 +8,12 @@ TP = exact + 0.5 × partial · Precision = TP/(TP+FP) · Recall = TP/official_to
 Krait's registry applied partial credit inconsistently; `baselines/krait-v8.json` re-scores its
 v8 targets with this rule.
 
+The Frankencoin denominator was corrected on 2026-10-13: the
+[official report](https://code4rena.com/reports/2023-04-frankencoin) lists 6 High and 15 Medium
+findings (21 total), while the imported registry lists 20. Krait's recorded match and FP counts
+are unchanged. The corrected five-target baseline is 17.16% (11.5 / 67), replacing the historical
+17.42% (11.5 / 66). The registry remains an unchanged historical import.
+
 ## Running a target
 1. `git clone <repo> /tmp/bench/<id>` at the contest commit (registry `repo`).
 2. Open a fresh agent session in that folder; run `chainsec-audit` (no flags).
