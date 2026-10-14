@@ -76,7 +76,9 @@ Built in 15 tasks. Each task was done by an implementer subagent and then checke
   with **0** false positives. Reviewed the Frankencoin correction committed in `81bad63`:
   its official report lists 6 High + 15 Medium findings, so its denominator is 21.
   [Baseline evidence and per-contest counts](../benchmarks/solidity/scoring.md#finalized-five-contest-baseline--2026-10-14).
-- `tools/score_benchmark.py` runs the PASS/FAIL comparison.
+- `tools/score_benchmark.py compare` requires all five targets with unique entries and
+  finalized official totals in both inputs. `--target <id>` explicitly selects a
+  development comparison. Full acceptance currently fails because four runs remain pending.
 
 **Proof that nothing was lost from Krait**
 - A test checks that all **91** Krait heuristic and false-positive IDs are still present.

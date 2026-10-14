@@ -69,8 +69,9 @@ recorded outputs rather than isolating the effect of the ChainSec port.
 Reproduce the comparison:
 
 ```sh
-python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results
+python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results --target pooltogether
 ```
 
-The comparator uses only shared target IDs. Its current PASS covers PoolTogether alone;
-InitCapital, GoodEntry, Arcade and Frankencoin remain pending.
+This explicit development comparison covers PoolTogether alone. The default comparison
+requires all five targets and currently fails because InitCapital, GoodEntry, Arcade
+and Frankencoin remain pending.

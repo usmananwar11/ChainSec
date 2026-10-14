@@ -5,14 +5,26 @@ TP = exact + 0.5 * partial; precision = TP / (TP + fp); recall = TP / official_t
 
 Usage:
   score_benchmark.py score <file.json>...        (a file may hold one entry or a list)
-  score_benchmark.py compare <baseline.json> <results_dir>
-compare passes when, over ids present in both, aggregate recall >= baseline's and
-total fp <= baseline's.
+  score_benchmark.py compare <baseline.json> <results_dir> [--target <id>]
+compare requires all five Solidity targets by default, with unique entries and
+the finalized official totals in both inputs. It passes when aggregate recall
+>= baseline's and total fp <= baseline's. --target compares one development
+target only; its PASS is not full acceptance.
 """
+import argparse
 import glob
 import json
 import os
 import sys
+
+
+OFFICIAL_TOTALS = {
+    "pooltogether": 9,
+    "initcapital": 15,
+    "goodentry": 14,
+    "arcade": 8,
+    "frankencoin": 21,
+}
 
 
 def entries(path):
@@ -51,12 +63,36 @@ def cmd_score(paths):
     return 0
 
 
-def cmd_compare(baseline_path, results_dir):
-    base = {e["id"]: e for e in entries(baseline_path)}
-    res = {e["id"]: e for p in sorted(glob.glob(os.path.join(results_dir, "*.json"))) for e in entries(p)}
-    ids = sorted(set(base) & set(res))
-    if not ids:
-        print("FAIL: no overlapping targets")
+def comparison_entries(es, ids, label):
+    selected = {}
+    for i in ids:
+        matches = [e for e in es if e["id"] == i]
+        if not matches:
+            raise ValueError(f"{label}: missing target {i}")
+        if len(matches) != 1:
+            raise ValueError(f"{label}: duplicate target {i}")
+        e = matches[0]
+        if e.get("official_total") != OFFICIAL_TOTALS[i]:
+            raise ValueError(
+                f"{label}: {i} official_total must be {OFFICIAL_TOTALS[i]}, "
+                f"got {e.get('official_total')!r}"
+            )
+        selected[i] = e
+    return selected
+
+
+def cmd_compare(baseline_path, results_dir, target=None):
+    ids = [target] if target else sorted(OFFICIAL_TOTALS)
+    print(f"Development comparison: {target} (not full acceptance)" if target
+          else "Full Solidity acceptance: all five targets")
+    try:
+        base = comparison_entries(entries(baseline_path), ids, "baseline")
+        res = comparison_entries(
+            [e for p in sorted(glob.glob(os.path.join(results_dir, "*.json")))
+             for e in entries(p)], ids, "results"
+        )
+    except ValueError as exc:
+        print(f"FAIL: {exc}")
         return 1
     print(f"{'target':<16}{'base R':>9}{'new R':>9}{'base FP':>9}{'new FP':>8}")
     for i in ids:
@@ -72,8 +108,13 @@ def cmd_compare(baseline_path, results_dir):
 def main(argv):
     if len(argv) >= 2 and argv[0] == "score":
         return cmd_score(argv[1:])
-    if len(argv) == 3 and argv[0] == "compare":
-        return cmd_compare(argv[1], argv[2])
+    if argv and argv[0] == "compare":
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument("baseline")
+        parser.add_argument("results_dir")
+        parser.add_argument("--target", choices=sorted(OFFICIAL_TOTALS))
+        args = parser.parse_args(argv[1:])
+        return cmd_compare(args.baseline, args.results_dir, args.target)
     print(__doc__)
     return 2
 

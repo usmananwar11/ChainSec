@@ -44,7 +44,27 @@ acceptance still requires the remaining contest runs and a comparison across all
    `findings_repo` (report at https://code4rena.com/reports/<contest>). Record matches.
 4. Write `benchmarks/solidity/results/<id>.json` (format: see baselines) — include `matches`,
    `false_positives`, ChainSec version/commit and the facts mode in `notes`.
-5. `python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results`
+5. For a development comparison, run
+   `python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results --target <id>`.
+
+## Full acceptance
+
+```sh
+python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results
+```
+
+The default comparison requires all five targets in both the baseline and results.
+Each required ID must appear exactly once, including across result files and within
+JSON lists, and its official total must match the finalized table above. Missing or
+duplicate targets and incorrect totals produce `FAIL` with exit code 1 before scoring.
+Other target IDs are excluded from this five-target comparison.
+Acceptance requires aggregate recall at least equal to the baseline and no increase
+in false positives. The finalized baseline has zero false positives.
+
+`--target <id>` checks only the named target under the same uniqueness and official-total
+rules and labels the output as a development comparison, not full acceptance.
+With only the recorded PoolTogether result, full acceptance fails; the explicit
+PoolTogether development comparison passes.
 
 ## Known methodology deltas vs Krait
 - Regex-mode `state_writers` excludes view/pure functions (Krait counted all public/external).

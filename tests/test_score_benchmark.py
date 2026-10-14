@@ -36,24 +36,89 @@ class ScoreBenchmarkTest(unittest.TestCase):
         self.assertIn("recall 31.25", r.stdout)
         self.assertIn("precision 100.00", r.stdout)
 
+    def full_entries(self):
+        return [entry(i, total, 1) for i, total in {
+            "pooltogether": 9, "initcapital": 15, "goodentry": 14,
+            "arcade": 8, "frankencoin": 21,
+        }.items()]
+
+    def compare(self, base, results, *args):
+        return run([sys.executable, TOOL, "compare", baseline(*base),
+                    results_dir(*results), *args])
+
     def test_compare_pass(self):
-        base = baseline(entry("a", 10, 2, tool="krait"), entry("b", 10, 1, tool="krait"))
-        d = results_dir(entry("a", 10, 1), entry("b", 10, 2))
-        r = run([sys.executable, TOOL, "compare", base, d])
+        r = self.compare(self.full_entries(), self.full_entries())
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("PASS", r.stdout)
+        self.assertIn("all five targets", r.stdout)
 
     def test_compare_fail_on_new_fp(self):
-        base = baseline(entry("a", 10, 2, tool="krait"))
-        d = results_dir(entry("a", 10, 3, fp=1))
-        r = run([sys.executable, TOOL, "compare", base, d])
+        results = self.full_entries()
+        results[0]["fp"] = 1
+        r = self.compare(self.full_entries(), results)
         self.assertEqual(r.returncode, 1)
         self.assertIn("FAIL", r.stdout)
 
     def test_compare_fail_on_recall(self):
-        base = baseline(entry("a", 10, 3, tool="krait"))
-        d = results_dir(entry("a", 10, 2))
-        self.assertEqual(run([sys.executable, TOOL, "compare", base, d]).returncode, 1)
+        results = self.full_entries()
+        results[0]["exact"] = 0
+        r = self.compare(self.full_entries(), results)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("FAIL", r.stdout)
+
+    def test_compare_requires_each_target_in_both_inputs(self):
+        for side in ("baseline", "results"):
+            for target in self.full_entries():
+                with self.subTest(side=side, target=target["id"]):
+                    incomplete = [e for e in self.full_entries() if e["id"] != target["id"]]
+                    base, results = self.full_entries(), self.full_entries()
+                    if side == "baseline":
+                        base = incomplete
+                    else:
+                        results = incomplete
+                    r = self.compare(base, results)
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(f"{side}: missing target {target['id']}", r.stdout)
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_pooltogether_alone_requires_explicit_target(self):
+        results = [self.full_entries()[0]]
+        r = self.compare(self.full_entries(), results)
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("PASS", r.stdout)
+        r = self.compare(self.full_entries(), results, "--target", "pooltogether")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("not full acceptance", r.stdout)
+        self.assertIn("PASS", r.stdout)
+
+    def test_compare_rejects_duplicates(self):
+        for side in ("baseline", "results"):
+            with self.subTest(side=side):
+                es = self.full_entries()
+                base = baseline(*(es + [es[0]] if side == "baseline" else es))
+                d = results_dir(*es)
+                if side == "results":
+                    # Duplicates must be detected across files and within lists.
+                    with open(os.path.join(d, "duplicate.json"), "w") as f:
+                        json.dump([es[0]], f)
+                r = run([sys.executable, TOOL, "compare", base, d])
+                self.assertEqual(r.returncode, 1)
+                self.assertIn(f"{side}: duplicate target pooltogether", r.stdout)
+                self.assertNotIn("PASS", r.stdout)
+
+    def test_compare_rejects_incorrect_totals_even_when_inputs_agree(self):
+        for target in range(5):
+            for side in ("baseline", "results", "both"):
+                with self.subTest(target=target, side=side):
+                    base, results = self.full_entries(), self.full_entries()
+                    if side in ("baseline", "both"):
+                        base[target]["official_total"] -= 1
+                    if side in ("results", "both"):
+                        results[target]["official_total"] -= 1
+                    r = self.compare(base, results)
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn("official_total must be", r.stdout)
+                    self.assertNotIn("PASS", r.stdout)
 
     def test_shipped_baseline_aggregate(self):
         base = os.path.join(REPO, "benchmarks", "solidity", "baselines", "krait-v8.json")
