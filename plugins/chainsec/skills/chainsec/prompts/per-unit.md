@@ -22,6 +22,6 @@ found nothing.
 The single DONE line replaces any closing statement or summary the phase file asks you to state;
 put nothing else in your reply except any orchestrator records this template lists below the DONE
 line: the Step 4 coverage checkpoint and the Step 2 exclusions the orchestrator copies into
-{{A}}/clusters.json. Reply with exactly one line: DONE {{OUTPUT}} <number of findings>
+{{A}}/clusters.json. Start your reply with one DONE line: DONE {{OUTPUT}} <number of findings>
 Then append one line per cluster file as `COVERAGE: <file>|<loc>|<opened true/false>|<functions
 analyzed>` and one line per exclusion as `EXCLUDED: <the EXCLUDED — record>` (or `EXCLUDED: none`).

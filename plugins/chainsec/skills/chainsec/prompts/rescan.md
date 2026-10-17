@@ -22,6 +22,6 @@ exit rule fired. Do not write or modify any other file.
 
 The single DONE line replaces any closing statement or summary the phase file asks you to state;
 put nothing else in your reply except any orchestrator records this template lists below the DONE
-line: the reinforced detect candidates. Reply with exactly one line: DONE {{OUTPUT}} <number of findings>
+line: the reinforced detect candidates. Start your reply with one DONE line: DONE {{OUTPUT}} <number of findings>
 Then, optionally, append one line per reinforced detect-candidate id as
 `REINFORCED: <id> — <one-liner>` (no lines when you reinforced nothing).

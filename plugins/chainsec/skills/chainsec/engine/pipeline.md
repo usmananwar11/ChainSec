@@ -9,6 +9,9 @@ All paths in this file are relative to the core skill folder (CORE). `<chain>` i
 - `CORE`: absolute path of the core skill folder (the entry skill resolved it).
 
 ## Step 0 — Detect chains
+Remove `TARGET/.audit/findings.json` and `TARGET/.audit/report.md` from any previous run
+before detection, including when detection stops early. These aggregate outputs are rebuilt
+only from the selected chains that complete this invocation; preserve per-chain resume files.
 Run `python3 CORE/scripts/detect-chain.py TARGET -o TARGET/.audit/chains.json`.
 - With `--chain X`: keep only entries for X; if none remain, use `[{"chain": "X", "root": "."}]`
   and confirm `chains/<X>/pack.json` exists (otherwise stop: unsupported chain).
@@ -28,8 +31,15 @@ also parse; findings files must also pass `python3 CORE/scripts/validate-finding
 - A phase that runs instead of resuming first deletes the outputs of every later phase in the table
   (other than its own). When phase 9 (verify) runs, it also deletes `A/review.json`
   (chainsec-review's second opinion on the old verdicts, which the report phase would read).
-- `A/preflight.json` records `"quick"`. If this run's `--quick` differs, treat phases 7–11 as not
-  done (delete their outputs) and update `"quick"`.
+- `A/preflight.json` records a boolean `"quick"`. If it is missing or not boolean, the
+  previous mode is unknown: invalidate phases 7–11 and `A/review.json`, then set it to
+  this invocation's mode. Do the same when the boolean differs from this run's `--quick`.
+  Invalidate ancillary per-unit cluster outputs too when changing or recovering the mode.
+- When recon runs, clear `A/analyzers/` before invoking analyzers, including when none are
+  available. Remove partial analyzer outputs after a failure.
+- Phase-owned warnings use `rescan: ` and `per-unit: ` prefixes. Before rerunning or
+  invalidating either phase, remove its old prefixed warnings. Add each new warning only
+  once; preserve other phases' warnings. This also applies when quick mode skips per-unit.
 - A phase listed in `incomplete_phases` is not done, even if its output exists: run it again, and
   remove it from the list when it completes.
 
@@ -59,10 +69,13 @@ also parse; findings files must also pass `python3 CORE/scripts/validate-finding
    still fails, record `report` in `incomplete_phases` and continue with the next chain.
 
 ## After all chains
-If no chain produced `A/findings.json`, skip the merge and say so. If exactly one did, run
+Only include selected chains whose findings and report are valid and whose report phase
+is complete in this invocation (including valid resumed reports). Never glob in unselected
+or failed chains. If no chain qualifies, ensure the top-level findings and report are absent,
+skip the merge and say so. If exactly one did, run
 `python3 CORE/scripts/merge-findings.py --concat -o TARGET/.audit/findings.json A/findings.json`
 (keeps `A/report.md`'s order) and copy `A/report.md` to `TARGET/.audit/report.md`. Otherwise run
-`python3 CORE/scripts/merge-findings.py -o TARGET/.audit/findings.json TARGET/.audit/*/findings.json`
+`python3 CORE/scripts/merge-findings.py -o TARGET/.audit/findings.json <explicit qualifying findings paths>`
 (only chains that produced one) and write `TARGET/.audit/report.md` following "Combined report" in
 `engine/report-template.md`.
 
@@ -73,10 +86,14 @@ follow it for every **parallel** or **one subagent** row, using the `subagent_ty
 | You have | Runtime file |
 |---|---|
 | an `Agent` tool, or (older versions) a `Task` tool with a `subagent_type` parameter (Claude Code) | `runtimes/claude-code.md` |
-| a skill tool whose output has a line "Base directory for this skill", or a lowercase `task` or `subagent` tool (OpenCode) | `runtimes/opencode.md` |
+| a lowercase `task` or `subagent` delegation tool (OpenCode) | `runtimes/opencode.md` |
 | a Codex sub-agent tool | `runtimes/codex.md` |
 | `invoke_subagent` (Antigravity) | `runtimes/antigravity.md` |
 | none of these, or unsure | `runtimes/generic.md` (sequential, in this conversation) |
+
+The phrase "Base directory for this skill" does not identify a runtime. If Claude Code
+has no `Agent` or compatible `Task` tool, use the generic sequential fallback. Do not
+select an adapter from skill-output wording alone.
 
 Fill prompt templates by replacing `{{CORE}}`, `{{CHAIN}}`, `{{ROOT}}`, `{{A}}`, `{{OUTPUT}}`
 and the template-specific placeholders with absolute paths/values. Pass paths, never file contents.

@@ -1,5 +1,8 @@
 # Rescan — Second Pass with Exclusion List (B4)
 
+On reruns, the orchestrator first removes existing `rescan: ` warnings from preflight.
+Record each new warning once, preserving warnings belonging to other phases.
+
 > Phase 6 of the ChainSec pipeline (`engine/pipeline.md`). Runs after Detection, before per-unit and State Analysis.
 > *(Methodology adapted from PlamenTSV/plamen, MIT — `phase3b-rescan-prompt.md`.)*
 

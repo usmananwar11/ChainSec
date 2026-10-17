@@ -54,6 +54,33 @@ class ValidateFindingsTest(unittest.TestCase):
         r, out, _ = check([valid_finding(severity="Severe")], "--downgrade")
         self.assertEqual(r.returncode, 1)
 
+    def test_schema_invalid_findings_are_not_mutated_or_crashed(self):
+        cases = [
+            {"title": "", "exploit_trace": []},
+            {"harm": "invalid"},
+            {"locations": 7},
+            {"exploit_trace": 7},
+            {"verdict": "invalid", "exploit_trace": []},
+            {"status": ["verified"]},
+        ]
+        for fields in cases:
+            with self.subTest(fields=fields):
+                original = valid_finding(**fields)
+                r, out, path = check([original], "--downgrade")
+                self.assertEqual(r.returncode, 1, r.stderr)
+                self.assertEqual({x["rule"] for x in out}, {"schema"})
+                self.assertEqual(load(path), [original])
+
+    def test_downgrade_repairs_valid_neighbor_of_schema_invalid_finding(self):
+        invalid = valid_finding(title="", exploit_trace=[])
+        repairable = valid_finding(id="SOL-002", exploit_trace=[])
+        r, out, path = check([invalid, repairable], "--downgrade")
+        self.assertEqual(r.returncode, 1, r.stderr)
+        first, second = load(path)
+        self.assertEqual(first, invalid)
+        self.assertEqual(second["status"], "downgraded")
+        self.assertEqual({x["rule"] for x in out}, {"schema"})
+
     def test_duplicate_id_reported_once_per_id(self):
         r, out, _ = check([valid_finding(), valid_finding(), valid_finding(),
                            valid_finding(id="SOL-002"), valid_finding(id="SOL-002")])

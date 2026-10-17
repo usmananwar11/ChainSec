@@ -116,7 +116,7 @@ attacker balance goes **up**, or victim/pool balance goes **down** by the claime
 
 ## Filenames and commands
 
-- Name the test file for the target: `Victim_exp.sol`, test function `testExploit`.
+- Name the test file for the target: `Victim_exp.t.sol`, test function `testExploit`.
 - Run forge directly as in `chains/solidity/poc/guide.md` step 6, with filter
   `--match-contract ExploitTest` (or `--match-test testExploit`); Krait's forge MCP `forge_test`
   tool is an optional equivalent.

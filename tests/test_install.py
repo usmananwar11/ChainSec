@@ -48,5 +48,24 @@ class InstallTest(unittest.TestCase):
             self.assertEqual(sorted(os.listdir(src)), SKILLS)
             self.assertTrue(os.path.isfile(os.path.join(src, "chainsec", "engine", "pipeline.md")))
 
+    def test_refuses_nested_and_destructive_ancestor_destinations(self):
+        with tempfile.TemporaryDirectory() as repo:
+            shutil.copy(os.path.join(REPO, "install.sh"), repo)
+            src = os.path.join(repo, "plugins", "chainsec", "skills")
+            shutil.copytree(os.path.join(REPO, "plugins", "chainsec", "skills"), src)
+            alias = os.path.join(repo, "alias")
+            os.symlink(src, alias)
+            destinations = [os.path.join(src, "new", "skills"),
+                            os.path.join(src, "chainsec"),
+                            os.path.join(alias, "new"),
+                            os.path.join(repo, "plugins")]
+            for dest in destinations:
+                with self.subTest(dest=dest):
+                    r = run(["bash", os.path.join(repo, "install.sh"), "--dest", dest])
+                    self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+                    self.assertEqual(sorted(os.listdir(src)), SKILLS)
+                    self.assertTrue(os.path.isfile(os.path.join(src, "chainsec", "SKILL.md")))
+            self.assertFalse(os.path.exists(os.path.join(src, "new")))
+
 if __name__ == "__main__":
     unittest.main()

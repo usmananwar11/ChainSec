@@ -1,5 +1,8 @@
 # Per-Unit Analysis — Narrow Scope, Maximum Depth (B3)
 
+On reruns, the orchestrator first removes existing `per-unit: ` warnings from preflight.
+Record each new warning once, preserving warnings belonging to other phases.
+
 > Phase 7 of the ChainSec pipeline (`engine/pipeline.md`). Runs after Rescan, before State Analysis. Skipped with `--quick`.
 > *(Methodology adapted from PlamenTSV/plamen, MIT — `phase3b-rescan-prompt.md` § Phase 3c.)*
 
@@ -178,7 +181,7 @@ Example element (cluster 1):
 The cluster plan lives in `A/clusters.json`. Complete the coverage checkpoint (Step 4) and record
 your exclusions before writing the file; they are not part of the JSON output.
 
-Reply with exactly one line: `DONE <output file> <number of findings>`. Then append one line per
+Start your reply with one DONE line: `DONE <output file> <number of findings>`. Then append one line per
 cluster file as `COVERAGE: <file>|<loc>|<opened true/false>|<functions analyzed>` (from the Step 4
 checkpoint) and one line per exclusion as `EXCLUDED: <the EXCLUDED — record>` (or `EXCLUDED: none`).
 The orchestrator copies both into `A/clusters.json` (see "Record the subagent's reply").

@@ -15,7 +15,7 @@ severity Critical, High or Medium:
 Every id must be unique: each repeated id gets one "duplicate-id" reject.
 With --downgrade, hard-rule rejects are rewritten in place to status "downgraded",
 severity "Low", with the reason recorded; only the offending element is touched.
-Schema errors and duplicate ids are never auto-fixed.
+Schema-invalid findings are never modified; duplicate ids are never auto-fixed.
 With --schema-only, only schema rejects (and input errors) are reported.
 """
 import argparse
@@ -58,10 +58,11 @@ def check(findings, schema):
     seen = {}
     for i, f in enumerate(findings):
         fid = f.get("id", f"#{i}") if isinstance(f, dict) else f"#{i}"
-        for err in validate(f, schema):
+        schema_errors = list(validate(f, schema))
+        for err in schema_errors:
             rejects.append((i, {"id": fid, "rule": "schema", "detail": err}))
         if isinstance(f, dict):
-            for rule, detail in hard_rule_failures(f):
+            for rule, detail in ([] if schema_errors else hard_rule_failures(f)):
                 rejects.append((i, {"id": fid, "rule": rule, "detail": detail}))
             if "id" in f:
                 seen.setdefault(json.dumps(f["id"]), []).append(i)
@@ -74,8 +75,9 @@ def check(findings, schema):
 
 def downgrade(findings, rejects):
     hard = {}
+    invalid = {i for i, r in rejects if r["rule"] == "schema"}
     for i, r in rejects:
-        if r["rule"] not in NOT_AUTO_FIXED:
+        if i not in invalid and r["rule"] not in NOT_AUTO_FIXED:
             hard.setdefault(i, []).append(r["rule"])
     for i, rules in hard.items():
         f = findings[i]
@@ -109,8 +111,11 @@ def main(argv=None):
     if args.schema_only:
         rejects = [(i, r) for i, r in rejects if r["rule"] == "schema"]
     if args.downgrade and rejects:
-        rejects = downgrade(findings, rejects)
-        write_json(args.findings, findings)
+        before = json.dumps(findings)
+        downgrade(findings, rejects)
+        if json.dumps(findings) != before:
+            write_json(args.findings, findings)
+        rejects = check(findings, schema)
     rejects = [r for _, r in rejects]
     print(json.dumps(rejects, indent=2))
     return 1 if rejects else 0

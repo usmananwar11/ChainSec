@@ -69,6 +69,7 @@ How the facts are used downstream:
 
 ### Step 2b: Analyzer Pre-Scan (Optional)
 
+Before the pre-scan, clear old files in `A/analyzers/` and recreate the directory.
 For each `pack.json` `analyzers` entry whose `requires` tool is `OK` in `A/preflight.json` `tools`:
 
 1. Run the tool to produce its JSON output at `A/analyzers/<name>.json`. The exact command is in the
@@ -85,7 +86,8 @@ For each `pack.json` `analyzers` entry whose `requires` tool is `OK` in `A/prefl
 - **IMPORTANT**: Many analyzer detectors produce informational/low noise (examples: the pack's heuristics.md, section "Recon additions"). Only extract HIGH and MEDIUM severity analyzer findings for the summary.
 
 **If the tool is not available or fails:**
-- Skip silently. Note in recon.md: "<name> pre-scan: SKIPPED (not available)"
+- Delete any raw JSON and summary for the failed analyzer so detection cannot read stale
+  or partial signals. Note in recon.md: "<name> pre-scan: SKIPPED (not available)"
 - This is purely optional — ChainSec works without it
 
 ### Step 3: File Inventory & Deterministic Risk Scoring

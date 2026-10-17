@@ -35,10 +35,22 @@ if [ -z "$DEST" ]; then
     *) echo "unknown tool: $TOOL" >&2; exit 2 ;;
   esac
 fi
+# Resolve existing symlinks and nonexistent descendants before creating or deleting anything.
+python3 - "$SRC" "$DEST" <<'PYGUARD' || exit 2
+import os
+import sys
+
+source, destination = map(os.path.realpath, sys.argv[1:])
+if os.path.commonpath([source, destination]) == source:
+    sys.exit("refusing to install: destination is inside ChainSec's source folder")
+# An ancestor destination can also erase the source through a same-named target.
+for name in os.listdir(source):
+    target = os.path.join(destination, name)
+    # rm -rf removes a target symlink itself, not the directory it points to.
+    if not os.path.islink(target) and os.path.commonpath([source, target]) == target:
+        sys.exit("refusing to install: an install target contains ChainSec's source folder")
+PYGUARD
 mkdir -p "$DEST"
-if [ "$(cd "$DEST" && pwd -P)" = "$(cd "$SRC" && pwd -P)" ]; then
-  echo "refusing to install: the destination is ChainSec's own source folder ($SRC)" >&2; exit 2
-fi
 for skill in "$SRC"/*/; do
   name="$(basename "$skill")"
   target="$DEST/$name"

@@ -1,7 +1,7 @@
 # Runtime: OpenCode
 
-Detected by: a skill tool whose output has a line "Base directory for this skill", or a
-lowercase `task` tool (OpenCode v1) or `subagent` tool (reported rename in v2).
+Detected by: a lowercase `task` or `subagent` delegation tool. Skill-output wording
+alone does not identify OpenCode; without delegation tools, use `runtimes/generic.md`.
 
 - Paths: the skill tool prints "Base directory for this skill: <abs path>". CORE is that path
   followed by `/../chainsec`, resolved with `cd ... && pwd`.
