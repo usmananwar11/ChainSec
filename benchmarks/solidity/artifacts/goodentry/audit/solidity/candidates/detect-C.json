@@ -1,0 +1,411 @@
+[
+ {
+  "id": "DC-1",
+  "chain": "solidity",
+  "title": "OPM.closeDebt swaps with no price bound (maxAmount = user's whole balance, amountsIn quoted from the same manipulable pool): every close/liquidate swap leg is sandwichable",
+  "severity": "High",
+  "category": "slippage / sandwich",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 293,
+    "line_end": 304,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 491,
+    "line_end": 504,
+    "unit": "OptionsPositionManager",
+    "function": "swapTokensForExactTokens"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 336,
+    "line_end": 349,
+    "unit": "OptionsPositionManager",
+    "function": "checkExpectedBalances"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "attacker",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.5 / Module amm-mev-deep section 7 (zero slippage) and EXT-03. In closeDebt, when one underlying is short, swapTokensForExactTokens(router, shortfall, maxAmount, path) is called with maxAmount = the user's entire balance of the other token (amtA / amtB) or, in the liquidation path, the whole OPM balance. Inside, the only bound is amountsIn[0] <= maxAmount, and amountsIn comes from V3Proxy.getAmountsIn, i.e. the Uniswap V3 Quoter at the current (manipulable) pool price. checkExpectedBalances only validates the underlying amounts that will be deposited into the TR against the oracle (98-102 percent of the debt value); it does not bound what the swap costs. The swap leg therefore has no oracle-based limit, unlike swapExactTokensForTokens which applies oracle * 99 percent.",
+  "root_cause": "The slippage guard of the exact-output swap is the caller's full balance, not an oracle-derived maximum input. The quote used to size the swap is read from the same pool the attacker can move in the same transaction.",
+  "vulnerable_code": "if ( amtA < token0Amount ){\n  path[0] = token1; path[1] = token0;\n  swapTokensForExactTokens(ammRouter, token0Amount - amtA, amtB, path);\n}\n...\nuint [] memory amountsIn = AmountsRouter(address(ammRouter)).getAmountsIn(recvAmount, path);\nrequire( amountsIn[0] <= maxAmount && amountsIn[0] > 0, \"OPM: Invalid Swap Amounts\" );\namountsIn = ammRouter.swapTokensForExactTokens(recvAmount, maxAmount, path, address(this), block.timestamp);",
+  "harm": {
+   "who": "borrowers whose TR debt is closed (self-close or by a third party) and liquidators",
+   "loses_what": "part of the collateral swapped at a manipulated price",
+   "magnitude": "price distortion times swap size, bounded by the user's balance of the sold token"
+  },
+  "exploit_trace": [
+   "1. Victim holds a TR debt and collateral mostly in one underlying (say token1); the debt's TR needs token0.",
+   "2. Attacker front-runs by buying token0 in the V3 pool, pushing the price against the victim's swap direction.",
+   "3. close() (called by the victim or by the attacker as soft-liquidator) PMWithdraws all aTokens and calls swapTokensForExactTokens; Quoter prices the exact-output swap at the manipulated price and it passes because maxAmount is the victim's whole token1 balance.",
+   "4. Attacker back-runs, restores the price and keeps the difference; the victim receives the leftover after overpaying."
+  ],
+  "preconditions": [
+   {
+    "text": "position needs a swap to rebuild the TR underlying mix",
+    "type": "STATE"
+   },
+   {
+    "text": "UniV3 pool price movable by the attacker",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim collateral reduced by the manipulation cost",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=\u2713 D=?",
+   "rules_applied": [
+    "R10:\u2713(worst case = whole token balance as max input)",
+    "R15:\u2713(price movable with flash-funded swaps)",
+    "R16:\u2717(oracle not involved in swap bound)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:maxAmount=user whole balance]",
+    "[TRACE:attacker swap -> close -> exact-output swap at distorted price -> back-run]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "swap executed at distorted price"
+   ],
+   "who_benefits": "Attacker (MEV)"
+  }
+ },
+ {
+  "id": "DC-2",
+  "chain": "solidity",
+  "title": "OPM.close/closeDebt has no health-factor or consent check for third-party callers although it is documented as a soft liquidation: any caller can force-close a healthy user's position and charge a 1 percent fee on the user's collateral",
+  "severity": "Medium",
+  "category": "access-control / missing health check",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 223,
+    "line_end": 241,
+    "unit": "OptionsPositionManager",
+    "function": "close"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 275,
+    "line_end": 286,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 357,
+    "line_end": 371,
+    "unit": "OptionsPositionManager",
+    "function": "calculateAndSendFee"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "spec-auditor",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q3.7 / lending-liquidation-deep section 8 and 9. The in-code comment says 'If another user softLiquidates a share of the liquidation goes to the treasury', i.e. third-party close is meant for unhealthy positions. close() never calls getUserAccountData or any health check and closeDebt PMWithdraws the user's complete token0 and token1 aToken balances (the OPM holds PMTransfer rights on the lending pool). When user != msg.sender, calculateAndSendFee takes 1 percent of the debt value out of the user's collateral and sends it to the treasury. The caller picks repayAmount and collateralAsset, so the fee currency and size are caller-chosen; each call also forces the swap leg of DC-1.",
+  "root_cause": "Privileged PMTransfer rights are exposed through a permissionless entry point that takes an arbitrary `user` without verifying that the user is liquidatable or has consented.",
+  "vulnerable_code": "function close(uint poolId, address user, address debtAsset, uint repayAmount, address collateralAsset) external {\n  ...\n  uint debt = ERC20(LP.getReserveData(debtAsset).variableDebtTokenAddress).balanceOf(user);\n  if ( repayAmount > 0 && repayAmount < debt ) debt = repayAmount;\n  require(debt > 0, \"OPM: No Debt\");\n  debt = closeDebt(poolId, user, debtAsset, debt, collateralAsset);\n}\nif (user != msg.sender ) {\n  uint feeAmount = calculateAndSendFee(poolId, token0Amount, token1Amount, collateralAsset);\n  ...",
+  "harm": {
+   "who": "any borrower with TR debt",
+   "loses_what": "1 percent of closed debt value per call plus forced unwind of the option position",
+   "magnitude": "1 percent of debt value per call, repeatable with repayAmount > 0 slices"
+  },
+  "exploit_trace": [
+   "1. Victim has a healthy leveraged option position (TR debt, token0/token1 collateral).",
+   "2. Attacker calls close(poolId, victim, TR, repayAmount, collateral) repeatedly.",
+   "3. Each call pulls all of the victim's aTokens, repays debt, charges 1 percent to the treasury and re-deposits leftovers; the victim's option position is destroyed against their will."
+  ],
+  "preconditions": [
+   {
+    "text": "victim has TR debt and the OPM holds PMTransfer rights",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "position closed and fee charged without health check",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=\u2713 D=?",
+   "rules_applied": [
+    "R10:\u2713(assessed at worst realistic state)",
+    "R12:\u2717(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:close(user=victim)->closeDebt->PMWithdraw all->fee 1 percent]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim position closed"
+   ],
+   "who_benefits": "Attacker (griefing, sandwich with DC-1)"
+  }
+ },
+ {
+  "id": "DC-3",
+  "chain": "solidity",
+  "title": "V3Proxy: swapTokensForExactETH keeps unspent amountInMax and swapTokensForExactTokens returns the entire proxy balance to whoever calls it, so stranded input tokens are claimable by anyone",
+  "severity": "High",
+  "category": "token-accounting / stuck funds",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 160,
+    "line_end": 176,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactETH"
+   },
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 124,
+    "line_end": 135,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactTokens"
+   },
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 137,
+    "line_end": 158,
+    "unit": "V3Proxy",
+    "function": "swapETHForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q6.2 / Module O and token-flow-tracing. swapTokensForExactETH transferFrom's amountInMax from the caller, the router uses amounts[0] <= amountInMax, and the difference is never refunded, so it stays in the proxy. swapTokensForExactTokens refunds ogInAsset.balanceOf(address(this)), i.e. everything held by the proxy, to msg.sender (the OPM or any user), so the next caller of that function collects the stranded balance. The ETH variants also forward value with an unchecked low-level call and the token-in ETH functions are payable, so ETH sent with them (or failed refunds) is stranded and emergencyWithdraw only handles ERC20.",
+  "root_cause": "Refund is based on contract balance rather than the unspent portion of the current call, and is missing entirely in one variant.",
+  "vulnerable_code": "ogInAsset.safeTransferFrom(msg.sender, address(this), amountInMax);\n...\namounts[0] = ROUTER.exactOutputSingle(...);\n...\nogInAsset.safeTransfer(msg.sender, ogInAsset.balanceOf(address(this)));   // swapTokensForExactTokens\n// swapTokensForExactETH: no refund of amountInMax - amounts[0]",
+  "harm": {
+   "who": "callers of swapTokensForExactETH (and any holder whose tokens end up in the proxy)",
+   "loses_what": "amountInMax - amountIn per call",
+   "magnitude": "slippage buffer of each call"
+  },
+  "exploit_trace": [
+   "1. User calls swapTokensForExactETH(amountOut, amountInMax = 1.05x quote, [token, WETH], ...); the router spends the exact quote.",
+   "2. The 5 percent buffer remains in V3Proxy.",
+   "3. Attacker calls swapTokensForExactTokens(small amountOut, amountInMax, [token, other], ...) with a pool that exists; the proxy returns its whole token balance to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "unspent input remains in the proxy",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "stranded tokens claimable by anyone",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=\u2713 D=?",
+   "rules_applied": [
+    "R10:\u2713(assessed at worst realistic state)",
+    "R11:\u2713(unsolicited balance in proxy is swept)"
+   ],
+   "depth_evidence": [
+    "[VARIATION:amountInMax 2x needed -> half stranded]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "tokens stranded in proxy"
+   ],
+   "who_benefits": "Next swapTokensForExactTokens caller"
+  }
+ },
+ {
+  "id": "DC-4",
+  "chain": "solidity",
+  "title": "GeVault deploys/rebalances at the Uniswap spot tick while the only manipulation guard is a 1 percent oracle band (ticks are about 0.1 percent wide): a permissionless rebalance sandwich makes the vault sell/buy at off-market tick prices",
+  "severity": "Medium",
+  "category": "mev / price manipulation",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 200,
+    "line_end": 206,
+    "unit": "GeVault",
+    "function": "rebalance"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 337,
+    "line_end": 363,
+    "unit": "GeVault",
+    "function": "deployAssets"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 366,
+    "line_end": 378,
+    "unit": "GeVault",
+    "function": "poolMatchesOracle"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 428,
+    "line_end": 438,
+    "unit": "GeVault",
+    "function": "getActiveTickIndex"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "attacker",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.5 and flash-loan-interaction section 0 (external flash susceptibility) / amm-mev-deep section 5-6. rebalance() is permissionless; it removes all liquidity and redeploys everything with getActiveTickIndex(), which classifies ticks using TokenisableRange.getTokenAmountsExcludingFees, i.e. the pool's slot0 spot. poolMatchesOracle only requires spot to be within 1 percent of the oracle ratio, while each ticker spans 10 Uniswap ticks (about 0.1 percent). An attacker can therefore move spot by up to about 0.9 percent in the same transaction, call rebalance() (or deposit/withdraw, which call it), so that the vault parks its token1 (or token0) in tickers positioned relative to the distorted price, then move the price back. The restoring trade runs through the vault's freshly placed liquidity, converting it at prices up to about 0.9 percent worse than the true price.",
+  "root_cause": "Redeployment decisions use manipulable slot0 spot and the oracle band (1 percent) is an order of magnitude wider than the tick spacing; rebalance is callable by anyone at any time.",
+  "vulnerable_code": "function rebalance() public {\n  require(poolMatchesOracle(), \"GEV: Oracle Error\");\n  removeFromAllTicks();\n  if (isEnabled) deployAssets();\n}\n...\nif (oraclePrice < priceX8 * 101 / 100 && oraclePrice > priceX8 * 99 / 100) matches = true;",
+  "harm": {
+   "who": "GeVault share holders",
+   "loses_what": "a fraction of deployed assets as LVR to the attacker per sandwiched rebalance",
+   "magnitude": "up to roughly 0.9 percent of the assets redeployed, minus attacker swap fees"
+  },
+  "exploit_trace": [
+   "1. Attacker flash-borrows and swaps in the UniV3 pool to move spot up by about 0.9 percent (still inside the 1 percent band).",
+   "2. Attacker calls GeVault.rebalance(): all liquidity is withdrawn and token1 is redeployed into the tickers below the distorted price (some of which lie above the true price).",
+   "3. Attacker swaps back; the price falls through those tickers, converting the vault's token1 into token0 at prices above the true price.",
+   "4. Attacker repays the flash loan and keeps the spread."
+  ],
+  "preconditions": [
+   {
+    "text": "pool deep enough to be moved ~0.9 percent profitably relative to vault size",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "vault assets converted at off-market prices",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=\u2713 D=?",
+   "rules_applied": [
+    "R10:\u2713(sized by tvlCap and band)",
+    "R15:\u2713(flash-funded pool move)",
+    "R16:\u2713(oracle band wider than tick spacing)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:deviation=0.99 percent -> poolMatchesOracle true]",
+    "[VARIATION:spot +0.9 percent -> active tick index shifts ~9 ticks]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "vault positions parked at distorted ticks"
+   ],
+   "who_benefits": "Attacker (MEV)"
+  }
+ },
+ {
+  "id": "DC-5",
+  "chain": "solidity",
+  "title": "GeVault deposit-in-one-token / withdraw-in-the-other settles at oracle prices with a ~0.2 percent fee, while the spot-vs-oracle guard allows 1 percent deviation: oracle-lag arbitrage against the vault",
+  "severity": "Medium",
+  "category": "oracle lag arbitrage",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 247,
+    "line_end": 284,
+    "unit": "GeVault",
+    "function": "deposit"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 214,
+    "line_end": 241,
+    "unit": "GeVault",
+    "function": "withdraw"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 445,
+    "line_end": 458,
+    "unit": "GeVault",
+    "function": "getAdjustedBaseFee"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.5 / oracle-analysis (lag vs spot) / Q7.8. deposit(token, amount) mints shares at Chainlink-valued TVL after a fee of 0.1-0.3 percent (baseFeeX4 = 20, scaled 0.5x-1.5x), and withdraw(liquidity, token) lets the holder pick either pool token and pays valueX8 / oracle price of that token minus the same fee. A depositor can thus swap token A for token B through the vault at the Chainlink ratio. poolMatchesOracle lets the market (Uniswap spot) differ from the oracle by up to 1 percent, and Chainlink feeds update on a 0.5-1 percent deviation or heartbeat. Whenever the market ratio is more than the fee away from the oracle ratio, the round trip (deposit token A, withdraw token B in the same or a later block) is profitable and drains the vault's token B balance, repeatable until the oracle updates.",
+  "root_cause": "Vault shares are priced at lagging oracle values and withdrawals in a chosen token are priced at the same oracle, with a fee smaller than the permitted oracle/market deviation.",
+  "vulnerable_code": "amount = valueX8 * 10**ERC20(token).decimals() / oracle.getAssetPrice(token);\nuint fee = amount * getAdjustedBaseFee(token == address(token1)) / 1e4;\n...\nif (oraclePrice < priceX8 * 101 / 100 && oraclePrice > priceX8 * 99 / 100) matches = true;",
+  "harm": {
+   "who": "other GeVault share holders",
+   "loses_what": "value equal to the oracle/market gap minus fee on each round trip",
+   "magnitude": "up to ~0.5-0.8 percent of the amount cycled, bounded by tvlCap and vault token availability"
+  },
+  "exploit_trace": [
+   "1. Market moves 0.7 percent against the Chainlink ratio (inside the 1 percent band, before the feed updates).",
+   "2. Attacker deposits token A (fee ~0.2 percent) and receives shares valued at the stale oracle.",
+   "3. Attacker withdraws all shares in token B at the stale oracle ratio (fee ~0.2 percent).",
+   "4. Attacker sells token B on Uniswap at the market ratio and keeps ~0.3 percent; repeats until feed update or vault runs out of B."
+  ],
+  "preconditions": [
+   {
+    "text": "oracle/market gap larger than combined fees",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "vault composition shifts toward the overvalued token",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=\u2713 D=?",
+   "rules_applied": [
+    "R10:\u2713(bounded by tvlCap)",
+    "R15:\u2713(flash capital allowed within band)",
+    "R16:\u2713(oracle lag is the enabler)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:oracle gap=0.7 percent, fee round trip=0.4 percent]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "vault holds more of the overvalued token"
+   ],
+   "who_benefits": "Arbitrageur"
+  }
+ }
+]

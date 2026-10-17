@@ -1,0 +1,21 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - DP1-1 contracts/MintingHub.sol:252-276 (end) + contracts/Position.sol:329-354, High: self-challenge of an overpriced position; reward and repayment come from owner-set price, shortfall covered by notifyLoss (reserve, then mint); end() caller with no bidder gets the collateral.
+  - DP1-2 contracts/Position.sol:159-167 (adjustPrice), :76-86 (initializeClone), High: price can be raised after the veto window with only a 3-day cooldown; clones skip the veto and can set price later, enabling unbacked minting up to the limit.
+  - DP1-3 contracts/MintingHub.sol:188-190, 214-228 (bid/minBid), Medium: zero/dust bids (minBid rounds to 0 or equal) extend a challenge forever at no cost.
+  - DP1-4 contracts/Equity.sol:309-316 (restructureCapTable), Medium: loop uses addressesToWipe[0] instead of [i].
+  - DP1-5 contracts/Position.sol:97-101 + contracts/MintingHub.sol:124-132, Medium: zero-mint, fee-free clones each take half of the remaining limit.
+- Files with NO candidates: contracts/Frankencoin.sol, contracts/StablecoinBridge.sol, contracts/ERC20.sol, contracts/ERC20PermitLight.sol, contracts/PositionFactory.sol, contracts/Ownable.sol, contracts/MathUtil.sol (need extra scrutiny in Pass 2; Frankencoin reserve accounting and ERC20 allowance logic deserve a second read).
+- Suspicious areas flagged but not promoted to candidate:
+  - MintingHub.bid() avert path and end(): external collateral transfers happen before delete challenges[...] (reentrancy / double bid refund with hook-callback collateral; no concrete hook token in scope, Gate B) .
+  - Frankencoin.allowanceInternal gives every position of a minter infinite allowance over all holders (trust assumption, relies on Position code never pulling from arbitrary `from`).
+  - Frankencoin.burnWithReserve / calculateFreedAmount / calculateAssignedReserve: division and rounding when minterReserve is 0 or reserve is underwater; minterReserveE6 consistency across positions with differing reservePPM; reservePPM = 1e6 makes repay divide by zero.
+  - Equity.checkQualified: when totalVotes() == 0 (no FPS supply, same-block mint, or after restructure wiped all) anyone passes the 3% quorum check (GOV-01 zero-supply variant).
+  - Equity.canVoteFor recursion over delegate cycles (B<->C) can run out of gas for helpers whose chain enters a cycle; delegation is non-consensual.
+  - MathUtil._cubicRoot stops at 0.01 (1e16) step threshold; small mint/redeem asymmetry (Gate F level).
+  - Position.initializeClone floors price = mint*1e18/coll, so clone creation reverts unless exactly divisible.
+  - MintingHub.end(postponeCollateralReturn) can be set by any caller (forced postponement for the challenger); returnPostponedCollateral ignores transfer result.
+  - MintingHub.splitChallenge: permissionless, not time-limited, can front-run bidders (mitigated by expectedSize) and fragment challenges; no check against zero challenge.size.
+  - Position.deny only sets cooldown; the denied position stays registered with infinite allowance/mint power in Frankencoin.
+  - Equity.onTokenTransfer emits Trade with msg.sender (zchf address) instead of `from`.
+- Analyzer findings NOT yet covered by a candidate: none (slither skipped, A/analyzers/ absent).

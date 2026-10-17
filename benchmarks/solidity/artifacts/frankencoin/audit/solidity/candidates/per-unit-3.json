@@ -1,0 +1,34 @@
+[
+ {
+  "id": "PC3-1",
+  "chain": "solidity",
+  "title": "Any nonzero explicit allowance overrides the minter infinite-allowance shortcut, so transferFrom by a minter/position reverts when the leftover allowance is smaller than the amount",
+  "severity": "Low",
+  "category": "logic-error",
+  "status": "candidate",
+  "locations": [
+   {"file": "contracts/Frankencoin.sol", "line_start": 102, "line_end": 111, "unit": "Frankencoin", "function": "allowanceInternal"},
+   {"file": "contracts/ERC20.sol", "line_start": 125, "line_end": 135, "unit": "ERC20", "function": "transferFrom"}
+  ],
+  "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "Frankencoin"},
+  "description": "Discovery: per-unit step 2 (conditional branch audit) and step 3 (boundary values) on allowanceInternal. The override returns the explicit allowance whenever it is > 0 and only returns INFINITY for minters/positions when the explicit allowance is exactly 0. A user holding a small leftover allowance for the MintingHub, a position or the bridge (e.g. from a prior exact-amount approve or permit) therefore gets ERC20InsufficientAllowance in transferFrom although the design intends minters to need no allowance. The user must first reset the allowance to 0 (approve(spender,0)). The state is also reachable via permit signed for a small value.",
+  "root_cause": "The branch order treats any explicit allowance > 0 as authoritative instead of using max(explicit, INFINITY for minters).",
+  "vulnerable_code": "uint256 explicit = super.allowanceInternal(owner, spender);\nif (explicit > 0){\n   return explicit; // don't waste gas checking minter\n} else if (isMinter(spender) || isMinter(isPosition(spender))){\n   return INFINITY;\n}",
+  "harm": {"who": "users interacting with minters (hub bids, bridge, positions) who hold a small stale allowance", "loses_what": "availability: transactions revert until allowance is reset to 0", "magnitude": "temporary denial of the intended no-approval flow"},
+  "exploit_trace": [
+   "1. User approves the MintingHub for 1 wei (or a smaller amount than later needed).",
+   "2. User later calls bid() needing zchf.transferFrom(user, hub, X) with X > 1.",
+   "3. allowanceInternal returns 1 (explicit > 0), transferFrom reverts ERC20InsufficientAllowance even though the hub is a minter."
+  ],
+  "preconditions": [{"text": "user has a nonzero explicit allowance smaller than the amount for a minter or position spender", "type": "STATE"}],
+  "postconditions": [{"text": "call reverts until allowance reset to 0", "type": "STATE"}],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✗(N/A) 6=✓",
+   "rules_applied": ["R10:✓(explicit allowance = 1 wei)", "R8:✗", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+   "depth_evidence": ["[BOUNDARY:explicit=1,amount=2 -> allowance 1 < 2 -> revert]", "[BOUNDARY:explicit=0 -> INFINITY]"],
+   "missing_precondition": "",
+   "postconditions_created": ["call reverts until allowance reset to 0"],
+   "who_benefits": "nobody"
+  }
+ }
+]

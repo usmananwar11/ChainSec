@@ -1,0 +1,46 @@
+[
+  {
+    "id": "RS-1",
+    "chain": "solidity",
+    "title": "removeCollateralTo re-syncs __collBalances to the full token balance, silently absorbing other users' not-yet-collateralized pool shares so their collateralize() reverts and the shares are stranded",
+    "severity": "Medium",
+    "category": "balance-delta-accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/PosManager.sol", "line_start": 243, "line_end": 245, "unit": "PosManager", "function": "removeCollateralTo"},
+      {"file": "contracts/core/PosManager.sol", "line_start": 195, "line_end": 210, "unit": "PosManager", "function": "addCollateral"}
+    ],
+    "discovery": {"phase": "rescan", "lens": null, "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Discovery: rescan class 2 (asymmetric operations) and class 1 (cross-function state inconsistency). addCollateral credits the delta balanceOf(PosManager) - __collBalances[pool], so pool shares transferred in but not yet collateralized are tracked only as the gap between the real balance and __collBalances. removeCollateralTo, after sending out _shares, overwrites __collBalances[_pool] with the entire current balanceOf(PosManager) instead of decrementing it by _shares. Any pending (transferred, not yet collateralized) shares of the same pool are therefore folded into __collBalances and no longer appear as a delta. The depositor's later collateralize() computes amtIn = 0 and reverts with ZERO_VALUE, and no function can sweep the shares out. removeCollateralTo is reachable by any position owner through decollateralize and by any liquidator through liquidate, so the wipe needs no cooperation from the victim. The sibling DC-4/DA-3 candidates cover intra-batch hook staging; this is a cross-transaction, cross-user path through the PosManager balance cache.",
+    "root_cause": "The collateral balance cache is incremented by delta on add but overwritten with the raw token balance on remove, so the two paired operations disagree about whether unaccounted tokens belong to the cache.",
+    "vulnerable_code": "IERC20(_pool).safeTransfer(_receiver, _shares);\n__collBalances[_pool] = IERC20(_pool).balanceOf(address(this));",
+    "recommendation": "Decrement the cache by _shares (__collBalances[_pool] -= _shares) instead of overwriting it with balanceOf.",
+    "harm": {
+      "who": "users who send pool shares to PosManager and call collateralize in a separate transaction (EOA flow, not a single multicall)",
+      "loses_what": "the transferred pool shares, which become permanently stuck in PosManager",
+      "magnitude": "the full pending deposit of each affected user"
+    },
+    "exploit_trace": [
+      "1. User B transfers 1000 shares of pool P to PosManager (tx1) intending to call collateralize(posB, P) in tx2; __collBalances[P] still equals the old balance.",
+      "2. Between tx1 and tx2, any user A calls decollateralize (or a liquidator calls liquidate) that executes removeCollateralTo(posA, P, s, ...).",
+      "3. removeCollateralTo transfers s out and sets __collBalances[P] = balanceOf(PosManager), which now includes B's 1000 pending shares.",
+      "4. B calls collateralize(posB, P): addCollateral computes amtIn = balance - __collBalances[P] = 0 and reverts ZERO_VALUE.",
+      "5. B's 1000 shares have no recovery path; they stay in PosManager unaccounted for."
+    ],
+    "preconditions": [
+      {"text": "a user stages pool shares at PosManager in one transaction and collateralizes in a later one", "type": "TIMING"},
+      {"text": "another removeCollateralTo on the same pool executes in between", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "pending shares are absorbed into __collBalances and are unrecoverable", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Rescan: pass 1=✓ pass 2=✓",
+      "rules_applied": ["R8:✓(cached __collBalances)", "R10:✓(assessed with pending deposit present)", "R11:✗(no external tokens beyond pool shares)", "R12:✓(no sweep or rescue path)", "R15:✗(no flash-loan-accessible state)", "R16:✗(no oracle dependency)"],
+      "depth_evidence": ["[TRACE:transfer 1000 shares to PosManager -> other user removeCollateralTo -> __collBalances = balanceOf -> collateralize amtIn=0 -> revert ZERO_VALUE]", "[BOUNDARY:pending delta=1000, removeCollateralTo(_shares=1) -> delta becomes 0]"],
+      "missing_precondition": "",
+      "postconditions_created": ["pending deposit stranded in PosManager"],
+      "who_benefits": "No one directly; the depositor loses the staged shares"
+    }
+  }
+]

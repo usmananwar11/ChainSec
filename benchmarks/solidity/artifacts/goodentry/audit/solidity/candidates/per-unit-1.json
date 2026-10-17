@@ -1,0 +1,84 @@
+[
+  {
+    "id": "PC1-1",
+    "chain": "solidity",
+    "title": "OPM.executeLiquidation ignores the flashloan premium: the TR re-minted by closeDebt only covers amount plus a tiny dust, so the pool's repayment pull of amount+premium fails",
+    "severity": "Medium",
+    "category": "flashloan-repayment / accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 83, "line_end": 111, "unit": "OptionsPositionManager", "function": "executeLiquidation"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 250, "line_end": 310, "unit": "OptionsPositionManager", "function": "closeDebt"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 38, "line_end": 57, "unit": "OptionsPositionManager", "function": "executeOperation"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "accountant", "consensus": null, "unit": "OptionsPositionManager"},
+    "description": "Discovery: per-unit step 5 (fee trace) and step 4 (pairing audit: flashloan borrow vs repay). liquidate() flashloans the debt TR with mode 0, so the lending pool pulls back amounts[k] + premiums[k] after executeOperation returns. executeOperation/executeLiquidation never read `premiums`. closeDebt(user == address(this)) mints TR through TokenisableRange.deposit for exactly `amount + addDust()` (dust is about 1e14 TR wei for a 6-decimal asset at $1, see addDust), skips LP.repay, and leaves that TR in the OPM for the pool to pull. With a standard Aave v2 premium (9 bps of amount) the OPM holds amount + ~1e14 TR but must supply amount + 0.0009*amount, so the pull reverts for any non-trivial liquidation unless the ROE pool waives the premium for this receiver (ROE is out of scope and not verified).",
+    "root_cause": "The repayment side of the flashloan is sized as amount + a fixed dust instead of amount + premium; premiums[] is ignored.",
+    "vulnerable_code": "uint debt = closeDebt(poolId, address(this), debtAsset, amount, collateral);\n...\ndebt = repayAmount + addDust(debtAsset, token0, token1);\n...\ndebt = TokenisableRange(debtAsset).deposit(token0Amount, token1Amount);",
+    "harm": {
+      "who": "liquidators and the protocol (unhealthy positions are not liquidated through OPM)",
+      "loses_what": "OPM liquidation path is unusable (reverts) when the flashloan premium is non-zero and exceeds dust, leaving bad debt to accumulate",
+      "magnitude": "liveness of the liquidation feature; premium bps times the liquidated amount is the shortfall"
+    },
+    "exploit_trace": [
+      "1. Position becomes unhealthy; liquidator calls liquidate(poolId, user, [TR], [amount], collateral).",
+      "2. LP.flashLoan lends `amount` TR with premium p > 0; executeLiquidation liquidates and closeDebt re-mints about amount + 1e14 TR wei.",
+      "3. The pool pulls amount + p TR from the OPM; balance is short by p - 1e14, so the call reverts."
+    ],
+    "preconditions": [
+      {"text": "ROE flashloan premium is non-zero for this receiver and exceeds the dust margin", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "OPM liquidations revert", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✓ 5=✓ 6=✓",
+      "rules_applied": ["R10:✓(assessed at 9 bps premium)", "R12:✗(single path)", "R8:✗", "R11:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[VARIATION:premium 0 -> works; premium 9bps of 1e21 TR = 9e17 >> dust 1e14 -> shortfall]", "[TRACE:liquidate->flashLoan->executeLiquidation->closeDebt(user=this)->TR minted amount+dust->pool pulls amount+premium]"],
+      "missing_precondition": "ROE flashloan premium must be non-zero (unverified, pool out of scope)",
+      "postconditions_created": ["liquidation path reverts"],
+      "who_benefits": "Nobody (borrowers escape liquidation)"
+    }
+  },
+  {
+    "id": "PC1-2",
+    "chain": "solidity",
+    "title": "closeDebt's self-close 'swap other token back to collateral' runs after every aToken was already PMWithdrawn, so it swaps nothing and the exposure control never happens",
+    "severity": "Low",
+    "category": "state-staleness / ineffective logic",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 275, "line_end": 286, "unit": "OptionsPositionManager", "function": "closeDebt"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 326, "line_end": 327, "unit": "OptionsPositionManager", "function": "closeDebt"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 439, "line_end": 456, "unit": "OptionsPositionManager", "function": "swapTokens"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "OptionsPositionManager"},
+    "description": "Discovery: per-unit step 1 (state completeness) and step 2 (branch audit). When user != address(this), closeDebt PMWithdraws the user's entire token0 and token1 aToken balances (amtA, amtB) into the OPM. When user == msg.sender it then calls swapTokens(poolId, otherToken, 0), which reads the user's remaining aToken balance of otherToken (amount==0 branch). That balance is already ~0, so swapTokens returns 0 early (before its cleanup). The leftover underlying stays in the OPM and is simply re-deposited unswapped by close()'s cleanup. The documented intent ('Swap other token back to collateral: this allows to control exposure') is never achieved in the self-close flow.",
+    "root_cause": "The swap reads the user's aToken balance after it was fully moved into the OPM, instead of swapping the OPM-held leftovers.",
+    "vulnerable_code": "amtB = IERC20(LP.getReserveData(token1).aTokenAddress ).balanceOf(user);\nPMWithdraw(LP, user, token1, amtB );\n...\nif (user == msg.sender) swapTokens(poolId, collateralAsset == token0 ? token1 : token0, 0);",
+    "harm": {
+      "who": "users who self-close expecting their residual to be converted to collateralAsset",
+      "loses_what": "no loss of funds; residual exposure to the non-collateral token stays, contrary to the documented behaviour",
+      "magnitude": "the post-close leftover of the non-collateral token"
+    },
+    "exploit_trace": [
+      "1. User with TR debt calls close(poolId, user, TR, 0, token0).",
+      "2. closeDebt PMWithdraws all token0 and token1 aTokens; after repay, leftover token1 sits in the OPM.",
+      "3. swapTokens(poolId, token1, 0) sees user's token1 aToken balance == 0 and returns; close() cleanup re-deposits the unswapped token1."
+    ],
+    "preconditions": [
+      {"text": "self-close with leftover non-collateral token", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "leftover remains in the non-collateral token", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✗(N/A) 6=✓",
+      "rules_applied": ["R8:✓(aToken balance read after being drained)", "R10:✗", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[TRACE:close(self)->PMWithdraw(amtB)->swapTokens(...,0)->aToken balance 0->return 0]", "[BOUNDARY:amount==0 early return]"],
+      "missing_precondition": "",
+      "postconditions_created": ["exposure not rebalanced"],
+      "who_benefits": "None"
+    }
+  }
+]

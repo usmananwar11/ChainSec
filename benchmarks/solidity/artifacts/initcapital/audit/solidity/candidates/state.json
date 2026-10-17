@@ -1,0 +1,68 @@
+[
+  {
+    "id": "STATE-1",
+    "chain": "solidity",
+    "title": "removeCollateralWLpTo mutates a wLp NFT and credits pendingRewards[_posId] without tying _tokenId to _posId unless the removal is full",
+    "severity": "High",
+    "category": "state-desync",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/PosManager.sol", "line_start": 249, "line_end": 268, "unit": "PosManager", "function": "removeCollateralWLpTo"},
+      {"file": "contracts/core/InitCore.sol", "line_start": 264, "line_end": 279, "unit": "InitCore", "function": "decollateralizeWLp"},
+      {"file": "contracts/core/InitCore.sol", "line_start": 317, "line_end": 353, "unit": "InitCore", "function": "liquidateWLp"}
+    ],
+    "discovery": {"phase": "state", "lens": null, "mindset": "accountant", "consensus": null, "unit": "PosManager"},
+    "description": "Coupled Pair: __posCollInfos[posId].ids[wLp] (membership) <-> wLp NFT balanceOfLp(tokenId) / pendingRewards[posId][token] / isCollateralized[wLp][tokenId]\nBreaking Operation: removeCollateralWLpTo() partial or zero-amount path\nMasking Code: the NOT_CONTAIN check lives only inside the newWLpAmt == 0 branch, so it only fires on full removal\nCross-Feed: DD-1\nPosManager is the ERC721 owner of every collateralized wLp NFT, and the wLp's harvest and unwrap are onlyOwner(tokenId). harvestTo and getCollWLpAmt check ids[_wLp].contains(_tokenId). removeCollateralWLpTo does not check it when newWLpAmt != 0, so a position that does not hold the NFT can still harvest it (rewards are booked to pendingRewards[_posId], which that position's owner then claims) and unwrap up to balanceOfLp - 1 of its LP to an arbitrary receiver. The write sides diverge: the NFT's LP balance falls while the owning position's recorded membership and collateral valuation (read live from balanceOfLp) shrink without that position having acted.",
+    "root_cause": "Invariant: a wLp NFT's LP balance and rewards may only be reduced or credited through the position whose ids[wLp] set contains the tokenId. removeCollateralWLpTo only asserts membership via ids.remove() when the whole balance is removed, so the partial path (including _amt == 0 from liquidateWLp with a non-member tokenId, where getCollWLpAmt returns 0) acts on the NFT-global balance and books harvested rewards to the wrong position.",
+    "vulnerable_code": "uint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    _require(posCollInfo.ids[_wLp].remove(_tokenId), Errors.NOT_CONTAIN);\n    ...\n}\n_harvest(_posId, _wLp, _tokenId);\nIBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver);",
+    "harm": {"who": "owners of positions that collateralize wLp NFTs", "loses_what": "LP backing of the NFT (all but 1 unit) and accrued wLp rewards; victim position becomes undercollateralized", "magnitude": "balanceOfLp(tokenId) - 1 per NFT"},
+    "exploit_trace": [
+      "1. Victim position V collateralizes wLp NFT N with balanceOfLp = 1000.",
+      "2. Attacker owns any position A (no collateral, no debt) and calls decollateralizeWLp(A, wLp, N, 999, attacker).",
+      "3. removeCollateralWLpTo: newWLpAmt = 1, membership check skipped; _harvest books N's rewards to pendingRewards[A]; unwrap(N, 999, attacker) succeeds because PosManager owns N.",
+      "4. ensurePositionHealth(A) passes because A is unchanged; V still lists N but its valuation collapses.",
+      "5. Attacker calls claimPendingRewards(A, rewardTokens, attacker) to take N's rewards."
+    ],
+    "preconditions": [{"text": "a whitelisted wLp NFT is collateralized by another position", "type": "STATE"}],
+    "postconditions": [{"text": "victim NFT hollowed out; rewards credited to attacker position", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Phases: 1=done 2=done 3=done 4=done 5=done(harvestTo/getCollWLpAmt vs removeCollateralWLpTo) 6=n/a 7=done(NOT_CONTAIN only on full removal) 8=done",
+      "rules_applied": ["R8:n/a(single call)", "R10:done(balance minus 1 per NFT)", "R11:n/a", "R12:done(enumerated membership checks across harvestTo, getCollWLpAmt, removeCollateralWLpTo)", "R15:n/a", "R16:n/a"],
+      "depth_evidence": ["[TRACE:decollateralizeWLp(A,wLp,N,999,attacker)->removeCollateralWLpTo->_harvest+unwrap on N]", "[BOUNDARY:_amt=0 via liquidateWLp with non-member tokenId -> harvest only]"],
+      "missing_precondition": "",
+      "postconditions_created": ["victim NFT drained", "pendingRewards credited to wrong position"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "STATE-2",
+    "chain": "solidity",
+    "title": "setPosViewer leaves stale position ids in __viewerPosIds[address(0)] when the old viewer is the zero address",
+    "severity": "Low",
+    "category": "state-desync",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/PosManager.sol", "line_start": 327, "line_end": 340, "unit": "PosManager", "function": "setPosViewer/_updateViewerPosIds"}
+    ],
+    "discovery": {"phase": "state", "lens": null, "mindset": "accountant", "consensus": null, "unit": "PosManager"},
+    "description": "Coupled Pair: __posInfos[posId].viewer <-> __viewerPosIds[viewer]\nBreaking Operation: _updateViewerPosIds() when oldViewer == address(0)\nMasking Code: if (oldViewer != address(0)) __viewerPosIds[oldViewer].remove(_posId);\nCreatePos with _viewer == address(0) (or setPosViewer(posId, address(0))) adds posId to __viewerPosIds[address(0)]. A later setPosViewer to a real address skips the removal because oldViewer is zero, so the id stays in the zero-address set although the position's viewer is no longer zero. The reverse index then lists positions under address(0) that are not viewed by it. Impact is limited to view helpers (getViewerPosIdsAt/Length) and unbounded growth of that set.",
+    "root_cause": "Invariant: posId is in __viewerPosIds[v] iff __posInfos[posId].viewer == v. The zero-address guard on removal breaks it because additions are not guarded the same way.",
+    "vulnerable_code": "if (oldViewer != address(0)) __viewerPosIds[oldViewer].remove(_posId);\n__viewerPosIds[_viewer].add(_posId);",
+    "harm": {"who": "off-chain integrators reading viewer indexes", "loses_what": "index accuracy only, no funds", "magnitude": "informational"},
+    "exploit_trace": [
+      "1. User creates a position with viewer = address(0); the id is added to __viewerPosIds[address(0)].",
+      "2. User calls setPosViewer(posId, V); oldViewer == 0 so no removal, id added to __viewerPosIds[V].",
+      "3. The id is now indexed under both address(0) and V."
+    ],
+    "preconditions": [{"text": "position created or set with zero viewer", "type": "STATE"}],
+    "postconditions": [{"text": "stale reverse-index entry", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Phases: 1=done 2=done 3=done 4=n/a 5=done 6=done 7=done(zero-address guard) 8=n/a",
+      "rules_applied": ["R8:n/a", "R10:done(view-only)", "R11:n/a", "R12:done(createPos and setPosViewer writers)", "R15:n/a", "R16:n/a"],
+      "depth_evidence": ["[TRACE:createPos(viewer=0)->setPosViewer(V)-> id in both sets]"],
+      "missing_precondition": "",
+      "postconditions_created": ["stale viewer index"],
+      "who_benefits": "None"
+    }
+  }
+]

@@ -1,0 +1,218 @@
+[
+  {
+    "id": "PC3-1",
+    "chain": "solidity",
+    "title": "Treasury approvals cannot be revoked: zero-amount approve is rejected and batchCalls is blocked for every token that has thresholds",
+    "severity": "Low",
+    "category": "access-control-state",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/ArcadeTreasury.sol",
+        "line_start": 189,
+        "line_end": 201,
+        "unit": "ArcadeTreasury",
+        "function": "gscApprove"
+      },
+      {
+        "file": "contracts/ArcadeTreasury.sol",
+        "line_start": 333,
+        "line_end": 345,
+        "unit": "ArcadeTreasury",
+        "function": "batchCalls"
+      },
+      {
+        "file": "contracts/ArcadeTreasury.sol",
+        "line_start": 384,
+        "line_end": 394,
+        "unit": "ArcadeTreasury",
+        "function": "_approve"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "ArcadeTreasury"
+    },
+    "description": "Discovery: per-unit step 1 (state completeness) and step 3 (boundary values, amount 0). Every approve entry point reverts with T_ZeroAmount when amount == 0, so an approval can never be set to 0. A token can only be approved if its threshold is non-zero (otherwise limit is 0 and amount + spent > limit reverts), and setThreshold forbids small == 0, so a token that has ever been approved can never return to small == 0. batchCalls reverts with T_InvalidTarget for any token with small != 0, so the ADMIN (timelock) cannot call approve(spender, 0) on the token itself either. The only way to reduce a live approval is to overwrite it with a non-zero amount through a CORE_VOTING proposal (or a GSC call that consumes gscAllowance). The treasury also has no way to claw back an approval that was granted to a spender that is later compromised or found buggy.",
+    "root_cause": "The zero-amount guard is applied to approvals as well as transfers, and the batchCalls blocklist (small != 0) is permanent because thresholds cannot be cleared.",
+    "vulnerable_code": "if (amount == 0) revert T_ZeroAmount();\n...\nif (spendThresholds[targets[i]].small != 0) revert T_InvalidTarget(targets[i]);",
+    "harm": {
+      "who": "Treasury (DAO)",
+      "loses_what": "ability to promptly revoke a standing token approval granted to a spender that later turns malicious or is exploited",
+      "magnitude": "up to the approved amount (bounded by the large threshold per approval); mitigated only by a slow governance vote or by the GSC overwriting with 1 wei while it has allowance"
+    },
+    "exploit_trace": [
+      "1. Governance executes approveLargeSpend(TOKEN, protocolX, A).",
+      "2. protocolX is later exploited or its pull logic is compromised.",
+      "3. ADMIN tries batchCalls([TOKEN], [approve(protocolX, 0)]) and it reverts with T_InvalidTarget; approveSmallSpend(TOKEN, protocolX, 0) reverts with T_ZeroAmount.",
+      "4. Result: the full allowance stays pullable until a new CORE_VOTING proposal overwrites it with a non-zero value."
+    ],
+    "preconditions": [
+      {
+        "text": "a non-zero approval was previously granted to a spender that becomes untrusted",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "spender retains transferFrom rights over treasury funds",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2713(approvals persist across blocks)",
+        "R10:\u2713(max approval at large threshold)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:amount=0 -> T_ZeroAmount in all 4 approve functions]",
+        "[TRACE:approved token has small!=0 -> batchCalls reverts T_InvalidTarget]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "residual allowance for untrusted spender"
+      ],
+      "who_benefits": "A compromised spender"
+    }
+  },
+  {
+    "id": "PC3-2",
+    "chain": "solidity",
+    "title": "_approve uses raw IERC20.approve, so approvals revert for USDT-style tokens (no return value) and cannot change a non-zero allowance",
+    "severity": "Low",
+    "category": "token-compat",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/ArcadeTreasury.sol",
+        "line_start": 391,
+        "line_end": 391,
+        "unit": "ArcadeTreasury",
+        "function": "_approve"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "ArcadeTreasury"
+    },
+    "description": "Discovery: per-unit step 4 (pairing audit, SafeERC20 used for transfers but not for approvals). _spend uses safeTransfer, but _approve calls IERC20(token).approve(spender, amount) directly. For tokens whose approve returns no data (USDT on mainnet), the ABI decoder reverts on the empty return data, so every approval for such a token reverts. For tokens that require the allowance to be zero before setting a new non-zero value, a second approval reverts while the previous one is unspent, and an approval cannot be reset to zero because of the zero-amount check (see PC3-1). The ignored return value is already in the known-issues list (unused-return); this finding is the resulting revert and stuck-allowance behaviour.",
+    "root_cause": "Raw approve is called instead of SafeERC20 forceApprove, which is imported and in use for transfers.",
+    "vulnerable_code": "IERC20(token).approve(spender, amount);",
+    "harm": {
+      "who": "DAO / GSC",
+      "loses_what": "ability to approve (and pay through pull-based integrations) in USDT or similar tokens",
+      "magnitude": "liveness only; the treasury can still use transfers"
+    },
+    "exploit_trace": [
+      "1. Treasury holds USDT and thresholds are set for it.",
+      "2. Governance executes approveSmallSpend(USDT, spender, 1000e6).",
+      "3. USDT.approve returns no data, the ABI decode of the bool return reverts, and the whole proposal execution reverts."
+    ],
+    "preconditions": [
+      {
+        "text": "treasury holds a token whose approve returns no value or demands a zero allowance first",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "approvals for such tokens cannot be made through the treasury",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2717(N/A) 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2717",
+        "R11:\u2713(non-standard ERC20 return handling)",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[TRACE:approve on token with empty return data -> abi decode revert at _approve]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [],
+      "who_benefits": "Nobody"
+    }
+  },
+  {
+    "id": "PC3-3",
+    "chain": "solidity",
+    "title": "ETH spends use transfer with a 2300 gas stipend, so spends to Safe proxies and other contract recipients revert",
+    "severity": "Low",
+    "category": "dos-griefing",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/ArcadeTreasury.sol",
+        "line_start": 365,
+        "line_end": 367,
+        "unit": "ArcadeTreasury",
+        "function": "_spend"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "ArcadeTreasury"
+    },
+    "description": "Discovery: per-unit step 1 and step 3 (ETH branch of _spend). The ETH path sends with payable(destination).transfer(amount), which forwards only 2300 gas. Multisig wallets (Gnosis Safe proxies run a delegatecall in the fallback) and any contract with receive logic cannot receive ETH, so gscSpend and the three spend functions revert. The code comment acknowledges the out-of-gas revert, but it also applies to the common case of a DAO paying a multisig or a vesting/payment contract. Governance can only work around it by sending to an EOA. The known-issues list mentions arbitrary-send-eth for _spend, not this gas-stipend DoS.",
+    "root_cause": "transfer is used instead of a call with a success check.",
+    "vulnerable_code": "payable(destination).transfer(amount);",
+    "harm": {
+      "who": "DAO / GSC, and intended ETH recipients that are contracts",
+      "loses_what": "ability to pay ETH to contract recipients from the treasury",
+      "magnitude": "liveness only; the transaction reverts and no funds are lost"
+    },
+    "exploit_trace": [
+      "1. Governance passes a proposal calling largeSpend(ETH_CONSTANT, 100 ether, safeAddress).",
+      "2. _spend calls transfer, which forwards 2300 gas.",
+      "3. The Safe proxy fallback needs more than 2300 gas, so the transfer reverts and the proposal execution fails."
+    ],
+    "preconditions": [
+      {
+        "text": "the recipient is a contract whose receive/fallback uses more than 2300 gas",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "ETH spend to that recipient cannot execute",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2717",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:recipient gas need >2300 -> revert]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [],
+      "who_benefits": "Nobody"
+    }
+  }
+]

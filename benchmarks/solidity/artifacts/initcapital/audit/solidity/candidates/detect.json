@@ -1,0 +1,761 @@
+[
+ {
+  "id": "DD-1",
+  "chain": "solidity",
+  "status": "candidate",
+  "severity": "High",
+  "category": "access-control",
+  "title": "removeCollateralWLpTo skips tokenId membership check on partial or zero removal, so any position owner can unwrap LP and harvest rewards of other positions' wLp NFTs",
+  "locations": [
+   {
+    "file": "contracts/core/PosManager.sol",
+    "line_start": 249,
+    "line_end": 268,
+    "unit": "PosManager",
+    "function": "removeCollateralWLpTo"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 264,
+    "line_end": 279,
+    "unit": "InitCore",
+    "function": "decollateralizeWLp"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 317,
+    "line_end": 353,
+    "unit": "InitCore",
+    "function": "liquidateWLp"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q4 edge-case (param _amt=0 / partial boundary), MODIFIER-01 sibling diff. Confirms and deepens DP1-1. getCollWLpAmt and harvestTo check ids[_wLp].contains(_tokenId), but removeCollateralWLpTo only reaches ids.remove(_tokenId) when newWLpAmt == 0. For _amt < balanceOfLp(_tokenId) (including _amt == 0) the caller-supplied tokenId is never tied to _posId, while PosManager is the ERC721 owner of every collateralized wLp NFT, so _harvest and unwrap (both onlyOwner(id) in the wLp) succeed for a foreign NFT. liquidateWLp reaches the same path with a foreign _tokenId: getCollWLpAmt returns 0 for a non-member, wLpAmtToBurn = 0, and removeCollateralWLpTo(_posId, _wLp, foreignId, 0, liquidator) harvests the victim NFT's rewards into pendingRewards[_posId]. Full removal is blocked by the NOT_CONTAIN check, so the drain is capped at balanceOfLp - 1 per NFT.",
+  "root_cause": "Position-to-token membership is enforced only on the newWLpAmt == 0 branch; the partial path trusts the caller-supplied (_wLp, _tokenId) pair and acts on the NFT-global balance.",
+  "vulnerable_code": "uint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    _require(posCollInfo.ids[_wLp].remove(_tokenId), Errors.NOT_CONTAIN);\n    ...\n}\n_harvest(_posId, _wLp, _tokenId);\nIBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver);",
+  "harm": {
+   "who": "owners of positions with collateralized wLp NFTs",
+   "loses_what": "LP tokens backing the NFT (all but 1 unit) and accrued wLp rewards",
+   "magnitude": "up to balanceOfLp(tokenId) - 1 per NFT"
+  },
+  "exploit_trace": [
+   "1. Victim collateralizes wLp NFT N (balanceOfLp = 1000) in position V.",
+   "2. Attacker owns any position A and calls decollateralizeWLp(A, wLp, N, 999, attacker).",
+   "3. removeCollateralWLpTo: newWLpAmt = 1 != 0, membership check skipped; _harvest credits N's rewards to A; unwrap(N, 999, attacker) runs as PosManager (owner).",
+   "4. ensurePositionHealth(A) checks only A, which is unchanged, and passes."
+  ],
+  "preconditions": [
+   {
+    "text": "a whitelisted wLp NFT is collateralized by another position",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim NFT is hollowed out and victim position may be undercollateralized",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: P1, A, B, C, D (5 sources); Lens: A=? B=? C=? D=\u2713",
+   "rules_applied": [
+    "R8:\u2717(single-step)",
+    "R10:\u2713(full balance minus 1)",
+    "R11:\u2717(n/a)",
+    "R12:\u2713(any collateralized NFT)",
+    "R15:\u2717(n/a)",
+    "R16:\u2717(n/a)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:_amt=0 -> newWLpAmt=balance, no membership check]",
+    "[TRACE:decollateralizeWLp(A,wLp,N,999)->unwrap(N,999,attacker)]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim NFT drained"
+   ],
+   "who_benefits": "Attacker"
+  },
+  "merged_from": [
+   "DA-1",
+   "DB-1",
+   "DC-1",
+   "DP1-1"
+  ]
+ },
+ {
+  "id": "DD-5",
+  "chain": "solidity",
+  "status": "candidate",
+  "severity": "Low",
+  "category": "dos-liquidation",
+  "title": "Liquidation reuses _repay and therefore reverts whenever repay is paused for the pool or the mode",
+  "locations": [
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 530,
+    "line_end": 536,
+    "unit": "InitCore",
+    "function": "_repay"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 587,
+    "line_end": 599,
+    "unit": "InitCore",
+    "function": "_liquidateInternal"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "spec-auditor",
+   "consensus": "moderate",
+   "unit": null
+  },
+  "description": "Discovery: Q3 spec-auditor (paired-operation consistency). _liquidateInternal calls _repay, which requires poolConfig.canRepay && modeStatus.canRepay. A guardian pause of repay for a pool or mode (for example during an incident) therefore also blocks liquidations of every position with debt in that pool or mode, while collateral prices keep moving and interest keeps accruing. Borrowers cannot repay either, so this is a design coupling rather than a bypass, and the harm depends on the pause being used.",
+  "root_cause": "Liquidation shares the user-facing repay status check instead of having its own flag.",
+  "vulnerable_code": "_require(_config.getPoolConfig(_pool).canRepay && _config.getModeStatus(_mode).canRepay, Errors.REPAY_PAUSED);",
+  "harm": {
+   "who": "pool lenders",
+   "loses_what": "bad debt from positions that cannot be liquidated while repay is paused",
+   "magnitude": "depends on price movement during the pause"
+  },
+  "exploit_trace": [
+   "1. Guardian sets canRepay = false for pool X or mode M.",
+   "2. Collateral price falls and positions become unhealthy.",
+   "3. liquidate/liquidateWLp revert with REPAY_PAUSED."
+  ],
+  "preconditions": [
+   {
+    "text": "repay paused for the debt pool or mode",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "unhealthy positions accumulate bad debt",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: A, D (2 sources); Lens: A=? B=? C=\u2717 D=\u2713",
+   "rules_applied": [
+    "R8:\u2717(n/a)",
+    "R10:\u2713",
+    "R11:\u2717(n/a)",
+    "R12:\u2717(n/a)",
+    "R15:\u2717(n/a)",
+    "R16:\u2717(n/a)"
+   ],
+   "depth_evidence": [
+    "[TRACE:liquidate->_liquidateInternal->_repay->REPAY_PAUSED]"
+   ],
+   "missing_precondition": "requires guardian pause",
+   "postconditions_created": [
+    "bad debt"
+   ],
+   "who_benefits": "Underwater borrowers"
+  },
+  "merged_from": [
+   "DA-2"
+  ]
+ },
+ {
+  "id": "DA-3",
+  "chain": "solidity",
+  "title": "MoneyMarketHook sweeps its entire WNATIVE/ETH balance to any caller with returnNative, and repay over-pull plus per-param msg.value wrapping can source those stray funds",
+  "severity": "Medium",
+  "category": "access-control",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 76,
+    "line_end": 80,
+    "unit": "MoneyMarketHook",
+    "function": "execute"
+   },
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 145,
+    "line_end": 158,
+    "unit": "MoneyMarketHook",
+    "function": "_handleRepay"
+   },
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 236,
+    "line_end": 244,
+    "unit": "MoneyMarketHook",
+    "function": "_handleDeposit"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "accountant",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: AC-03 (periphery contract access control). The hook is a shared custodian but treats its balance as the caller's. (a) With returnNative = true, execute withdraws the hook's whole WNATIVE balance and forwards the whole ETH balance to msg.sender. (b) _handleRepay pulls debtShareToAmtCurrent(_params.shares) from the user, but core.repay only repays min(shares, position debt shares), so a WNATIVE repay with shares above the debt leaves the excess in the hook (and for non-WNATIVE tokens it is stuck). (c) _handleDeposit calls WNATIVE.deposit{value: msg.value}() once per WNATIVE deposit param, so with two params the second wrap is paid from stray hook ETH. ETH sent with execute but not consumed by a WNATIVE deposit also stays.",
+  "root_cause": "The hook holds no per-user accounting for transient funds and permissionlessly releases whatever balance it holds to the next caller.",
+  "vulnerable_code": "IWNative(WNATIVE).withdraw(IERC20(WNATIVE).balanceOf(address(this)));\n(bool success,) = payable(msg.sender).call{value: address(this).balance}('');",
+  "harm": {
+   "who": "users who over-repay with WNATIVE or send surplus msg.value",
+   "loses_what": "the excess WNATIVE/ETH",
+   "magnitude": "the surplus left in the hook per user; any later caller takes it"
+  },
+  "exploit_trace": [
+   "1. Victim calls execute with a WNATIVE repay of shares larger than the position's debt shares; the hook pulls W tokens, core repays only the debt, the excess E stays in the hook as WNATIVE.",
+   "2. Attacker calls execute with an empty OperationParams for a fresh position and returnNative = true.",
+   "3. The hook unwraps its full WNATIVE balance and sends all ETH (including E) to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "surplus WNATIVE/ETH remains in the hook after a prior call",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: A (1 sources); Lens: A=check done B=? C=? D=?",
+   "rules_applied": [
+    "R8:x",
+    "R10:ok",
+    "R11:ok(unsolicited transfers into hook considered)",
+    "R12:ok(3 sources of stray balance)",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:repay shares > debt shares -> excess retained]",
+    "[TRACE:execute(returnNative)->withdraw(all)->call(all)->attacker]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Next caller of execute"
+  }
+ },
+ {
+  "id": "DA-4",
+  "chain": "solidity",
+  "title": "Config has no way to remove a pool from a mode's borrow set (borrow factor must stay >= 1e18) so a single pool cannot be disabled for a mode",
+  "severity": "Low",
+  "category": "missing-functionality",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/core/Config.sol",
+    "line_start": 112,
+    "line_end": 125,
+    "unit": "Config",
+    "function": "setBorrFactors_e18"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "spec-auditor",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: MISSING-01 (missing unsetters). setBorrFactors_e18 only adds to borrTokens and requires factor >= 1e18, and no function removes entries from borrTokens/collTokens. Collateral can be neutralized with factor 0, but borrowing a given pool in a given mode can only be stopped by pausing the pool for all modes (PoolConfig.canBorrow) or the mode for all pools (ModeStatus.canBorrow). A mis-listed borrow pool stays borrowable by that mode.",
+  "root_cause": "Add-only EnumerableSet configuration with a lower-bounded factor and no remover.",
+  "vulnerable_code": "borrTokens.add(_pools[i]);\n_require(_factors_e18[i] >= ONE_E18, Errors.INVALID_FACTOR);",
+  "exploit_trace": [
+   "1. Governor lists a pool P in mode M by mistake or P later turns risky.",
+   "2. Governor cannot remove P from M and cannot set a disabling factor; only a global pause of P or M is possible.",
+   "3. Users in M keep borrowing P until the broader pause."
+  ],
+  "preconditions": [
+   {
+    "text": "a pool must be disabled for one mode only",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: A (1 sources); Lens: A=check done B=x C=x D=x",
+   "rules_applied": [
+    "R8:x",
+    "R10:ok",
+    "R11:x",
+    "R12:x",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:factor=0 -> rejected by >= 1e18]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Borrowers in the affected mode"
+  }
+ },
+ {
+  "id": "DC-3",
+  "chain": "solidity",
+  "severity": "Medium",
+  "category": "token-flow",
+  "status": "candidate",
+  "title": "MoneyMarketHook pulls repay tokens for the requested shares but core repays only min(shares, position debt); excess is stranded in the hook and stealable for WNATIVE",
+  "locations": [
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 145,
+    "line_end": 159,
+    "unit": "MoneyMarketHook",
+    "function": "_handleRepay"
+   },
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 75,
+    "line_end": 80,
+    "unit": "MoneyMarketHook",
+    "function": "execute"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 533,
+    "line_end": 548,
+    "unit": "InitCore",
+    "function": "_repay"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "accountant",
+   "consensus": "moderate",
+   "unit": null
+  },
+  "description": "Discovery: Q2 value-in vs value-out cross-contract check (hook vs core). The hook computes repayAmt = debtShareToAmtCurrent(_params[i].shares) and pulls that from the user, but InitCore._repay clamps sharesToRepay to the position's actual debt shares and transfers only that amount from the hook. If the position's debt shares dropped between signing and execution (partial liquidation front-run, or the user overshooting to close a debt), the difference stays in the hook. No refund exists. For WNATIVE, returnNative=true unwraps the hook's whole WNATIVE balance and sends the whole ETH balance to the next caller; other tokens are stuck permanently.",
+  "root_cause": "The hook sizes the pull from caller-supplied shares instead of min(shares, position debt shares) and never refunds leftovers.",
+  "vulnerable_code": "uint repayAmt = ILendingPool(_params[i].pool).debtShareToAmtCurrent(_params[i].shares);\n_ensureApprove(uToken, repayAmt);\nIERC20(uToken).safeTransferFrom(msg.sender, address(this), repayAmt);",
+  "harm": {
+   "who": "user repaying through the hook",
+   "loses_what": "the overpaid amount (stuck, or taken by whoever next calls execute with returnNative for WNATIVE)",
+   "magnitude": "difference between requested and actual repaid debt"
+  },
+  "exploit_trace": [
+   "1. User calls hook.execute with repay shares = full debt of a WNATIVE pool position.",
+   "2. A liquidator's tx lands first and reduces the position's debt shares.",
+   "3. Hook pulls WNATIVE for the full requested shares; core repays only the remaining shares; excess WNATIVE stays in the hook.",
+   "4. Attacker calls execute with posId = 0, a valid mode and returnNative = true; the hook unwraps its WNATIVE balance and pays all ETH to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "requested repay shares exceed position debt shares at execution",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "hook holds third-party tokens",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: B, C (2 sources); Lens: A=\u2717 B=\u2713 C=\u2713 D=\u2717",
+   "rules_applied": [
+    "R8:\u2717(single-step)",
+    "R10:\u2713",
+    "R11:\u2717",
+    "R12:\u2713",
+    "R15:\u2717",
+    "R16:\u2717"
+   ],
+   "depth_evidence": [
+    "[VARIATION:shares=S vs debt=S-x -> x excess in hook]",
+    "[TRACE:execute->_handleRepay pull->core.repay clamp->no refund->returnNative sweep]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Next caller / attacker"
+  },
+  "merged_from": [
+   "DB-2"
+  ]
+ },
+ {
+  "id": "DD-3",
+  "chain": "solidity",
+  "status": "candidate",
+  "severity": "Medium",
+  "category": "rounding-dos",
+  "title": "updatePosDebtShares snapshots lastDebtAmt with the pre-operation debt ratio, so a second debt update on the same position and pool in one timestamp underflows",
+  "locations": [
+   {
+    "file": "contracts/core/PosManager.sol",
+    "line_start": 170,
+    "line_end": 187,
+    "unit": "PosManager",
+    "function": "updatePosDebtShares"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 141,
+    "line_end": 146,
+    "unit": "InitCore",
+    "function": "borrow"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 544,
+    "line_end": 547,
+    "unit": "InitCore",
+    "function": "_repay"
+   },
+   {
+    "file": "contracts/lending_pool/LendingPool.sol",
+    "line_start": 125,
+    "line_end": 145,
+    "unit": "LendingPool",
+    "function": "repay"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "accountant",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q2 accountant (trace concrete values through rounding). Confirms DP1-3. Traced: totalDebt=1,000,000, totalDebtShares=900,000, position holds all shares. repay(1 share): updatePosDebtShares sets lastDebtAmt = ceil(899,999*1e6/9e5) = 999,999 using the pre-repay ratio; LendingPool.repay then charges ceil(1e6/9e5)=2, leaving totalDebt 999,998 / shares 899,999. A second update at the same timestamp reads debtAmtCurrent = 999,998, so debtAmtCurrent - lastDebtAmt underflows (checked arithmetic) and the borrow/repay/liquidate reverts. Borrow behaves the same because shares round up after the snapshot. A borrower can front-run a liquidation in the same block with a dust repay or borrow. Small debts of low-decimal tokens keep the blockage for several seconds because per-second interest rounds to 0.",
+  "root_cause": "The interest snapshot uses a ratio that the pool's round-up arithmetic immediately lowers, breaking the documented invariant debtAmtCurrent >= lastDebtAmt.",
+  "vulnerable_code": "extraInfo.totalInterest += (debtAmtCurrent - extraInfo.lastDebtAmt).toUint128();\n...\nextraInfo.lastDebtAmt = newDebtAmt.toUint128();",
+  "harm": {
+   "who": "liquidators and borrowers",
+   "loses_what": "liquidations or same-block repay/borrow on the position revert",
+   "magnitude": "liveness, per block"
+  },
+  "exploit_trace": [
+   "1. Position P has debt in pool X with non-integral totalDebt/totalDebtShares.",
+   "2. Borrower sends a dust repay (or borrow) in block N before the liquidator's tx.",
+   "3. The liquidator's _repay calls updatePosDebtShares with no accrued interest in the same timestamp and underflows."
+  ],
+  "preconditions": [
+   {
+    "text": "two debt updates on same position/pool in one timestamp and non-integral debt ratio",
+    "type": "TIMING"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "position cannot be updated until >= 1 wei of interest accrues",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: P1, B, C, D (4 sources); Lens: A=\u2717 B=? C=\u2717 D=\u2713",
+   "rules_applied": [
+    "R8:\u2713(cached lastDebtAmt)",
+    "R10:\u2713",
+    "R11:\u2717(n/a)",
+    "R12:\u2713",
+    "R15:\u2717(n/a)",
+    "R16:\u2717(n/a)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:totalDebt=1e6 shares=9e5 repay 1 share -> 999,998 < 999,999]",
+    "[TRACE:repay->repay same ts->Panic 0x11]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "temporary per-block DoS"
+   ],
+   "who_benefits": "Borrower avoiding liquidation"
+  },
+  "merged_from": [
+   "DB-3",
+   "DC-2",
+   "DP1-3"
+  ]
+ },
+ {
+  "id": "DC-4",
+  "chain": "solidity",
+  "severity": "Low",
+  "category": "dos",
+  "status": "candidate",
+  "title": "MoneyMarketHook pre-transfers deposits to the pool before the multicall; a repay or second deposit on the same pool absorbs them into cash so mintTo reverts with ZERO_VALUE",
+  "locations": [
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 226,
+    "line_end": 270,
+    "unit": "MoneyMarketHook",
+    "function": "_handleDeposit"
+   },
+   {
+    "file": "contracts/lending_pool/LendingPool.sol",
+    "line_start": 136,
+    "line_end": 145,
+    "unit": "LendingPool",
+    "function": "repay"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "edge-case",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: Module T (intra-batch balance deltas). Deposit tokens are sent to the pool during hook preparation, before the core multicall runs. LendingPool.repay sets cash = balanceOf(pool), so a repay on the same pool earlier in the multicall folds the pending deposit into cash. The later mintTo computes amt = balanceOf - cash = 0 and reverts with ZERO_VALUE. Two deposit params for the same pool fail the same way, because the first mintTo absorbs both transfers.",
+  "root_cause": "Balance-delta accounting in the pool plus transfers staged outside the multicall ordering.",
+  "vulnerable_code": "uint newCash = IERC20(underlyingToken).balanceOf(address(this));\n_require(amt <= newCash - cash, Errors.INVALID_AMOUNT_TO_REPAY);\n...\ncash = newCash;",
+  "harm": {
+   "who": "hook users batching repay + deposit on the same asset",
+   "loses_what": "the batched call always reverts (liveness only, no fund loss); users must split calls",
+   "magnitude": "liveness"
+  },
+  "exploit_trace": [
+   "1. User calls execute with repayParams[pool X] and depositParams[pool X].",
+   "2. Prep phase moves the repay tokens to the hook and the deposit tokens to pool X.",
+   "3. Multicall repay: core moves repay tokens to X; pool.repay sets cash = balanceOf(X), including the deposit.",
+   "4. mintTo(X, POS_MANAGER): amt = 0, shares = 0, revert ZERO_VALUE."
+  ],
+  "preconditions": [
+   {
+    "text": "repay and deposit (or two deposits) target the same pool in one execute",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [],
+  "audit_trail": {
+   "step_execution": "Found by: C (1 sources); Lens: A=\u2717 B=\u2717 C=\u2713 D=\u2717",
+   "rules_applied": [
+    "R8:\u2717(single-step)",
+    "R10:\u2713",
+    "R11:\u2717",
+    "R12:\u2713",
+    "R15:\u2717",
+    "R16:\u2717"
+   ],
+   "depth_evidence": [
+    "[TRACE:execute(repay X,deposit X)->pool.repay cash=balance->mintTo amt=0->revert]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "None"
+  }
+ },
+ {
+  "id": "DD-2",
+  "chain": "solidity",
+  "status": "candidate",
+  "severity": "Medium",
+  "category": "dos-liquidation",
+  "title": "getLiqIncentiveMultiplier_e18 divides by zero for health_e18 == 0, so fully underwater positions revert in liquidate and liquidateWLp despite the explicit underwater bypass",
+  "locations": [
+   {
+    "file": "contracts/core/LiqIncentiveCalculator.sol",
+    "line_start": 55,
+    "line_end": 60,
+    "unit": "LiqIncentiveCalculator",
+    "function": "getLiqIncentiveMultiplier_e18"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 293,
+    "line_end": 312,
+    "unit": "InitCore",
+    "function": "liquidate"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 331,
+    "line_end": 351,
+    "unit": "InitCore",
+    "function": "liquidateWLp"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q4 edge-case (division by zero, param=0). Confirms DP1-2. getPosHealthCurrent_e18 returns 0 when collateral credit is 0 and borrow credit > 0 (collateral fully seized in a bad-debt liquidation, collFactor 0, or credit floored to 0). InitCore treats health_e18 == 0 as the underwater case (skips _ensurePosHealthAfterLiq) but first calls getLiqIncentiveMultiplier_e18 with health 0, which computes 1e36 / 0 and panics. Mechanical trace: health=0.5e18 -> incentive 1e18; health=1 wei -> 1e36-1e18; health=0 -> Panic 0x12. Impact is limited because such a position has little or no collateral left to seize; the remaining bad debt cannot be repaid through liquidate.",
+  "root_cause": "Calculator assumes _healthFactor_e18 > 0 while caller treats 0 as a valid liquidatable state.",
+  "vulnerable_code": "if (_healthFactor_e18 >= ONE_E18) return ONE_E18;\n...\nuint incentive_e18 = (ONE_E18 * ONE_E18) / _healthFactor_e18 - ONE_E18;",
+  "harm": {
+   "who": "pool lenders",
+   "loses_what": "bad debt of zero-credit positions cannot be cleared and keeps inflating reported assets",
+   "magnitude": "remaining debt of each such position"
+  },
+  "exploit_trace": [
+   "1. A bad-debt liquidation seizes all collateral (min(shares, collAmt)) leaving debt > 0, or collFactor for the only collateral is set to 0.",
+   "2. getPosHealthCurrent_e18 returns 0.",
+   "3. liquidate(posId, ...) -> getLiqIncentiveMultiplier_e18(mode, 0, ...) executes 1e36 / 0 and reverts."
+  ],
+  "preconditions": [
+   {
+    "text": "collateral credit == 0 while debt > 0",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "unliquidatable debt remains",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Found by: P1, C, D (3 sources); Lens: A=\u2717 B=? C=\u2717 D=\u2713",
+   "rules_applied": [
+    "R8:\u2717(n/a)",
+    "R10:\u2713",
+    "R11:\u2717(n/a)",
+    "R12:\u2713",
+    "R15:\u2717(n/a)",
+    "R16:\u2717(n/a)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:_healthFactor_e18=0 -> Panic 0x12 at L60]",
+    "[BOUNDARY:_healthFactor_e18=1 -> incentive 1e36-1e18, capped by max multiplier]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "stuck bad debt"
+   ],
+   "who_benefits": "Underwater borrower"
+  },
+  "merged_from": [
+   "DC-5",
+   "DP1-2"
+  ]
+ },
+ {
+  "id": "DP1-4",
+  "chain": "solidity",
+  "title": "InitOracle fallback does not work for an unset or malformed source: try/catch does not catch ABI-decode failure, so getPrice_e36 reverts even when the other source is valid",
+  "severity": "Low",
+  "category": "oracle",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/oracle/InitOracle.sol",
+    "line_start": 47,
+    "line_end": 65,
+    "unit": "InitOracle",
+    "function": "getPrice_e36"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q6.3/Q4.2, ORC-02. The comments state that if one of the sources is invalid the other is used. primarySources[_token]/secondarySources[_token] default to address(0). A call to address(0) returns success with empty returndata, the return value decode then fails in the calling contract, which a catch clause does not intercept (it only catches reverts of the callee), so the whole getPrice_e36 reverts. Both sources must therefore be set for every priced token, and maxPriceDeviations_e18 must be non-zero (default 0 makes the deviation check always revert when both are valid). The same applies to a primary that returns malformed data.",
+  "root_cause": "try/catch around an external call to a possibly-empty address does not provide the documented single-source fallback.",
+  "vulnerable_code": "try IBaseOracle(primarySources[_token]).getPrice_e36(_token) returns (uint primaryPrice_e36_) {\n    ...\n} catch {}\ntry IBaseOracle(secondarySources[_token]).getPrice_e36(_token) returns (uint secondaryPrice_e36_) {\n    ...\n} catch {}",
+  "harm": {
+   "who": "borrowers and liquidators of any token configured with only one oracle source",
+   "loses_what": "borrow, collateral valuation and liquidation for positions holding that token revert (position health cannot be computed)",
+   "magnitude": "all positions using that token while only one source is configured"
+  },
+  "exploit_trace": [
+   "1. Governor sets only primarySources[T] (secondary left at address(0)).",
+   "2. Any call to getPrice_e36(T) executes the secondary try on address(0); decode of empty returndata reverts in InitOracle, not caught.",
+   "3. getPosHealthCurrent_e18 for any position holding T reverts, blocking borrow, decollateralize and liquidation."
+  ],
+  "preconditions": [
+   {
+    "text": "one source unset or returning malformed data",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [],
+  "audit_trail": {
+   "step_execution": "Found by: P1, C, D (3 sources); Pass 1: Step 2=\u2713 Step 3=\u2713 Step 4=\u2713",
+   "rules_applied": [
+    "R8:\u2717(n/a)",
+    "R10:\u2713",
+    "R11:\u2717(n/a)",
+    "R12:\u2713(enablers: unset source, zero deviation)",
+    "R15:\u2717(n/a)",
+    "R16:\u2713(fallback path assessed)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:secondarySources[T]=address(0) -> revert outside catch]"
+   ],
+   "missing_precondition": "governance must configure only one source",
+   "postconditions_created": [],
+   "who_benefits": "None (liveness)"
+  },
+  "merged_from": [
+   "DC-6",
+   "DD-4"
+  ]
+ },
+ {
+  "id": "DP3-1",
+  "chain": "solidity",
+  "status": "candidate",
+  "severity": "Low",
+  "category": "missing-access-control",
+  "title": "mUSDUSDYHelper wrap/unwrap are permissionless and operate on the helper's entire token balance, so any stray balance is claimable by anyone",
+  "locations": [
+   {
+    "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+    "line_start": 17,
+    "line_end": 32,
+    "unit": "mUSDUSDYHelper",
+    "function": "wrap/unwrap"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P3",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Pass 3 check 2 (missing access control). wrap(_to) unwraps the helper's whole REBASE_TOKEN balance and sends all YIELD_BEARING_TOKEN held to _to; unwrap(_to) wraps the whole yield-bearing balance and transfers all shares to _to. Neither is restricted to MoneyMarketHook. Tokens left in the helper (for example a hook withdraw whose unwrap loop is skipped, a failed partial flow, or a user sending tokens by mistake) can be taken by any caller. Within a hook execute the transfer-to-helper and wrap/unwrap are in the same tx, so exploitation needs a stray balance.",
+  "root_cause": "Helper uses balanceOf(address(this)) with no caller restriction or per-call accounting.",
+  "harm": {
+   "who": "users whose tokens are stranded in the helper",
+   "loses_what": "stranded rebase/yield-bearing tokens",
+   "magnitude": "only stray balances"
+  },
+  "exploit_trace": [
+   "1. Tokens exist in helper (stray).",
+   "2. Attacker calls helper.wrap(attacker) or unwrap(attacker).",
+   "3. Attacker receives the full balance."
+  ],
+  "preconditions": [
+   {
+    "text": "non-zero token balance held by the helper outside a hook tx",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "helper balance drained to caller",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 3 sweep: check 2",
+   "rules_applied": [],
+   "depth_evidence": [
+    "[CODE:mUSDUSDYHelper.sol:17-32]"
+   ],
+   "missing_precondition": "requires stray balance",
+   "postconditions_created": [
+    "helper drained"
+   ],
+   "who_benefits": "any caller"
+  }
+ }
+]

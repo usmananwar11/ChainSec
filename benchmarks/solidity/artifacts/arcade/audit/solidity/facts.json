@@ -1,0 +1,1601 @@
+{
+  "chain": "solidity",
+  "mode": "regex",
+  "root": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/arcade",
+  "units": [
+    {
+      "name": "ARCDVestingVault",
+      "kind": "contract",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 48,
+      "loc": 337,
+      "parents": [
+        "IARCDVestingVault",
+        "HashedStorageReentrancyBlock",
+        "BaseVotingVault"
+      ]
+    },
+    {
+      "name": "ArcadeGSCCoreVoting",
+      "kind": "contract",
+      "file": "contracts/ArcadeGSCCoreVoting.sol",
+      "line": 14,
+      "loc": 20,
+      "parents": [
+        "CoreVoting"
+      ]
+    },
+    {
+      "name": "ArcadeGSCVault",
+      "kind": "contract",
+      "file": "contracts/ArcadeGSCVault.sol",
+      "line": 25,
+      "loc": 16,
+      "parents": [
+        "GSCVault"
+      ]
+    },
+    {
+      "name": "ArcadeTreasury",
+      "kind": "contract",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 44,
+      "loc": 355,
+      "parents": [
+        "IArcadeTreasury",
+        "AccessControl",
+        "ReentrancyGuard"
+      ]
+    },
+    {
+      "name": "BaseVotingVault",
+      "kind": "contract",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 24,
+      "loc": 178,
+      "parents": [
+        "HashedStorageReentrancyBlock",
+        "IBaseVotingVault"
+      ]
+    },
+    {
+      "name": "ImmutableVestingVault",
+      "kind": "contract",
+      "file": "contracts/ImmutableVestingVault.sol",
+      "line": 18,
+      "loc": 26,
+      "parents": [
+        "ARCDVestingVault"
+      ]
+    },
+    {
+      "name": "NFTBoostVault",
+      "kind": "contract",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 55,
+      "loc": 652,
+      "parents": [
+        "INFTBoostVault",
+        "BaseVotingVault"
+      ]
+    },
+    {
+      "name": "BadgeDescriptor",
+      "kind": "contract",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 17,
+      "loc": 46,
+      "parents": [
+        "IBadgeDescriptor",
+        "Ownable"
+      ]
+    },
+    {
+      "name": "ReputationBadge",
+      "kind": "contract",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 39,
+      "loc": 184,
+      "parents": [
+        "ERC1155",
+        "AccessControl",
+        "ERC1155Burnable",
+        "IReputationBadge"
+      ]
+    },
+    {
+      "name": "ArcadeAirdrop",
+      "kind": "contract",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 21,
+      "loc": 60,
+      "parents": [
+        "ArcadeMerkleRewards",
+        "Authorizable"
+      ]
+    },
+    {
+      "name": "ArcadeToken",
+      "kind": "contract",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 74,
+      "loc": 98,
+      "parents": [
+        "ERC20",
+        "ERC20Burnable",
+        "IArcadeToken",
+        "ERC20Permit"
+      ]
+    },
+    {
+      "name": "ArcadeTokenDistributor",
+      "kind": "contract",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 23,
+      "loc": 158,
+      "parents": [
+        "Ownable"
+      ]
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "ARCDVestingVault",
+      "name": "addGrantAndDelegate",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 91,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "revokeGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 157,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "deposit",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 197,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "withdraw",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 211,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "claim",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 228,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "delegate",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 260,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "claimable",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 293,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "name": "getGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 304,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "gscSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 108,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "smallSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 130,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "mediumSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 149,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "largeSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 168,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "gscApprove",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 189,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "approveSmallSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 211,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "approveMediumSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 230,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "approveLargeSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 249,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "setThreshold",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 269,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "setGSCAllowance",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 303,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "batchCalls",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 333,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "name": "receive",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 397,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "setTimelock",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 68,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyTimelock"
+      ]
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "setManager",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 80,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyTimelock"
+      ]
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "queryVotePower",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 96,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "queryVotePowerView",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 112,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "timelock",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 126,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "BaseVotingVault",
+      "name": "manager",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 137,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ImmutableVestingVault",
+      "name": "revokeGrant",
+      "file": "contracts/ImmutableVestingVault.sol",
+      "line": 40,
+      "visibility": "public",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "addNftAndDelegate",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 114,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "airdropReceive",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 139,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAirdrop",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "delegate",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 182,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "withdraw",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 223,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "addTokens",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 266,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "withdrawNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 293,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "updateNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 305,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "updateVotingPower",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 342,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "setMultiplier",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 363,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "unlock",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 378,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyTimelock"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "setAirdropContract",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 392,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyManager"
+      ]
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "getIsLocked",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 405,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "getMultiplier",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 418,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "getRegistration",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 436,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "getAirdropContract",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 445,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "NFTBoostVault",
+      "name": "onERC1155Received",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 697,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "BadgeDescriptor",
+      "name": "tokenURI",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 48,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "BadgeDescriptor",
+      "name": "setBaseURI",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 57,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "mint",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 98,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "uri",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 129,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "publishRoots",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 140,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole"
+      ]
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "withdrawFees",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 163,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole"
+      ]
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "setDescriptor",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 184,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyRole"
+      ]
+    },
+    {
+      "unit": "ReputationBadge",
+      "name": "supportsInterface",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 217,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "name": "reclaim",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 62,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "name": "setMerkleRoot",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 75,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeToken",
+      "name": "setMinter",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 132,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyMinter"
+      ]
+    },
+    {
+      "unit": "ArcadeToken",
+      "name": "mint",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 145,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyMinter"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toTreasury",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 73,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toDevPartner",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 89,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toCommunityRewards",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 105,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toCommunityAirdrop",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 121,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toTeamVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 138,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "toPartnerVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 155,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "name": "setToken",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 174,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "ARCDVestingVault",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 91,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 157,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 197,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 211,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 108,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 130,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 149,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 168,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 189,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 211,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 230,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 249,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 269,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 303,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 333,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "BaseVotingVault",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 68,
+      "kind": "modifier:onlyTimelock"
+    },
+    {
+      "unit": "BaseVotingVault",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 80,
+      "kind": "modifier:onlyTimelock"
+    },
+    {
+      "unit": "BaseVotingVault",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 188,
+      "kind": "inline"
+    },
+    {
+      "unit": "BaseVotingVault",
+      "file": "contracts/BaseVotingVault.sol",
+      "line": 197,
+      "kind": "inline"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 139,
+      "kind": "modifier:onlyAirdrop"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 363,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 378,
+      "kind": "modifier:onlyTimelock"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 392,
+      "kind": "modifier:onlyManager"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 702,
+      "kind": "inline"
+    },
+    {
+      "unit": "BadgeDescriptor",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 57,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ReputationBadge",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 140,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ReputationBadge",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 163,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ReputationBadge",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 184,
+      "kind": "modifier:onlyRole"
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 62,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 75,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeToken",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 132,
+      "kind": "modifier:onlyMinter"
+    },
+    {
+      "unit": "ArcadeToken",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 145,
+      "kind": "modifier:onlyMinter"
+    },
+    {
+      "unit": "ArcadeToken",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 168,
+      "kind": "inline"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 73,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 89,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 105,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 121,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 138,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 155,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 174,
+      "kind": "modifier:onlyOwner"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "ArcadeTreasury",
+      "function": "gscSpend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 117,
+      "target": "gscAllowance"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "gscApprove",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 198,
+      "target": "gscAllowance"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "setThreshold",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 282,
+      "target": "gscAllowance"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "setThreshold",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 288,
+      "target": "spendThresholds"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "setGSCAllowance",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 319,
+      "target": "lastAllowanceSet"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "setGSCAllowance",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 320,
+      "target": "gscAllowance"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_spend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 362,
+      "target": "blockExpenditure"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_approve",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 388,
+      "target": "blockExpenditure"
+    },
+    {
+      "unit": "BadgeDescriptor",
+      "function": "constructor",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 36,
+      "target": "baseURI"
+    },
+    {
+      "unit": "BadgeDescriptor",
+      "function": "setBaseURI",
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "line": 58,
+      "target": "baseURI"
+    },
+    {
+      "unit": "ReputationBadge",
+      "function": "constructor",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 84,
+      "target": "descriptor"
+    },
+    {
+      "unit": "ReputationBadge",
+      "function": "mint",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 116,
+      "target": "amountClaimed"
+    },
+    {
+      "unit": "ReputationBadge",
+      "function": "setDescriptor",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 187,
+      "target": "descriptor"
+    },
+    {
+      "unit": "ArcadeToken",
+      "function": "constructor",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 117,
+      "target": "minter"
+    },
+    {
+      "unit": "ArcadeToken",
+      "function": "constructor",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 119,
+      "target": "mintingAllowedAfter"
+    },
+    {
+      "unit": "ArcadeToken",
+      "function": "setMinter",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 135,
+      "target": "minter"
+    },
+    {
+      "unit": "ArcadeToken",
+      "function": "mint",
+      "file": "contracts/token/ArcadeToken.sol",
+      "line": 151,
+      "target": "mintingAllowedAfter"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTreasury",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 77,
+      "target": "treasurySent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toDevPartner",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 93,
+      "target": "devPartnerSent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityRewards",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 109,
+      "target": "communityRewardsSent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityAirdrop",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 125,
+      "target": "communityAirdropSent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTeamVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 142,
+      "target": "vestingTeamSent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toPartnerVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 159,
+      "target": "vestingPartnerSent"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "setToken",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 178,
+      "target": "arcadeToken"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "ARCDVestingVault",
+      "function": "revokeGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 167,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "revokeGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 172,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "deposit",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 201,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "withdraw",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 217,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "claim",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 252,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "batchCalls",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 341,
+      "kind": "call"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_spend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 367,
+      "kind": "transfer"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_spend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 369,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "withdraw",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 258,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_withdrawNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 556,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_lockTokens",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 657,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_lockNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 674,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "ReputationBadge",
+      "function": "withdrawFees",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 171,
+      "kind": "transfer"
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "function": "reclaim",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 67,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTreasury",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 79,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toDevPartner",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 95,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityRewards",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 111,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityAirdrop",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 127,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTeamVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 144,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toPartnerVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 161,
+      "kind": "safeTransfer"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "ARCDVestingVault",
+      "function": "revokeGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 167,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "revokeGrant",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 172,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "deposit",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 201,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "withdraw",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 217,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ARCDVestingVault",
+      "function": "claim",
+      "file": "contracts/ARCDVestingVault.sol",
+      "line": 252,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_spend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 367,
+      "kind": "transfer",
+      "asset": "native"
+    },
+    {
+      "unit": "ArcadeTreasury",
+      "function": "_spend",
+      "file": "contracts/ArcadeTreasury.sol",
+      "line": 369,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "withdraw",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 258,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_withdrawNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 556,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_lockTokens",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 657,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "NFTBoostVault",
+      "function": "_lockNft",
+      "file": "contracts/NFTBoostVault.sol",
+      "line": 674,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "ReputationBadge",
+      "function": "withdrawFees",
+      "file": "contracts/nft/ReputationBadge.sol",
+      "line": 171,
+      "kind": "transfer",
+      "asset": "native"
+    },
+    {
+      "unit": "ArcadeAirdrop",
+      "function": "reclaim",
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "line": 67,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTreasury",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 79,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toDevPartner",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 95,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityRewards",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 111,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toCommunityAirdrop",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 127,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toTeamVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 144,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "ArcadeTokenDistributor",
+      "function": "toPartnerVesting",
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "line": 161,
+      "kind": "safeTransfer",
+      "asset": "token"
+    }
+  ],
+  "counters": {
+    "contracts/ARCDVestingVault.sol": {
+      "loc": 384,
+      "external_calls": 5,
+      "state_writers": 6,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/ArcadeGSCCoreVoting.sol": {
+      "loc": 33,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/ArcadeGSCVault.sol": {
+      "loc": 40,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/ArcadeTreasury.sol": {
+      "loc": 398,
+      "external_calls": 3,
+      "state_writers": 12,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/BaseVotingVault.sol": {
+      "loc": 201,
+      "external_calls": 0,
+      "state_writers": 3,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/ImmutableVestingVault.sol": {
+      "loc": 43,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/NFTBoostVault.sol": {
+      "loc": 706,
+      "external_calls": 4,
+      "state_writers": 12,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/nft/BadgeDescriptor.sol": {
+      "loc": 62,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/nft/ReputationBadge.sol": {
+      "loc": 222,
+      "external_calls": 1,
+      "state_writers": 4,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/token/ArcadeAirdrop.sol": {
+      "loc": 80,
+      "external_calls": 1,
+      "state_writers": 2,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/token/ArcadeToken.sol": {
+      "loc": 171,
+      "external_calls": 0,
+      "state_writers": 2,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/token/ArcadeTokenDistributor.sol": {
+      "loc": 180,
+      "external_calls": 6,
+      "state_writers": 7,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    }
+  }
+}

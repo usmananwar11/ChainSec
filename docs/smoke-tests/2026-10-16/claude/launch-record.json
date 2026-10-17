@@ -1,0 +1,17 @@
+{
+  "command": [
+    "claude",
+    "-p",
+    "/chainsec-audit --quick",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--permission-mode",
+    "acceptEdits",
+    "--allowedTools",
+    "Bash,Read,Write,Edit,Agent,Skill,Glob,Grep"
+  ],
+  "pid": 71015,
+  "started": 1792134831.017161,
+  "cwd": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/claude"
+}

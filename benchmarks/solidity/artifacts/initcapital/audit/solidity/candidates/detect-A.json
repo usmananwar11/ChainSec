@@ -1,0 +1,284 @@
+[
+ {
+  "id": "DA-1",
+  "chain": "solidity",
+  "title": "removeCollateralWLpTo/decollateralizeWLp and liquidateWLp never verify the (wLp, tokenId) pair belongs to the position on partial or zero removal",
+  "severity": "High",
+  "category": "access-control",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/core/PosManager.sol",
+    "line_start": 249,
+    "line_end": 268,
+    "unit": "PosManager",
+    "function": "removeCollateralWLpTo"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 264,
+    "line_end": 279,
+    "unit": "InitCore",
+    "function": "decollateralizeWLp"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 317,
+    "line_end": 352,
+    "unit": "InitCore",
+    "function": "liquidateWLp"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "attacker",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: MODIFIER-01 / Module L sibling diff (confirms and deepens DP1-1). harvestTo() and getCollWLpAmt() both require __posCollInfos[_posId].ids[_wlp].contains(_tokenId), but removeCollateralWLpTo() only performs the membership check (ids.remove) inside the newWLpAmt == 0 branch. For _amt < balanceOfLp(_tokenId) (including _amt == 0) the function harvests and unwraps NFT _tokenId, which PosManager owns for every collateralized wLp, on behalf of whichever _posId the caller controls. Second entry point: liquidateWLp lets the liquidator pass any _tokenId; getCollWLpAmt returns 0 for a non-member token, so wLpAmtToBurn = 0 and removeCollateralWLpTo(_posId, wLp, victimToken, 0, ...) still runs _harvest and credits the foreign NFT's pending rewards to the liquidated position's pendingRewards.",
+  "root_cause": "Authorization is per positionId (onlyAuthorized(_posId)) but the asset acted on is identified by a caller-supplied (wLp, tokenId) whose membership in that position is enforced only on the emptying path; PosManager, as global NFT owner, passes the wLp's onlyOwner checks for any tokenId.",
+  "vulnerable_code": "uint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    _require(posCollInfo.ids[_wLp].remove(_tokenId), Errors.NOT_CONTAIN);\n    ...\n}\n_harvest(_posId, _wLp, _tokenId);\nIBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver);",
+  "harm": {
+   "who": "owners of positions that collateralized a wLp NFT",
+   "loses_what": "all but 1 unit of the LP behind the NFT plus accrued rewards",
+   "magnitude": "balanceOfLp(tokenId) - 1 per victim NFT; victim position is then undercollateralized and liquidatable"
+  },
+  "exploit_trace": [
+   "1. Victim collateralizes wLp NFT N (balanceOfLp = 1000) in position V; PosManager owns N.",
+   "2. Attacker owns an unrelated position A and calls InitCore.decollateralizeWLp(A, wLp, N, 999, attacker): onlyAuthorized(A), whitelist and mode checks pass.",
+   "3. PosManager.removeCollateralWLpTo(A, wLp, N, 999, attacker): newWLpAmt = 1, membership check skipped; _harvest credits N's rewards to pendingRewards[A]; wLp.unwrap(N, 999, attacker) executes as PosManager (owner).",
+   "4. ensurePositionHealth(A) checks only A, unchanged, so the call succeeds; attacker claims rewards via claimPendingRewards(A, ...) and V is now near-zero collateral (liquidatable).",
+   "5. Reward-only variant: _amt = 0, or a self-liquidation of A through liquidateWLp with victim tokenId."
+  ],
+  "preconditions": [
+   {
+    "text": "a whitelisted wLp NFT is collateralized in another position",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim position collateral value collapses while its NFT stays registered",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=check done B=? C=? D=?",
+   "rules_applied": [
+    "R8:x(single-step)",
+    "R10:ok(assessed at full-drain state)",
+    "R11:x",
+    "R12:ok(2 entry points enumerated)",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:_amt=0 -> membership unchecked]",
+    "[BOUNDARY:_amt=balance-1 -> unwrap of foreign NFT]",
+    "[TRACE:decollateralizeWLp(A,N,999)->unwrap(N,999,attacker)]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Attacker"
+  }
+ },
+ {
+  "id": "DA-2",
+  "chain": "solidity",
+  "title": "Repay pause (pool or mode canRepay=false) also disables liquidation because liquidate() routes through _repay",
+  "severity": "Medium",
+  "category": "state-integrity",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 530,
+    "line_end": 536,
+    "unit": "InitCore",
+    "function": "_repay"
+   },
+   {
+    "file": "contracts/core/InitCore.sol",
+    "line_start": 587,
+    "line_end": 600,
+    "unit": "InitCore",
+    "function": "_liquidateInternal"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "spec-auditor",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: MISSING-02 (restriction coverage). _liquidateInternal calls _repay, which requires getPoolConfig(pool).canRepay && getModeStatus(mode).canRepay. A guardian pausing repay (to stop borrower repayments during an incident or oracle problem) therefore also blocks every liquidate/liquidateWLp on that pool/mode, while interest keeps accruing and collateral prices move. Unlike borrow/withdraw pauses, there is no separate liquidation switch and no bypass for liquidation.",
+  "root_cause": "Liquidation reuses the user-facing repay path including its pause flags instead of an internal repay without status checks.",
+  "vulnerable_code": "_require(_config.getPoolConfig(_pool).canRepay && _config.getModeStatus(_mode).canRepay, Errors.REPAY_PAUSED);",
+  "harm": {
+   "who": "lenders/suppliers of the paused pool",
+   "loses_what": "collateral coverage; bad debt accrues because underwater positions cannot be liquidated during the pause",
+   "magnitude": "unbounded by pause duration and price move"
+  },
+  "exploit_trace": [
+   "1. Guardian sets canRepay=false on pool P (or mode M) via Config.setPoolConfig/setModeStatus.",
+   "2. Collateral price falls; position X in M becomes health < 1e18.",
+   "3. Liquidator calls liquidate(X, P, shares, poolOut, min): _repay reverts with REPAY_PAUSED.",
+   "4. Borrower cannot repay either; debt grows with interest until unpause, by which time the position may be underwater (bad debt socialized to lenders)."
+  ],
+  "preconditions": [
+   {
+    "text": "guardian pauses repay on a pool or mode with live borrows",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=check done B=? C=? D=?",
+   "rules_applied": [
+    "R8:x",
+    "R10:ok",
+    "R11:x",
+    "R12:x(single enabler)",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[TRACE:liquidate->_liquidateInternal->_repay->REPAY_PAUSED]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Borrowers with underwater positions"
+  }
+ },
+ {
+  "id": "DA-3",
+  "chain": "solidity",
+  "title": "MoneyMarketHook sweeps its entire WNATIVE/ETH balance to any caller with returnNative, and repay over-pull plus per-param msg.value wrapping can source those stray funds",
+  "severity": "Medium",
+  "category": "access-control",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 76,
+    "line_end": 80,
+    "unit": "MoneyMarketHook",
+    "function": "execute"
+   },
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 145,
+    "line_end": 158,
+    "unit": "MoneyMarketHook",
+    "function": "_handleRepay"
+   },
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "line_start": 236,
+    "line_end": 244,
+    "unit": "MoneyMarketHook",
+    "function": "_handleDeposit"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: AC-03 (periphery contract access control). The hook is a shared custodian but treats its balance as the caller's. (a) With returnNative = true, execute withdraws the hook's whole WNATIVE balance and forwards the whole ETH balance to msg.sender. (b) _handleRepay pulls debtShareToAmtCurrent(_params.shares) from the user, but core.repay only repays min(shares, position debt shares), so a WNATIVE repay with shares above the debt leaves the excess in the hook (and for non-WNATIVE tokens it is stuck). (c) _handleDeposit calls WNATIVE.deposit{value: msg.value}() once per WNATIVE deposit param, so with two params the second wrap is paid from stray hook ETH. ETH sent with execute but not consumed by a WNATIVE deposit also stays.",
+  "root_cause": "The hook holds no per-user accounting for transient funds and permissionlessly releases whatever balance it holds to the next caller.",
+  "vulnerable_code": "IWNative(WNATIVE).withdraw(IERC20(WNATIVE).balanceOf(address(this)));\n(bool success,) = payable(msg.sender).call{value: address(this).balance}('');",
+  "harm": {
+   "who": "users who over-repay with WNATIVE or send surplus msg.value",
+   "loses_what": "the excess WNATIVE/ETH",
+   "magnitude": "the surplus left in the hook per user; any later caller takes it"
+  },
+  "exploit_trace": [
+   "1. Victim calls execute with a WNATIVE repay of shares larger than the position's debt shares; the hook pulls W tokens, core repays only the debt, the excess E stays in the hook as WNATIVE.",
+   "2. Attacker calls execute with an empty OperationParams for a fresh position and returnNative = true.",
+   "3. The hook unwraps its full WNATIVE balance and sends all ETH (including E) to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "surplus WNATIVE/ETH remains in the hook after a prior call",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=check done B=? C=? D=?",
+   "rules_applied": [
+    "R8:x",
+    "R10:ok",
+    "R11:ok(unsolicited transfers into hook considered)",
+    "R12:ok(3 sources of stray balance)",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:repay shares > debt shares -> excess retained]",
+    "[TRACE:execute(returnNative)->withdraw(all)->call(all)->attacker]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Next caller of execute"
+  }
+ },
+ {
+  "id": "DA-4",
+  "chain": "solidity",
+  "title": "Config has no way to remove a pool from a mode's borrow set (borrow factor must stay >= 1e18) so a single pool cannot be disabled for a mode",
+  "severity": "Low",
+  "category": "missing-functionality",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/core/Config.sol",
+    "line_start": 112,
+    "line_end": 125,
+    "unit": "Config",
+    "function": "setBorrFactors_e18"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "spec-auditor",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: MISSING-01 (missing unsetters). setBorrFactors_e18 only adds to borrTokens and requires factor >= 1e18, and no function removes entries from borrTokens/collTokens. Collateral can be neutralized with factor 0, but borrowing a given pool in a given mode can only be stopped by pausing the pool for all modes (PoolConfig.canBorrow) or the mode for all pools (ModeStatus.canBorrow). A mis-listed borrow pool stays borrowable by that mode.",
+  "root_cause": "Add-only EnumerableSet configuration with a lower-bounded factor and no remover.",
+  "vulnerable_code": "borrTokens.add(_pools[i]);\n_require(_factors_e18[i] >= ONE_E18, Errors.INVALID_FACTOR);",
+  "exploit_trace": [
+   "1. Governor lists a pool P in mode M by mistake or P later turns risky.",
+   "2. Governor cannot remove P from M and cannot set a disabling factor; only a global pause of P or M is possible.",
+   "3. Users in M keep borrowing P until the broader pause."
+  ],
+  "preconditions": [
+   {
+    "text": "a pool must be disabled for one mode only",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=check done B=x C=x D=x",
+   "rules_applied": [
+    "R8:x",
+    "R10:ok",
+    "R11:x",
+    "R12:x",
+    "R15:x",
+    "R16:x"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:factor=0 -> rejected by >= 1e18]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Borrowers in the affected mode"
+  }
+ }
+]

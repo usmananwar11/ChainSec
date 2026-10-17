@@ -1,0 +1,130 @@
+{
+  "recorded_on": "2026-10-17",
+  "audit_date": "2026-10-16",
+  "status": "smoke-pass",
+  "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+  "skill_comparison": "Recovered installed skills compared with repository tree on recording date. Differences listed below. Generated Python bytecode excluded.",
+  "skill_differences": [],
+  "runtime": "OpenCode (run-time version not captured)",
+  "model": "not captured in launch metadata",
+  "session_id": "ses_ebc6fe6e9ffeyQgDYSHwJ2beHo",
+  "started_utc": "2026-10-16T07:14:39.001494+00:00",
+  "elapsed_to_last_timestamp_seconds": 3763.22,
+  "elapsed_note": "Launch to last timestamped transcript event, including any post-report wakeups; not summed API durations.",
+  "facts_mode": "compiler",
+  "preflight": {
+    "chain": "solidity",
+    "mode": "degraded",
+    "tools": {
+      "python3": "OK Python 3.14.6",
+      "forge": "OK Version: 1.7.1",
+      "slither": "MISSING"
+    },
+    "scope_files": 2,
+    "quick": true,
+    "warnings": [],
+    "incomplete_phases": []
+  },
+  "validation": {
+    "command": "python3 plugins/chainsec/skills/chainsec/scripts/validate-findings.py <artifact>/audit/solidity/findings.json",
+    "exit_code": 0,
+    "output": "[]"
+  },
+  "dispatch": [
+    {
+      "tool": "task",
+      "description": "Detect Pass 1",
+      "time": {
+        "start": 1792135050645,
+        "end": 1792135474924
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Detect lens A",
+      "time": {
+        "start": 1792135492225,
+        "end": 1792135857843
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Detect lens D",
+      "time": {
+        "start": 1792135517526,
+        "end": 1792136082706
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Detect lens C",
+      "time": {
+        "start": 1792135509444,
+        "end": 1792136743266
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Detect lens B",
+      "time": {
+        "start": 1792135501870,
+        "end": 1792137047253
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Rescan",
+      "time": {
+        "start": 1792137156318,
+        "end": 1792137566835
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Critic verify",
+      "time": {
+        "start": 1792137591571,
+        "end": 1792138118095
+      },
+      "status": "completed"
+    },
+    {
+      "tool": "task",
+      "description": "Report",
+      "time": {
+        "start": 1792138133153,
+        "end": 1792138627074
+      },
+      "status": "completed"
+    }
+  ],
+  "transcript_local_path": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/opencode.jsonl",
+  "transcript_sha256": "8a2e45d82ee09916a535770a61671a60054a54e02eed73ea211405f0bbc9c9e3",
+  "artifact_sha256": {
+    "audit/chains.json": "d8023d71c256f50a514e8a37c70dcb47da154e0d24e279d3c96361d3812584a4",
+    "audit/findings.json": "2b6e5d11cd852840ff3f5c7ff922f3bfd06b53dba6f92b715e3b12f122c78e40",
+    "audit/report.md": "b45505586307ba894a990d84cee3e2966a582285b0e7039123c4028dc0e180f0",
+    "audit/solidity/candidates/detect-A.json": "31f02380e8baf30c253b7ff4862d9f714d49ff62aefb130003d20e0b9c8f2e00",
+    "audit/solidity/candidates/detect-B.json": "fbd68a3e7b4f5b9267992a69a7a0521419d7d8f29a4990e4e34a43080282ffaf",
+    "audit/solidity/candidates/detect-C.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/detect-D.json": "37d89d0f98c75df3a9c8b5328ecb888fa7b51bb044a415356d3b862cbc96db80",
+    "audit/solidity/candidates/detect-P1.json": "3dd8251cea0ea6794f501e26a068dd21bd37d8371cecaa75551f4ddf4a1dd926",
+    "audit/solidity/candidates/detect.json": "6b319667d36c3b6c70596726b203d2e3e61189925e95bf68ea3442b72e204bf4",
+    "audit/solidity/candidates/rescan.json": "396bf651a9bf0623d20918bd9feb0676f0d03d30a3a2140f173482d1939e350b",
+    "audit/solidity/facts.json": "8a5242947a3bdf2a4b546b74c51830f8154d8738158a0e16f0df7deb0b7b9589",
+    "audit/solidity/findings.json": "a62dd367998bef1b4df9b96790270e3289192de6796b2ece6746787264141956",
+    "audit/solidity/known-issues.md": "8f3961fb1a4b8d8b5d46705ad2f2a1bccdd61b126e7b9f6fdb3d342c31acaf0a",
+    "audit/solidity/pass1-brief.md": "387c282bed89b66fc79137f51bf6ffc207d25defd01e6ebbd7c6feeebd86158f",
+    "audit/solidity/preflight.json": "e234bf40e189ba052cf6fc86d1ee81c4c4297afd1be1fd6c4dcfd63cd963ffab",
+    "audit/solidity/recon.md": "6fed36509d124142146b8bd50b5ce280c222d7d6ed41a97e47a5d212515d0d36",
+    "audit/solidity/report.md": "b45505586307ba894a990d84cee3e2966a582285b0e7039123c4028dc0e180f0",
+    "audit/solidity/risk.json": "b90df94f5eb071f40aa8e116fde0b0994b2623ae2b6ecd86e26e64cc34bc00e4",
+    "audit/solidity/verdicts.json": "748c3e5e2b2f5abeb22bcd67b2696091a06df125d41839dccd7727eb88ffd863"
+  }
+}

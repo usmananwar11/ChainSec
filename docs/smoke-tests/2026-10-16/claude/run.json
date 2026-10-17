@@ -1,0 +1,98 @@
+{
+  "recorded_on": "2026-10-17",
+  "audit_date": "2026-10-16",
+  "status": "smoke-pass",
+  "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+  "skill_comparison": "Recovered installed skills compared with repository tree on recording date. Differences listed below. Generated Python bytecode excluded.",
+  "skill_differences": [],
+  "runtime": "Claude Code 2.1.300",
+  "model": "claude-sonnet-5-5",
+  "session_id": "bdeafff8-edc9-491e-b091-93d353cc4b61",
+  "started_utc": "2026-10-16T07:13:51.017161+00:00",
+  "elapsed_to_last_timestamp_seconds": 1277.05,
+  "elapsed_note": "Launch to last timestamped transcript event, including any post-report wakeups; not summed API durations.",
+  "facts_mode": "compiler",
+  "preflight": {
+    "chain": "solidity",
+    "mode": "degraded",
+    "tools": {
+      "python3": "OK Python 3.14.6",
+      "forge": "OK 1.7.1",
+      "slither": "MISSING"
+    },
+    "scope_files": 2,
+    "quick": true,
+    "warnings": [],
+    "incomplete_phases": []
+  },
+  "validation": {
+    "command": "python3 plugins/chainsec/skills/chainsec/scripts/validate-findings.py <artifact>/audit/solidity/findings.json",
+    "exit_code": 0,
+    "output": "[]"
+  },
+  "dispatch": [
+    {
+      "tool": "Agent",
+      "description": "ChainSec Pass 1 detect",
+      "message_id": "msg_011Cg5WAHMz8RSiC2qPcduB8"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens A",
+      "message_id": "msg_011Cg5WG1hL4C5VrUqRhevKq"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens B",
+      "message_id": "msg_011Cg5WG1hL4C5VrUqRhevKq"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens C",
+      "message_id": "msg_011Cg5WG1hL4C5VrUqRhevKq"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens D",
+      "message_id": "msg_011Cg5WG1hL4C5VrUqRhevKq"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec rescan",
+      "message_id": "msg_011Cg5WNTFtRWpGxZyAUpKjX"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec critic verify",
+      "message_id": "msg_011Cg5WQcFRpiTFbJsdWGKsr"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec reporter",
+      "message_id": "msg_011Cg5WTsV3YCcbFV2h5D9Mq"
+    }
+  ],
+  "transcript_local_path": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/claude.jsonl",
+  "transcript_sha256": "236b5c870dd157a99b718de4572899cd52cff56aa5982e77665b453d465bda5d",
+  "artifact_sha256": {
+    "audit/chains.json": "d8023d71c256f50a514e8a37c70dcb47da154e0d24e279d3c96361d3812584a4",
+    "audit/findings.json": "e9843a4646588fe52990ddbf841a25167e9c58f557172f697314fd7ff1760c5d",
+    "audit/report.md": "b4bfe0564a19d6a607cad90726e0a0cd0dfad12cfc79c077962991821629eff6",
+    "audit/solidity/candidates/detect-A.json": "2a66aba5af3b5e12eb72518d33742a60675452fa2b038a9196ab05b919b7eff0",
+    "audit/solidity/candidates/detect-B.json": "b5fb4b003463c32a0841a11f91c019f96c490df6c7c7217df95afb35ed34e5bf",
+    "audit/solidity/candidates/detect-C.json": "195ef14e6c93f36b8bbdee5a9dcc7678cab801376789e1015bd29fdce63c4cca",
+    "audit/solidity/candidates/detect-D.json": "79437985ae956face88c47af56b5895f1f52c51cdea62f35afff4b63594e2568",
+    "audit/solidity/candidates/detect-P1.json": "27745ad31fa3e236c692b85e3b60ed7d5f5b697b36a2d15a8acc176522437a04",
+    "audit/solidity/candidates/detect.json": "56e53bc65bf527379155e3e7260526133f653ea6304b832235c303bbcb92e151",
+    "audit/solidity/candidates/rescan.json": "4496fc214aa7dbfd82b7fb8eaf6e56a187543f882c127bf786a913bcd200dfed",
+    "audit/solidity/facts.json": "1eba0070f239952aab8014175b080084d50e08e1c879032ad70b45ab89bad5de",
+    "audit/solidity/findings.json": "cb855d1c1b5a8c11bbca3223dc669b93b2041e4a0bc1fb196a45ed72b592bd4d",
+    "audit/solidity/known-issues.md": "f3840b601aa48f34c2f23d6818b0b3d5ce964e5cbfadc6ed8c2d4acd9252e843",
+    "audit/solidity/pass1-brief.md": "a554056fc074c3111fba0331bae2698d32dafb5e7596f49ac47130d8e4bed406",
+    "audit/solidity/preflight.json": "bcdc9d9392b5ea7aeafc2810efcf928a9d25db9ff4999022bc4566baa3eaaa92",
+    "audit/solidity/recon.md": "1646788fe1e645418e41fcbecb0c76a8fa5d6dea07deb017bf1db7c663fc731b",
+    "audit/solidity/report.md": "b4bfe0564a19d6a607cad90726e0a0cd0dfad12cfc79c077962991821629eff6",
+    "audit/solidity/risk.json": "b90df94f5eb071f40aa8e116fde0b0994b2623ae2b6ecd86e26e64cc34bc00e4",
+    "audit/solidity/verdicts.json": "28bdb96f4ea1e2e959e157a6925100637c78a076055781457fd93ca444b9dcc0"
+  }
+}

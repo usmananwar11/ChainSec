@@ -1,0 +1,16 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - DP1-1 | src/Vault.sol:32-34 | Critical | sweep() has no access control; anyone drains the whole native balance to any address.
+  - DP1-2 | src/Vault.sol:27-29, 36-42 | High | ETH and token deposits share one balances ledger; depositEth credit is redeemable as tokens via withdraw(), draining other users' tokens.
+  - DP1-3 | src/Vault.sol:27-29, 36-42 | High | No ETH withdrawal path; depositEth credit can only be redeemed as tokens, and sweep() takes the ETH.
+  - DP1-4 | src/Vault.sol:38-40 | Low | Unchecked totalDeposits subtraction wraps when ETH credit is withdrawn (totalDeposits never raised by depositEth).
+- Files with NO candidates: src/Base.sol (Owned: onlyOwner modifier and transferOwnership look correct; no zero-address check or two-step transfer, both Gate A material). Needs a fresh look in Pass 2 (constructor, owner visibility, inheritance into Vault).
+- Suspicious areas flagged but not promoted to candidate:
+  - Unchecked bool return of token.transferFrom (Vault.sol:22) and token.transfer (Vault.sol:41). A token that returns false instead of reverting would let deposit() credit without receiving, and let withdraw() debit without paying. The token is an unknown constructor argument with no token list in recon, so Gate B blocks it unless a specific token is named.
+  - Fee-on-transfer or rebasing token in deposit(): credited amount versus received amount. Same Gate B concern (no named token).
+  - FEE_BPS = 30 is never applied and setFee(uint256) has an empty body: dead or incomplete fee logic with no stated harm (mechanism-only).
+  - sweep uses to.transfer (2300 gas stipend): a contract recipient needing more gas reverts. This is the planted-bug area, secondary to DP1-1.
+  - _selfBalance() assembly helper is dead code, unused; no balance-based accounting reads it.
+  - withdraw() follows checks-effects-interactions (balances debited before token.transfer); reentrancy via token hooks looks closed for balances, so it was not promoted.
+  - No pause, no emergency exit, no ETH exit besides sweep (covered in DP1-3).
+- Analyzer findings NOT yet covered by a candidate: none (no A/analyzers/*.md exist; slither was skipped).

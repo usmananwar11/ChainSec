@@ -1,0 +1,94 @@
+[
+  {
+    "id": "DA-1",
+    "chain": "solidity",
+    "title": "sweep() has no access control: any caller can send the vault's entire native balance to an arbitrary address",
+    "severity": "Critical",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [{"file": "src/Vault.sol", "line_start": 32, "line_end": 34, "unit": "Vault", "function": "sweep"}],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: MODIFIER-01 / AC-01 (sibling comparison). setFee and transferOwnership in the same contract chain use onlyOwner, but sweep(), the only function that moves native value out, has no guard. Base.sol Owned offers onlyOwner and it is simply not applied. Sweep also ignores balances[], so depositEth credits become unbacked.",
+    "root_cause": "A value-moving function lacks the onlyOwner check that its siblings carry, and does not consult the per-user ledger.",
+    "vulnerable_code": "function sweep(address payable to) external {\n    to.transfer(address(this).balance);\n}",
+    "harm": {"who": "every depositEth user", "loses_what": "all deposited ETH", "magnitude": "100% of the vault native balance in one call"},
+    "exploit_trace": [
+      "1. Users call depositEth() and the vault holds N wei.",
+      "2. Attacker (any EOA, not owner) calls sweep(attacker).",
+      "3. to.transfer(address(this).balance) moves N wei to the attacker.",
+      "4. balances[] still shows each user's ETH credit but nothing backs it."
+    ],
+    "preconditions": [{"text": "vault holds a non-zero native balance", "type": "BALANCE"}],
+    "postconditions": [{"text": "ETH credits in balances[] are unbacked", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=? D=?",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(full native balance)", "R11:✗(no external tokens)", "R12:✓(no enabler needed, zero guards)", "R15:✗(no flash-loan state)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:balance=0 → transfer of 0, no loss]", "[TRACE:sweep(attacker)→to.transfer(balance)→vault balance 0]", "[VARIATION:caller=owner→caller=attacker → both succeed]"],
+      "missing_precondition": "",
+      "postconditions_created": ["ETH credits in balances[] are unbacked"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DA-2",
+    "chain": "solidity",
+    "title": "Single balances ledger for ETH and ERC20: ETH depositors can withdraw other users' tokens, and withdraw() has no ETH counterpart",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/Vault.sol", "line_start": 27, "line_end": 29, "unit": "Vault", "function": "depositEth"},
+      {"file": "src/Vault.sol", "line_start": 36, "line_end": 42, "unit": "Vault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Discovery: Cross-function state consistency (writers of balances). depositEth() and deposit() both credit balances[msg.sender], but withdraw() is the only debit and always pays the ERC20. Any ETH credit is therefore redeemable one-for-one as token units, with no check that the token was deposited. Inverse parity deposit/withdraw is broken for ETH (Module W).",
+    "root_cause": "Two unrelated assets share one mapping, and the only debiting function pays out one of them.",
+    "vulnerable_code": "function depositEth() external payable {\n    balances[msg.sender] += msg.value;\n}\n...\nfunction withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked { totalDeposits -= amount; }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {"who": "ERC20 depositors", "loses_what": "deposited tokens", "magnitude": "up to the vault's whole token balance, for the same number of wei (recoverable via sweep)"},
+    "exploit_trace": [
+      "1. Victims deposit 1,000,000 token units via deposit().",
+      "2. Attacker calls depositEth{value: 1_000_000 wei}(): balances[attacker] = 1,000,000.",
+      "3. Attacker calls withdraw(1_000_000): the debit passes and token.transfer sends 1,000,000 token units to the attacker.",
+      "4. Attacker calls sweep(attacker) to recover the 1,000,000 wei; victims' tokens are gone."
+    ],
+    "preconditions": [{"text": "vault holds tokens deposited by others", "type": "BALANCE"}],
+    "postconditions": [{"text": "token balance below sum of token depositors' balances; totalDeposits wraps", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=? D=?",
+      "rules_applied": ["R8:✓(deposit then withdraw)", "R10:✓(fully funded vault)", "R11:✗(token is immutable asset)", "R12:✓(depositEth + shared mapping + sweep)", "R15:✗(no flash-loan state)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:amount=1 wei → 1 token unit]", "[TRACE:depositEth(1e6)→withdraw(1e6)→token.transfer(attacker,1e6)]"],
+      "missing_precondition": "",
+      "postconditions_created": ["token balance below sum of token depositors' balances"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DA-3",
+    "chain": "solidity",
+    "title": "withdraw() subtracts totalDeposits in an unchecked block although depositEth never increments it: counter wraps to ~2^256",
+    "severity": "Low",
+    "category": "state-integrity",
+    "status": "candidate",
+    "locations": [{"file": "src/Vault.sol", "line_start": 36, "line_end": 42, "unit": "Vault", "function": "withdraw"}],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "Discovery: Module M (counter consistency) / Step 5b guard consistency. totalDeposits is raised only by deposit(), but lowered by withdraw() for any balances[] credit including ETH credit. The unchecked subtraction removes the 0.8 underflow revert, so the counter silently wraps and totalDeposits no longer reflects deposits. No in-scope code reads it for payouts, so direct fund loss is not shown; any integration or later upgrade reading totalDeposits gets garbage.",
+    "root_cause": "Counter and ledger are updated by different paths and the debit is unchecked.",
+    "vulnerable_code": "unchecked {\n    totalDeposits -= amount;\n}",
+    "harm": {"who": "integrators or off-chain consumers reading totalDeposits", "loses_what": "accurate accounting", "magnitude": "totalDeposits wraps to near 2^256 after one ETH-credit withdrawal"},
+    "exploit_trace": [
+      "1. totalDeposits = 0; user calls depositEth{value: 1 ether}(): balances[user] = 1e18, totalDeposits still 0.",
+      "2. If the vault holds tokens, user calls withdraw(1e18).",
+      "3. totalDeposits = 0 - 1e18 wraps to 2^256 - 1e18."
+    ],
+    "preconditions": [{"text": "withdraw() succeeds, i.e. vault holds enough tokens (see DA-2)", "type": "BALANCE"}],
+    "postconditions": [{"text": "totalDeposits permanently desynced from real deposits", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=✗(no external consumers) D=?",
+      "rules_applied": ["R8:✓(depositEth then withdraw)", "R10:✓(worst state: wrapped counter)", "R11:✗(n/a)", "R12:✓(enabler: depositEth credit without counter)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:totalDeposits=0, amount=1 → wraps to 2^256-1]", "[TRACE:depositEth(1e18)→withdraw(1e18)→totalDeposits=2^256-1e18]"],
+      "missing_precondition": "a consumer of totalDeposits that moves value",
+      "postconditions_created": ["totalDeposits permanently desynced"],
+      "who_benefits": "None directly"
+    }
+  }
+]

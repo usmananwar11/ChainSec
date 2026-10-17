@@ -1,0 +1,258 @@
+[
+ {
+  "n": 1,
+  "units": [
+   "InitCore",
+   "Multicall",
+   "UnderACM"
+  ],
+  "files": [
+   "contracts/core/InitCore.sol",
+   "contracts/common/Multicall.sol",
+   "contracts/common/UnderACM.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/core/InitCore.sol",
+    "loc": 600,
+    "opened": true,
+    "functions": 32
+   },
+   {
+    "file": "contracts/common/Multicall.sol",
+    "loc": 31,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": [
+   "(duplicates of detect candidates; see subagent reply)"
+  ]
+ },
+ {
+  "n": 2,
+  "units": [
+   "LendingPool",
+   "DoubleSlopeIRM",
+   "UnderACM"
+  ],
+  "files": [
+   "contracts/lending_pool/LendingPool.sol",
+   "contracts/lending_pool/DoubleSlopeIRM.sol",
+   "contracts/common/UnderACM.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/lending_pool/LendingPool.sol",
+    "loc": 269,
+    "opened": true,
+    "functions": 24
+   },
+   {
+    "file": "contracts/lending_pool/DoubleSlopeIRM.sol",
+    "loc": 42,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 3,
+  "units": [
+   "PosManager",
+   "UnderACM"
+  ],
+  "files": [
+   "contracts/core/PosManager.sol",
+   "contracts/common/UnderACM.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/core/PosManager.sol",
+    "loc": 341,
+    "opened": true,
+    "functions": 27
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": [
+   "(duplicates of detect candidates; see subagent reply)"
+  ]
+ },
+ {
+  "n": 4,
+  "units": [
+   "MoneyMarketHook",
+   "BaseRebaseHelper",
+   "mUSDUSDYHelper"
+  ],
+  "files": [
+   "contracts/hook/MoneyMarketHook.sol",
+   "contracts/helper/rebase_helper/BaseRebaseHelper.sol",
+   "contracts/helper/rebase_helper/mUSDUSDYHelper.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/hook/MoneyMarketHook.sol",
+    "loc": 273,
+    "opened": true,
+    "functions": 9
+   },
+   {
+    "file": "contracts/helper/rebase_helper/BaseRebaseHelper.sol",
+    "loc": 19,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+    "loc": 33,
+    "opened": true,
+    "functions": 3
+   }
+  ],
+  "excluded": [
+   "(duplicates of detect candidates; see subagent reply)"
+  ]
+ },
+ {
+  "n": 5,
+  "units": [
+   "Config",
+   "RiskManager",
+   "LiqIncentiveCalculator",
+   "UnderACM"
+  ],
+  "files": [
+   "contracts/core/Config.sol",
+   "contracts/risk_manager/RiskManager.sol",
+   "contracts/core/LiqIncentiveCalculator.sol",
+   "contracts/common/UnderACM.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/core/Config.sol",
+    "loc": 149,
+    "opened": true,
+    "functions": 13
+   },
+   {
+    "file": "contracts/risk_manager/RiskManager.sol",
+    "loc": 91,
+    "opened": true,
+    "functions": 8
+   },
+   {
+    "file": "contracts/core/LiqIncentiveCalculator.sol",
+    "loc": 116,
+    "opened": true,
+    "functions": 7
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": [
+   "(duplicates of detect candidates; see subagent reply)"
+  ]
+ },
+ {
+  "n": 6,
+  "units": [
+   "InitOracle",
+   "Api3OracleReader",
+   "UnderACM"
+  ],
+  "files": [
+   "contracts/oracle/InitOracle.sol",
+   "contracts/oracle/Api3OracleReader.sol",
+   "contracts/common/UnderACM.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/oracle/InitOracle.sol",
+    "loc": 120,
+    "opened": true,
+    "functions": 6
+   },
+   {
+    "file": "contracts/oracle/Api3OracleReader.sol",
+    "loc": 92,
+    "opened": true,
+    "functions": 6
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": [
+   "(duplicates of detect candidates; see subagent reply)"
+  ]
+ },
+ {
+  "n": 7,
+  "units": [
+   "AccessControlManager",
+   "UnderACM",
+   "UncheckedIncrement",
+   "TransparentUpgradeableProxyReceiveETH"
+  ],
+  "files": [
+   "contracts/common/AccessControlManager.sol",
+   "contracts/common/UnderACM.sol",
+   "contracts/common/library/UncheckedIncrement.sol",
+   "contracts/common/TransparentUpgradeableProxyReceiveETH.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/common/AccessControlManager.sol",
+    "loc": 16,
+    "opened": true,
+    "functions": 2
+   },
+   {
+    "file": "contracts/common/UnderACM.sol",
+    "loc": 14,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/common/library/UncheckedIncrement.sol",
+    "loc": 10,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/common/TransparentUpgradeableProxyReceiveETH.sol",
+    "loc": 13,
+    "opened": true,
+    "functions": 2
+   }
+  ],
+  "excluded": []
+ }
+]

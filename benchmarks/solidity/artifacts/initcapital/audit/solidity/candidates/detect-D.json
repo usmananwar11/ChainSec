@@ -1,0 +1,396 @@
+[
+  {
+    "id": "DD-1",
+    "chain": "solidity",
+    "status": "candidate",
+    "severity": "High",
+    "category": "access-control",
+    "title": "removeCollateralWLpTo skips tokenId membership check on partial or zero removal, so any position owner can unwrap LP and harvest rewards of other positions' wLp NFTs",
+    "locations": [
+      {
+        "file": "contracts/core/PosManager.sol",
+        "line_start": 249,
+        "line_end": 268,
+        "unit": "PosManager",
+        "function": "removeCollateralWLpTo"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 264,
+        "line_end": 279,
+        "unit": "InitCore",
+        "function": "decollateralizeWLp"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 317,
+        "line_end": 353,
+        "unit": "InitCore",
+        "function": "liquidateWLp"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: Q4 edge-case (param _amt=0 / partial boundary), MODIFIER-01 sibling diff. Confirms and deepens DP1-1. getCollWLpAmt and harvestTo check ids[_wLp].contains(_tokenId), but removeCollateralWLpTo only reaches ids.remove(_tokenId) when newWLpAmt == 0. For _amt < balanceOfLp(_tokenId) (including _amt == 0) the caller-supplied tokenId is never tied to _posId, while PosManager is the ERC721 owner of every collateralized wLp NFT, so _harvest and unwrap (both onlyOwner(id) in the wLp) succeed for a foreign NFT. liquidateWLp reaches the same path with a foreign _tokenId: getCollWLpAmt returns 0 for a non-member, wLpAmtToBurn = 0, and removeCollateralWLpTo(_posId, _wLp, foreignId, 0, liquidator) harvests the victim NFT's rewards into pendingRewards[_posId]. Full removal is blocked by the NOT_CONTAIN check, so the drain is capped at balanceOfLp - 1 per NFT.",
+    "root_cause": "Position-to-token membership is enforced only on the newWLpAmt == 0 branch; the partial path trusts the caller-supplied (_wLp, _tokenId) pair and acts on the NFT-global balance.",
+    "vulnerable_code": "uint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    _require(posCollInfo.ids[_wLp].remove(_tokenId), Errors.NOT_CONTAIN);\n    ...\n}\n_harvest(_posId, _wLp, _tokenId);\nIBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver);",
+    "harm": {
+      "who": "owners of positions with collateralized wLp NFTs",
+      "loses_what": "LP tokens backing the NFT (all but 1 unit) and accrued wLp rewards",
+      "magnitude": "up to balanceOfLp(tokenId) - 1 per NFT"
+    },
+    "exploit_trace": [
+      "1. Victim collateralizes wLp NFT N (balanceOfLp = 1000) in position V.",
+      "2. Attacker owns any position A and calls decollateralizeWLp(A, wLp, N, 999, attacker).",
+      "3. removeCollateralWLpTo: newWLpAmt = 1 != 0, membership check skipped; _harvest credits N's rewards to A; unwrap(N, 999, attacker) runs as PosManager (owner).",
+      "4. ensurePositionHealth(A) checks only A, which is unchanged, and passes."
+    ],
+    "preconditions": [
+      {
+        "text": "a whitelisted wLp NFT is collateralized by another position",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "victim NFT is hollowed out and victim position may be undercollateralized",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=? D=\u2713",
+      "rules_applied": [
+        "R8:\u2717(single-step)",
+        "R10:\u2713(full balance minus 1)",
+        "R11:\u2717(n/a)",
+        "R12:\u2713(any collateralized NFT)",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_amt=0 -> newWLpAmt=balance, no membership check]",
+        "[TRACE:decollateralizeWLp(A,wLp,N,999)->unwrap(N,999,attacker)]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "victim NFT drained"
+      ],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DD-2",
+    "chain": "solidity",
+    "status": "candidate",
+    "severity": "Medium",
+    "category": "dos-liquidation",
+    "title": "getLiqIncentiveMultiplier_e18 divides by zero for health_e18 == 0, so fully underwater positions revert in liquidate and liquidateWLp despite the explicit underwater bypass",
+    "locations": [
+      {
+        "file": "contracts/core/LiqIncentiveCalculator.sol",
+        "line_start": 55,
+        "line_end": 60,
+        "unit": "LiqIncentiveCalculator",
+        "function": "getLiqIncentiveMultiplier_e18"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 293,
+        "line_end": 312,
+        "unit": "InitCore",
+        "function": "liquidate"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 331,
+        "line_end": 351,
+        "unit": "InitCore",
+        "function": "liquidateWLp"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: Q4 edge-case (division by zero, param=0). Confirms DP1-2. getPosHealthCurrent_e18 returns 0 when collateral credit is 0 and borrow credit > 0 (collateral fully seized in a bad-debt liquidation, collFactor 0, or credit floored to 0). InitCore treats health_e18 == 0 as the underwater case (skips _ensurePosHealthAfterLiq) but first calls getLiqIncentiveMultiplier_e18 with health 0, which computes 1e36 / 0 and panics. Mechanical trace: health=0.5e18 -> incentive 1e18; health=1 wei -> 1e36-1e18; health=0 -> Panic 0x12. Impact is limited because such a position has little or no collateral left to seize; the remaining bad debt cannot be repaid through liquidate.",
+    "root_cause": "Calculator assumes _healthFactor_e18 > 0 while caller treats 0 as a valid liquidatable state.",
+    "vulnerable_code": "if (_healthFactor_e18 >= ONE_E18) return ONE_E18;\n...\nuint incentive_e18 = (ONE_E18 * ONE_E18) / _healthFactor_e18 - ONE_E18;",
+    "harm": {
+      "who": "pool lenders",
+      "loses_what": "bad debt of zero-credit positions cannot be cleared and keeps inflating reported assets",
+      "magnitude": "remaining debt of each such position"
+    },
+    "exploit_trace": [
+      "1. A bad-debt liquidation seizes all collateral (min(shares, collAmt)) leaving debt > 0, or collFactor for the only collateral is set to 0.",
+      "2. getPosHealthCurrent_e18 returns 0.",
+      "3. liquidate(posId, ...) -> getLiqIncentiveMultiplier_e18(mode, 0, ...) executes 1e36 / 0 and reverts."
+    ],
+    "preconditions": [
+      {
+        "text": "collateral credit == 0 while debt > 0",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "unliquidatable debt remains",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=\u2717 B=? C=\u2717 D=\u2713",
+      "rules_applied": [
+        "R8:\u2717(n/a)",
+        "R10:\u2713",
+        "R11:\u2717(n/a)",
+        "R12:\u2713",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_healthFactor_e18=0 -> Panic 0x12 at L60]",
+        "[BOUNDARY:_healthFactor_e18=1 -> incentive 1e36-1e18, capped by max multiplier]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "stuck bad debt"
+      ],
+      "who_benefits": "Underwater borrower"
+    }
+  },
+  {
+    "id": "DD-3",
+    "chain": "solidity",
+    "status": "candidate",
+    "severity": "Medium",
+    "category": "rounding-dos",
+    "title": "updatePosDebtShares snapshots lastDebtAmt with the pre-operation debt ratio, so a second debt update on the same position and pool in one timestamp underflows",
+    "locations": [
+      {
+        "file": "contracts/core/PosManager.sol",
+        "line_start": 170,
+        "line_end": 187,
+        "unit": "PosManager",
+        "function": "updatePosDebtShares"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 141,
+        "line_end": 146,
+        "unit": "InitCore",
+        "function": "borrow"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 544,
+        "line_end": 547,
+        "unit": "InitCore",
+        "function": "_repay"
+      },
+      {
+        "file": "contracts/lending_pool/LendingPool.sol",
+        "line_start": 125,
+        "line_end": 145,
+        "unit": "LendingPool",
+        "function": "repay"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "accountant",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: Q2 accountant (trace concrete values through rounding). Confirms DP1-3. Traced: totalDebt=1,000,000, totalDebtShares=900,000, position holds all shares. repay(1 share): updatePosDebtShares sets lastDebtAmt = ceil(899,999*1e6/9e5) = 999,999 using the pre-repay ratio; LendingPool.repay then charges ceil(1e6/9e5)=2, leaving totalDebt 999,998 / shares 899,999. A second update at the same timestamp reads debtAmtCurrent = 999,998, so debtAmtCurrent - lastDebtAmt underflows (checked arithmetic) and the borrow/repay/liquidate reverts. Borrow behaves the same because shares round up after the snapshot. A borrower can front-run a liquidation in the same block with a dust repay or borrow. Small debts of low-decimal tokens keep the blockage for several seconds because per-second interest rounds to 0.",
+    "root_cause": "The interest snapshot uses a ratio that the pool's round-up arithmetic immediately lowers, breaking the documented invariant debtAmtCurrent >= lastDebtAmt.",
+    "vulnerable_code": "extraInfo.totalInterest += (debtAmtCurrent - extraInfo.lastDebtAmt).toUint128();\n...\nextraInfo.lastDebtAmt = newDebtAmt.toUint128();",
+    "harm": {
+      "who": "liquidators and borrowers",
+      "loses_what": "liquidations or same-block repay/borrow on the position revert",
+      "magnitude": "liveness, per block"
+    },
+    "exploit_trace": [
+      "1. Position P has debt in pool X with non-integral totalDebt/totalDebtShares.",
+      "2. Borrower sends a dust repay (or borrow) in block N before the liquidator's tx.",
+      "3. The liquidator's _repay calls updatePosDebtShares with no accrued interest in the same timestamp and underflows."
+    ],
+    "preconditions": [
+      {
+        "text": "two debt updates on same position/pool in one timestamp and non-integral debt ratio",
+        "type": "TIMING"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "position cannot be updated until >= 1 wei of interest accrues",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=\u2717 B=? C=\u2717 D=\u2713",
+      "rules_applied": [
+        "R8:\u2713(cached lastDebtAmt)",
+        "R10:\u2713",
+        "R11:\u2717(n/a)",
+        "R12:\u2713",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:totalDebt=1e6 shares=9e5 repay 1 share -> 999,998 < 999,999]",
+        "[TRACE:repay->repay same ts->Panic 0x11]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "temporary per-block DoS"
+      ],
+      "who_benefits": "Borrower avoiding liquidation"
+    }
+  },
+  {
+    "id": "DD-4",
+    "chain": "solidity",
+    "status": "candidate",
+    "severity": "Low",
+    "category": "oracle",
+    "title": "InitOracle single-source fallback fails for unset sources and a zero price from either source reverts the deviation check with division by zero",
+    "locations": [
+      {
+        "file": "contracts/oracle/InitOracle.sol",
+        "line_start": 41,
+        "line_end": 78,
+        "unit": "InitOracle",
+        "function": "getPrice_e36"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: Q4 edge-case (address(0) source, price=0). Confirms DP1-4 and adds a boundary. (a) An unset source (address(0)) has no code, so the high-level call's extcodesize check reverts in InitOracle before the try, outside the catch; the documented single-source fallback never works for unset or non-contract sources. (b) If both sources return and one price is 0, minPrice_e36 = 0 makes (max * 1e18) / min panic, which is not covered by try/catch, so a valid second source cannot save the read. (c) maxPriceDeviations_e18 defaults to 0, so with both sources valid every read reverts TOO_MUCH_DEVIATION until governance sets it.",
+    "root_cause": "Source failures are only tolerated for reverts inside well-formed callee code, and the deviation math has no zero guard.",
+    "vulnerable_code": "try IBaseOracle(secondarySources[_token]).getPrice_e36(_token) returns (uint secondaryPrice_e36_) {...} catch {}\n...\n(maxPrice_e36 * ONE_E18) / minPrice_e36 <= maxPriceDeviations_e18[_token]",
+    "harm": {
+      "who": "borrowers and liquidators of tokens configured with one source",
+      "loses_what": "price reads revert, blocking borrow, decollateralize and liquidation for those positions",
+      "magnitude": "all positions holding that token"
+    },
+    "exploit_trace": [
+      "1. Governance sets only primarySources[T].",
+      "2. Any getPrice_e36(T) reverts on the secondary try.",
+      "3. getPosHealthCurrent_e18 reverts for positions holding T."
+    ],
+    "preconditions": [
+      {
+        "text": "one source unset, or one source returns 0",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [],
+    "audit_trail": {
+      "step_execution": "Lens: A=\u2717 B=? C=? D=\u2713",
+      "rules_applied": [
+        "R8:\u2717(n/a)",
+        "R10:\u2713",
+        "R11:\u2717(n/a)",
+        "R12:\u2713",
+        "R15:\u2717(n/a)",
+        "R16:\u2713"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:secondarySources[T]=address(0) -> revert",
+        "BOUNDARY:minPrice=0 -> Panic 0x12]"
+      ],
+      "missing_precondition": "governance configures a single source or a feed reports 0",
+      "postconditions_created": [],
+      "who_benefits": "None (liveness)"
+    }
+  },
+  {
+    "id": "DD-5",
+    "chain": "solidity",
+    "status": "candidate",
+    "severity": "Low",
+    "category": "dos-liquidation",
+    "title": "Liquidation reuses _repay and therefore reverts whenever repay is paused for the pool or the mode",
+    "locations": [
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 530,
+        "line_end": 536,
+        "unit": "InitCore",
+        "function": "_repay"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 587,
+        "line_end": 599,
+        "unit": "InitCore",
+        "function": "_liquidateInternal"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "spec-auditor",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: Q3 spec-auditor (paired-operation consistency). _liquidateInternal calls _repay, which requires poolConfig.canRepay && modeStatus.canRepay. A guardian pause of repay for a pool or mode (for example during an incident) therefore also blocks liquidations of every position with debt in that pool or mode, while collateral prices keep moving and interest keeps accruing. Borrowers cannot repay either, so this is a design coupling rather than a bypass, and the harm depends on the pause being used.",
+    "root_cause": "Liquidation shares the user-facing repay status check instead of having its own flag.",
+    "vulnerable_code": "_require(_config.getPoolConfig(_pool).canRepay && _config.getModeStatus(_mode).canRepay, Errors.REPAY_PAUSED);",
+    "harm": {
+      "who": "pool lenders",
+      "loses_what": "bad debt from positions that cannot be liquidated while repay is paused",
+      "magnitude": "depends on price movement during the pause"
+    },
+    "exploit_trace": [
+      "1. Guardian sets canRepay = false for pool X or mode M.",
+      "2. Collateral price falls and positions become unhealthy.",
+      "3. liquidate/liquidateWLp revert with REPAY_PAUSED."
+    ],
+    "preconditions": [
+      {
+        "text": "repay paused for the debt pool or mode",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "unhealthy positions accumulate bad debt",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=\u2717 D=\u2713",
+      "rules_applied": [
+        "R8:\u2717(n/a)",
+        "R10:\u2713",
+        "R11:\u2717(n/a)",
+        "R12:\u2717(n/a)",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[TRACE:liquidate->_liquidateInternal->_repay->REPAY_PAUSED]"
+      ],
+      "missing_precondition": "requires guardian pause",
+      "postconditions_created": [
+        "bad debt"
+      ],
+      "who_benefits": "Underwater borrowers"
+    }
+  }
+]

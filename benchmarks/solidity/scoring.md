@@ -37,6 +37,23 @@ The regression test in `tests/test_score_benchmark.py` checks all five entries,
 their counts, and the aggregate score. This finalizes the baseline; full ChainSec
 acceptance still requires the remaining contest runs and a comparison across all five.
 
+### ChainSec full-run results — 2026-10-17
+
+| Target | Official | Exact | Partial | Weighted TP | FP |
+|---|---:|---:|---:|---:|---:|
+| PoolTogether | 9 | 1 | 0 | 1 | 0 |
+| InitCapital | 15 | 3 | 0 | 3 | 0 |
+| GoodEntry | 14 | 4 | 0 | 4 | 4 |
+| Arcade | 8 | 0 | 0 | 0 | 0 |
+| Frankencoin | 21 | 4 | 1 | 4.5 | 2 |
+| **Total** | **67** | **12** | **1** | **12.5** | **6** |
+
+Recall 18.66% vs baseline 17.16%, but 6 false positives vs 0: full acceptance **FAILS**.
+Grades were produced by delegated agent review of each final findings file against the
+official report and are borderline in places (e.g. Frankencoin M-12 PARTIAL, GoodEntry M-07,
+InitCapital M-07); see each result's `reason` fields. Isolation of the audits from official
+answers was not independently certified.
+
 ## Running a target
 1. `git clone <repo> /tmp/bench/<id>` at the contest commit (registry `repo`).
 2. Open a fresh agent session in that folder; run `chainsec-audit` (no flags).

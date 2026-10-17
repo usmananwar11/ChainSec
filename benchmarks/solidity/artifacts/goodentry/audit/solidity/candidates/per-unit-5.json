@@ -1,0 +1,15 @@
+[{
+"id":"PC5-1","chain":"solidity",
+"title":"RangeManager.removeFromStep reverts for the whole step if either the range or the ticker reserve is not listed in the lending pool",
+"severity":"Low","category":"dos","status":"candidate",
+"locations":[{"file":"contracts/RangeManager.sol","line_start":107,"line_end":134,"unit":"RangeManager","function":"removeFromStep"}],
+"discovery":{"phase":"per-unit","lens":null,"mindset":"edge-case","consensus":null,"unit":"RangeManager"},
+"description":"Discovery: per-unit step 2 (conditional branch audit). removeFromStep unconditionally calls ERC20(LENDING_POOL.getReserveData(tokenisedRanges[step]).aTokenAddress).balanceOf(msg.sender) and the same for tokenisedTicker[step]. generateRange creates both tokens, but listing them as reserves is a separate lending-pool admin action. For an unlisted token aTokenAddress is address(0), so the balanceOf call to a non-contract reverts. removeAssetsFromStep and both transferAssetsInto*Step functions, which all go through removeFromStep, then revert for that step even if the user only holds the other (listed) token.",
+"root_cause":"The ticker/range legs are not guarded against a zero aTokenAddress, and removeFromStep handles both legs in one call.",
+"vulnerable_code":"trAmt = ERC20(LENDING_POOL.getReserveData(address(tokenisedTicker[step])).aTokenAddress).balanceOf(msg.sender);",
+"harm":{"who":"users holding aTokens of only the listed range or ticker of a step","loses_what":"ability to exit or rebalance through RangeManager until the other reserve is listed","magnitude":"temporary DoS; funds recoverable by withdrawing directly from the lending pool"},
+"exploit_trace":["1. Owner calls generateRange; only the Range token is listed as a ROE reserve.","2. A user deposits the Range token and later calls removeAssetsFromStep(step).","3. The ticker's getReserveData returns aTokenAddress 0 and balanceOf reverts, so the whole call reverts."],
+"preconditions":[{"text":"one of the step's two tokens is not a lending pool reserve","type":"STATE"}],
+"postconditions":[{"text":"RangeManager entry points for that step are unusable","type":"STATE"}],
+"audit_trail":{"step_execution":"Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✗(N/A) 6=✗(no parent)","rules_applied":["R8:✗","R10:✓(zero aTokenAddress)"],"depth_evidence":["[BOUNDARY:aTokenAddress=0 -> balanceOf reverts]"],"missing_precondition":"","postconditions_created":["step bricked until both reserves listed"],"who_benefits":"nobody"}
+}]

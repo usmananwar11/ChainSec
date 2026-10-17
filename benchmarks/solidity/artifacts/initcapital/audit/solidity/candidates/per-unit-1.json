@@ -1,0 +1,81 @@
+[
+  {
+    "id": "PC1-1",
+    "chain": "solidity",
+    "title": "InitCore.callback is permissionless and forwards an arbitrary _value from core's own ETH balance, so ETH left in core by unconsumed multicall msg.value can be taken by anyone",
+    "severity": "Low",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/InitCore.sol", "line_start": 505, "line_end": 514, "unit": "InitCore", "function": "callback"},
+      {"file": "contracts/core/InitCore.sol", "line_start": 389, "line_end": 403, "unit": "InitCore", "function": "multicall"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "accountant", "consensus": null, "unit": "InitCore"},
+    "description": "Discovery: per-unit step 1 (state completeness) and step 5 (value trace) on payable multicall and callback. multicall is payable and delegatecalls the core itself, but no function except callback consumes msg.value, and nothing refunds the remainder. callback has no auth, no nonReentrant, and takes the ETH amount from the caller-supplied _value, not from msg.value. Any ETH that stays in core (unused msg.value on multicall, a payable callback with msg.value > _value, forced sends) can therefore be sent by a later caller to an attacker-controlled ICallbackReceiver via callback(attacker, core.balance, data). The ETH is not owed to any protocol accounting, so the harm is limited to user ETH that was stranded in core.",
+    "root_cause": "callback spends core's whole ETH balance on caller-chosen _value instead of bounding it by msg.value, and payable entry points never refund leftover ETH.",
+    "vulnerable_code": "return ICallbackReceiver(_to).coreCallback{value: _value}(msg.sender, _data);",
+    "harm": {
+      "who": "users who send msg.value to core.multicall/callback and do not consume all of it",
+      "loses_what": "the unconsumed ETH",
+      "magnitude": "the ETH balance held by core"
+    },
+    "exploit_trace": [
+      "1. A user calls multicall{value: 1 ether} with a callback that forwards only 0.4 ether, or sends excess msg.value; 0.6 ether stays in core.",
+      "2. Attacker deploys a receiver whose coreCallback accepts ETH and calls core.callback(receiver, address(core).balance, '').",
+      "3. Core sends its whole ETH balance to the receiver."
+    ],
+    "preconditions": [
+      {"text": "core holds a non-zero ETH balance", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "stranded ETH is moved to the attacker", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✗(N/A) 3=✓ 4=✗(N/A) 5=✓ 6=✗(N/A)",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(_value = core.balance)", "R11:✓(forced ETH considered)", "R12:✓(two sources of stray ETH)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:_value = address(core).balance -> all ETH forwarded]", "[TRACE:multicall{value:v} -> callback(_value<v) -> remainder stays -> second callback drains]"],
+      "missing_precondition": "requires ETH to be left in core",
+      "postconditions_created": ["stranded ETH moved to attacker"],
+      "who_benefits": "Any caller"
+    }
+  },
+  {
+    "id": "PC1-2",
+    "chain": "solidity",
+    "title": "_repay emits Repay with the requested _shares instead of the clamped sharesToRepay actually repaid",
+    "severity": "Low",
+    "category": "event-accuracy",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/InitCore.sol", "line_start": 537, "line_end": 550, "unit": "InitCore", "function": "_repay"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "InitCore"},
+    "description": "Discovery: per-unit step 3 (boundary values: _shares > position debt shares) and step 4 (pairing audit between the clamp and the event). _repay clamps sharesToRepay to the position's debt shares, repays and updates debt using sharesToRepay, but emits _shares. With _shares = type(uint).max (full repay or liquidation) the event reports a share amount that was never repaid, so off-chain indexers and accounting that read Repay (including liquidation flows that go through _repay) record wrong share values.",
+    "root_cause": "The event uses the unclamped input instead of the value used for state changes.",
+    "vulnerable_code": "uint sharesToRepay = _shares < positionDebtShares ? _shares : positionDebtShares;\n...\nemit Repay(_pool, _posId, msg.sender, _shares, amt);",
+    "harm": {
+      "who": "off-chain indexers, front-ends and integrators reading Repay events",
+      "loses_what": "correct repaid-share data",
+      "magnitude": "informational, no on-chain fund loss"
+    },
+    "exploit_trace": [
+      "1. Position holds 100 debt shares in pool P.",
+      "2. A caller calls repay(P, type(uint).max, posId).",
+      "3. State reduces by 100 shares, but Repay is emitted with shares = 2^256-1."
+    ],
+    "preconditions": [
+      {"text": "_shares exceeds the position's debt shares", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "event log disagrees with state change", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✓ 5=✗(N/A) 6=✗(N/A)",
+      "rules_applied": ["R8:✗", "R10:✓(_shares = max)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:_shares=type(uint).max -> event shares=max, state shares=positionDebtShares]"],
+      "missing_precondition": "",
+      "postconditions_created": ["event/state mismatch"],
+      "who_benefits": "None"
+    }
+  }
+]

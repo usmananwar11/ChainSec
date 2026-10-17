@@ -1,0 +1,231 @@
+[
+  {
+    "id": "PC1-1",
+    "chain": "solidity",
+    "title": "openPosition accepts _challengeSeconds = 0 (no bounds), so every challenge on the position is unavertable: bid() reverts TooLate in the same block and end() is callable immediately",
+    "severity": "Low",
+    "category": "input-validation",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/MintingHub.sol",
+        "line_start": 88,
+        "line_end": 113,
+        "unit": "MintingHub",
+        "function": "openPosition"
+      },
+      {
+        "file": "contracts/MintingHub.sol",
+        "line_start": 140,
+        "line_end": 148,
+        "unit": "MintingHub",
+        "function": "launchChallenge"
+      },
+      {
+        "file": "contracts/MintingHub.sol",
+        "line_start": 199,
+        "line_end": 201,
+        "unit": "MintingHub",
+        "function": "bid"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "MintingHub"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values on every parameter). openPosition forwards _challengeSeconds to the factory/Position without any lower or upper bound (the Position constructor only checks initPeriod >= 3 days). With _challengeSeconds = 0, launchChallenge sets end = block.timestamp, so bid() (which reverts when block.timestamp >= end) can never be called and end() (requires block.timestamp >= end) can be executed in the same transaction as the launch. No third party can ever avert a challenge on such a position, and the challenger or end() caller collects the position collateral and the 2% reward (covered from the reserve via notifyLoss on any shortfall). Conversely a very large value makes block.timestamp + challengePeriod overflow or lock the challenger's collateral for a very long time. The only mitigation is the governance veto during the init period, which requires someone to notice the parameter.",
+    "root_cause": "The hub does not validate the risk parameters it passes to the Position (challenge period, expiration, ppm values); the auction mechanism's safety (time for bidders to react) depends entirely on a caller-chosen value.",
+    "recommendation": "Enforce a sane minimum (and maximum) challenge period in openPosition or in the Position constructor.",
+    "vulnerable_code": "challenges.push(Challenge(msg.sender, position, _collateralAmount, block.timestamp + position.challengePeriod(), address(0x0), 0));\n---\nif (block.timestamp >= challenge.end) revert TooLate();",
+    "harm": {
+      "who": "FPS holders / reserve, and honest minters if a position with such parameters is not vetoed",
+      "loses_what": "reserve ZCHF used to cover debt and challenger reward on a challenge nobody can avert",
+      "magnitude": "position debt plus 2% of price*size per unavertable challenge"
+    },
+    "exploit_trace": [
+      "1. Attacker calls openPosition(..., _challengeSeconds = 0, ...) and the veto window passes unnoticed.",
+      "2. Attacker (owner) mints against the position, then a second address calls launchChallenge(pos, size): end = block.timestamp.",
+      "3. In the same block bid() reverts with TooLate for everyone; end(n) is called immediately.",
+      "4. Result: collateral goes to the attacker, debt is repaid out of the reserve/minted ZCHF via notifyLoss, and the challenger collects the reward."
+    ],
+    "preconditions": [
+      {
+        "text": "governance does not veto a position with a zero challenge period during the init period",
+        "type": "ACCESS"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "a position whose challenges can never be averted exists",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2713 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(assessed at _challengeSeconds=0)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_challengeSeconds=0 -> end=now -> bid() reverts TooLate, end() callable same block]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "a position whose challenges can never be averted exists"
+      ],
+      "who_benefits": "Position owner colluding with challenger"
+    }
+  },
+  {
+    "id": "PC1-2",
+    "chain": "solidity",
+    "title": "Averting bid pays the full user-supplied _bidAmountZCHF to the challenger with no cap at price*size",
+    "severity": "Low",
+    "category": "logic-error",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/MintingHub.sol",
+        "line_start": 207,
+        "line_end": 213,
+        "unit": "MintingHub",
+        "function": "bid"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "accountant",
+      "consensus": null,
+      "unit": "MintingHub"
+    },
+    "description": "Discovery: per-unit step 2 (conditional branch audit) and step 5 (payment trace). In the successful-challenge path end() caps the effective bid and refunds any excess to the bidder. In the averting branch of bid() there is no equivalent cap: tryAvertChallenge only checks bid*1e18 >= price*size, and the hub then pulls exactly _bidAmountZCHF from the caller and forwards all of it to the challenger. A bidder who passes a larger amount than price*size (for example a stale or padded amount, or a bid computed for a larger split size that was front-run) pays the surplus to the challenger for nothing.",
+    "root_cause": "The averting branch settles at the caller-supplied bid instead of at the position's required amount price*size/1e18.",
+    "recommendation": "Compute the required amount in the averting branch (or have tryAvertChallenge return it) and transfer only that amount.",
+    "vulnerable_code": "if (challenge.position.tryAvertChallenge(challenge.size, _bidAmountZCHF)) {\n    zchf.transferFrom(msg.sender, challenge.challenger, _bidAmountZCHF);\n    challenge.position.collateral().transfer(msg.sender, challenge.size);",
+    "harm": {
+      "who": "bidders averting a challenge",
+      "loses_what": "any ZCHF they bid above price*size",
+      "magnitude": "bid - price*size per averting bid; limited to caller-chosen input"
+    },
+    "exploit_trace": [
+      "1. Bidder calls bid(n, 2 * price*size/1e18, size) (padded amount for safety).",
+      "2. tryAvertChallenge returns true because the bid exceeds the threshold.",
+      "3. The hub transfers the entire 2x amount to the challenger and the bidder receives only size collateral."
+    ],
+    "preconditions": [
+      {
+        "text": "caller supplies a bid above price*size",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "the challenger receives more ZCHF than the position price requires",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2713 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(assessed at bid = 2x threshold)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[VARIATION:bid=price*size -> pays exact; bid=2*price*size -> pays 2x, collateral unchanged]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "the challenger receives more ZCHF than the position price requires"
+      ],
+      "who_benefits": "Challenger"
+    }
+  },
+  {
+    "id": "PC3-1",
+    "chain": "solidity",
+    "title": "Any nonzero explicit allowance overrides the minter infinite-allowance shortcut, so transferFrom by a minter/position reverts when the leftover allowance is smaller than the amount",
+    "severity": "Low",
+    "category": "logic-error",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/Frankencoin.sol",
+        "line_start": 102,
+        "line_end": 111,
+        "unit": "Frankencoin",
+        "function": "allowanceInternal"
+      },
+      {
+        "file": "contracts/ERC20.sol",
+        "line_start": 125,
+        "line_end": 135,
+        "unit": "ERC20",
+        "function": "transferFrom"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "Frankencoin"
+    },
+    "description": "Discovery: per-unit step 2 (conditional branch audit) and step 3 (boundary values) on allowanceInternal. The override returns the explicit allowance whenever it is > 0 and only returns INFINITY for minters/positions when the explicit allowance is exactly 0. A user holding a small leftover allowance for the MintingHub, a position or the bridge (e.g. from a prior exact-amount approve or permit) therefore gets ERC20InsufficientAllowance in transferFrom although the design intends minters to need no allowance. The user must first reset the allowance to 0 (approve(spender,0)). The state is also reachable via permit signed for a small value.",
+    "root_cause": "The branch order treats any explicit allowance > 0 as authoritative instead of using max(explicit, INFINITY for minters).",
+    "vulnerable_code": "uint256 explicit = super.allowanceInternal(owner, spender);\nif (explicit > 0){\n   return explicit; // don't waste gas checking minter\n} else if (isMinter(spender) || isMinter(isPosition(spender))){\n   return INFINITY;\n}",
+    "harm": {
+      "who": "users interacting with minters (hub bids, bridge, positions) who hold a small stale allowance",
+      "loses_what": "availability: transactions revert until allowance is reset to 0",
+      "magnitude": "temporary denial of the intended no-approval flow"
+    },
+    "exploit_trace": [
+      "1. User approves the MintingHub for 1 wei (or a smaller amount than later needed).",
+      "2. User later calls bid() needing zchf.transferFrom(user, hub, X) with X > 1.",
+      "3. allowanceInternal returns 1 (explicit > 0), transferFrom reverts ERC20InsufficientAllowance even though the hub is a minter."
+    ],
+    "preconditions": [
+      {
+        "text": "user has a nonzero explicit allowance smaller than the amount for a minter or position spender",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "call reverts until allowance reset to 0",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R10:\u2713(explicit allowance = 1 wei)",
+        "R8:\u2717",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:explicit=1,amount=2 -> allowance 1 < 2 -> revert]",
+        "[BOUNDARY:explicit=0 -> INFINITY]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "call reverts until allowance reset to 0"
+      ],
+      "who_benefits": "nobody"
+    }
+  }
+]

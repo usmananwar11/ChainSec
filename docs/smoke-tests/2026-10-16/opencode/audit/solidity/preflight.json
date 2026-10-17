@@ -1,0 +1,1 @@
+{"chain":"solidity","mode":"degraded","tools":{"python3":"OK Python 3.14.6","forge":"OK Version: 1.7.1","slither":"MISSING"},"scope_files":2,"quick":true,"warnings":[],"incomplete_phases":[]}

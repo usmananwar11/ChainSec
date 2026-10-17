@@ -1,0 +1,263 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "size": "MEDIUM",
+  "files": [
+    {
+      "file": "contracts/core/InitCore.sol",
+      "score": 174.0,
+      "breakdown": {
+        "external_calls": 15,
+        "state_writers": 96,
+        "payable": 8,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 30.0,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "score": 107.45,
+      "breakdown": {
+        "external_calls": 10,
+        "state_writers": 56,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 3,
+        "loc": 13.45,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/core/PosManager.sol",
+      "score": 100.05,
+      "breakdown": {
+        "external_calls": 10,
+        "state_writers": 48,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 17.05,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "score": 84.65,
+      "breakdown": {
+        "external_calls": 30,
+        "state_writers": 12,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 13.65,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/core/Config.sol",
+      "score": 50.45,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 28,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 7.45,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "score": 40.8,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 20,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 5.8,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "score": 39.65,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 8,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.65,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/oracle/InitOracle.sol",
+      "score": 37.0,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 16,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 6.0,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "score": 35.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 16,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/common/Multicall.sol",
+      "score": 35.55,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 4,
+        "payable": 4,
+        "assembly_blocks": 6,
+        "unchecked_blocks": 0,
+        "loc": 1.55,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "score": 35.55,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 16,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.55,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/common/TransparentUpgradeableProxyReceiveETH.sol",
+      "score": 27.65,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 8,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.65,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/common/library/UncheckedIncrement.sol",
+      "score": 18.5,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 3,
+        "loc": 0.5,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/lending_pool/DoubleSlopeIRM.sol",
+      "score": 17.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/helper/rebase_helper/BaseRebaseHelper.sol",
+      "score": 15.95,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.95,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/common/AccessControlManager.sol",
+      "score": 15.8,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.8,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "contracts/common/UnderACM.sol",
+      "score": 15.7,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.7,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD",
+      "promoted": true
+    }
+  ]
+}

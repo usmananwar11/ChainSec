@@ -1,0 +1,35 @@
+[
+{
+  "id": "PC4-1",
+  "chain": "solidity",
+  "title": "V3Proxy ETH-out paths ignore the result of the final ETH send, so a failed send leaves the user's proceeds stuck in the proxy",
+  "severity": "Low",
+  "category": "unchecked-return",
+  "status": "candidate",
+  "locations": [
+    {"file": "contracts/helper/V3Proxy.sol", "line_start": 174, "line_end": 174, "unit": "V3Proxy", "function": "swapTokensForExactETH"},
+    {"file": "contracts/helper/V3Proxy.sol", "line_start": 192, "line_end": 192, "unit": "V3Proxy", "function": "swapExactTokensForETH"},
+    {"file": "contracts/helper/V3Proxy.sol", "line_start": 156, "line_end": 156, "unit": "V3Proxy", "function": "swapETHForExactTokens"}
+  ],
+  "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "V3Proxy"},
+  "description": "Discovery: per-unit step 2 (conditional branch audit) and step 5 (asset trace). swapTokensForExactETH, swapExactTokensForETH and swapETHForExactTokens pull the user's input first and then pay out with a low-level call whose success flag is discarded. If msg.sender cannot receive ETH (a contract without a payable receive, or one that reverts), the call fails silently, the transaction succeeds, the Swap event is emitted and the ETH stays in the proxy. emergencyWithdraw only moves ERC20 balances and there is no ETH rescue, so the ETH is unrecoverable. Related: the three ETH-out token functions are marked payable, so ETH sent with them is also never refunded.",
+  "root_cause": "The success flag of msg.sender.call{value: ...}(\"\") is not checked, and the proxy has no ETH rescue path.",
+  "vulnerable_code": "payable(msg.sender).call{value: amounts[1]}(\"\");\nemit Swap(msg.sender, path[0], path[1], amounts[0], amounts[1]);",
+  "harm": {"who": "contract callers (for example integrators or OPM-like wrappers) that cannot accept ETH", "loses_what": "the full ETH output of the swap, or the unspent ETH refund", "magnitude": "up to the swap output or refund amount per call"},
+  "exploit_trace": [
+    "1. A contract without a payable receive calls swapExactTokensForETH(amountIn, ...).",
+    "2. The router returns WETH to the proxy, the proxy unwraps it, and the call to msg.sender fails with the result ignored.",
+    "3. Result: the transaction succeeds, the user's tokens are spent, and the ETH stays in the proxy with no function able to return it."
+  ],
+  "preconditions": [{"text": "the caller is a contract that rejects plain ETH transfers", "type": "ACCESS"}],
+  "postconditions": [{"text": "ETH is locked in V3Proxy", "type": "BALANCE"}],
+  "audit_trail": {
+    "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A: no encode/decode pair) 5=✓ 6=✗(N/A: no parent in scope)",
+    "rules_applied": ["R8:✗(no cached state)", "R10:✓(assessed at amountOut = 0 and at reverting receiver)", "R11:✓(WETH unwrap and ETH payout)", "R12:✗(single path)", "R15:✗(no flash-loan-accessible state)", "R16:✗(no oracle dependency)"],
+    "depth_evidence": ["[TRACE:swapExactTokensForETH→weth.withdraw→call to msg.sender fails→ETH remains in proxy]", "[BOUNDARY:receiver without payable receive → silent loss]"],
+    "missing_precondition": "",
+    "postconditions_created": ["ETH is locked in V3Proxy"],
+    "who_benefits": "nobody; funds are stuck"
+  }
+}
+]

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "PC2-1",
+    "chain": "solidity",
+    "title": "GeVault.withdraw pays the whole oracle-valued amount in one chosen token with no swap, so a holder of more than the vault's balance of that token cannot exit and the last holder can never fully withdraw",
+    "severity": "Medium",
+    "category": "liveness / withdrawal-in-kind",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/GeVault.sol", "line_start": 214, "line_end": 241, "unit": "GeVault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "GeVault"},
+    "description": "Discovery: per-unit step 3 (boundary values: liquidity = full balance) and step 5 (fee and reward trace). withdraw() computes amount = share of TVL (valueX8) converted to a single caller-chosen token at the oracle price, then calls removeFromAllTicks() and transfers fee and amount - fee of that token. Ticks are single-sided and deployAssets splits holdings across both tokens (ticks[tick0Index..+1] hold token0, ticks[tick1Index..+1] hold token1), so after removal the vault holds both token0 and token1. Nothing converts one into the other. If the share value in the chosen token exceeds the vault's balance of it, safeTransfer reverts. A holder whose share exceeds the vault's holding of either token (any holder near 100% when both sides are non-empty, including the last depositor) cannot withdraw by calling withdraw(0, token) for either token. Only a partial withdrawal bounded by the vault's balance of one token succeeds, after which deployAssets redeploys the remainder 50/50 into both sides again, so each exit round is bounded and pays the treasury fee again.",
+    "root_cause": "The payout token is chosen by the caller and valued at oracle price, but the vault never rebalances its token mix to the requested token and has no proportional (both-token) payout path.",
+    "vulnerable_code": "amount = valueX8 * 10**ERC20(token).decimals() / oracle.getAssetPrice(token);\nuint fee = amount * getAdjustedBaseFee(token == address(token1)) / 1e4;\n_burn(msg.sender, liquidity);\nremoveFromAllTicks();\nERC20(token).safeTransfer(treasury, fee);\n...\nERC20(token).safeTransfer(msg.sender, bal);",
+    "harm": {
+      "who": "large holders and the last remaining depositor of a GeVault",
+      "loses_what": "ability to exit in a single transaction; repeated partial exits pay the withdrawal fee on each round and are exposed to price and fee drift between rounds",
+      "magnitude": "full exit blocked whenever the vault holds both tokens; extra fee of about 0.1-0.3 percent per partial round"
+    },
+    "exploit_trace": [
+      "1. Vault holds TVL V as token0 (about V/2 in value) and token1 (about V/2), deployed in ticks on each side of the price; a single user owns 100 percent of the shares.",
+      "2. The user calls withdraw(0, token0): amount = V worth of token0; removeFromAllTicks() returns only about V/2 worth of token0.",
+      "3. safeTransfer(treasury, fee) or safeTransfer(msg.sender, bal) reverts on insufficient balance; the same happens for token1.",
+      "4. The only way out is multiple partial withdrawals, each capped by the vault's balance of one token, each paying the fee again."
+    ],
+    "preconditions": [
+      {"text": "vault holds both token0 and token1 (the normal deployed state)", "type": "STATE"},
+      {"text": "the withdrawer's share value in the chosen token exceeds the vault's balance of that token", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "withdrawal reverts or is forced into multiple fee-paying partial rounds", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A: no encode/decode pair) 5=✓ 6=✗(N/A: no parent in cluster)",
+      "rules_applied": ["R8:✗(no cached parameter)", "R10:✓(assessed at a 100 percent share with a two-sided vault)", "R11:✗(no unsolicited transfers)", "R12:✗(single enabler: no conversion)", "R15:✗(no flash-loan-accessible state)", "R16:✓(payout sized by oracle, funds held at pool composition)"],
+      "depth_evidence": ["[BOUNDARY:liquidity=balanceOf(msg.sender)=totalSupply -> amount = full TVL in one token > vault balance of that token -> revert]", "[TRACE:withdraw->getTVL->oracle conversion->removeFromAllTicks->safeTransfer(token) with both tokens held]"],
+      "missing_precondition": "",
+      "postconditions_created": ["withdrawal reverts or is forced into multiple fee-paying partial rounds"],
+      "who_benefits": "Treasury (repeated fees); no attacker"
+    }
+  }
+]

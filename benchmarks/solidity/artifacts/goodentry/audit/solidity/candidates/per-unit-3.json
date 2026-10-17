@@ -1,0 +1,32 @@
+[
+{
+ "id": "PC3-1",
+ "chain": "solidity",
+ "title": "TokenisableRange.deposit routes the depositor's whole one-sided/off-ratio token amount into the shared fee pool when the position holds none (or little) of that token",
+ "severity": "Low",
+ "category": "rounding-boundary",
+ "status": "candidate",
+ "locations": [{"file": "contracts/TokenisableRange.sol", "line_start": 237, "line_end": 246, "unit": "TokenisableRange", "function": "deposit"}],
+ "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "TokenisableRange"},
+ "description": "Discovery: per-unit step 3 (boundary values) and step 1 (state completeness). The fee-pool split computes newFee0 = n0*fee0/(token0Amount+fee0) on the caller's full n0 (and likewise for token1), before Uniswap decides how much of n0 can actually be added. When the position is out of range on the side where token0Amount == 0 and fee0 > 0, newFee0 = n0 and the entire n0 is moved into fee0 (n0 becomes 0). Uniswap would have refunded that token (added0 = 0), but here it is donated pro rata to all LP holders and the depositor receives LP only for the other side. In-range, the same formula charges the fee share on the portion of n0 that will later be refunded, so off-ratio depositors overpay the fee pool by about excess*fee0/(token0Amount+fee0). This is a different root cause from the spot-price manipulation already recorded at TokenisableRange.sol:237.",
+ "root_cause": "The fee-pool share is taken from the requested n0/n1 rather than from the amounts Uniswap will actually add, and token0Amount == 0 gives a 100% rate.",
+ "vulnerable_code": "if (token0Amount + fee0 > 0) newFee0 = n0 * fee0 / (token0Amount + fee0);\nif (token1Amount + fee1 > 0) newFee1 = n1 * fee1 / (token1Amount + fee1);\nfee0 += newFee0;\nfee1 += newFee1;\nn0   -= newFee0;\nn1   -= newFee1;",
+ "harm": {"who": "depositors passing both tokens into a TR whose current price is outside its range", "loses_what": "the token that cannot be added, which should have been refunded, is given to existing LP holders", "magnitude": "up to the full n0 (or n1) of the deposit when the position holds none of that token and fee > 0; otherwise a small fraction of the unused excess"},
+ "exploit_trace": [
+  "1. TR has fee0 > 0 pending and spot price lies beyond the range so getAmountsForLiquidity returns token0Amount = 0.",
+  "2. A user calls deposit(n0, n1) with both n0 > 0 and n1 > 0 (UI/aggregator sends both tokens).",
+  "3. newFee0 = n0*fee0/(0+fee0) = n0, so fee0 += n0 and n0 = 0; only n1 is added to Uniswap.",
+  "4. The user receives LP only for the n1 liquidity; n0 now belongs pro rata to all LP holders."
+ ],
+ "preconditions": [{"text": "position out of range on one side with fee > 0 on that token, and the caller supplies both tokens", "type": "STATE"}],
+ "postconditions": [{"text": "fee0 or fee1 inflated by the depositor's unused tokens", "type": "BALANCE"}],
+ "audit_trail": {
+  "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✓ 6=✗(no parent)",
+  "rules_applied": ["R8:✓(fee0/fee1 cached across deposits)", "R10:✓(token0Amount=0 boundary)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+  "depth_evidence": ["[BOUNDARY:token0Amount=0,fee0>0 -> newFee0 = n0 (100%)]", "[VARIATION:in range, n0 excess 10% -> fee pool taken on excess]"],
+  "missing_precondition": "",
+  "postconditions_created": ["fee0 or fee1 inflated by the depositor's unused tokens"],
+  "who_benefits": "Existing LP holders"
+ }
+}
+]

@@ -1,0 +1,1622 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "root": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/frankencoin",
+  "units": [
+    {
+      "name": "ERC20",
+      "kind": "contract",
+      "file": "contracts/ERC20.sol",
+      "line": 41,
+      "loc": 202,
+      "parents": [
+        "IERC20"
+      ]
+    },
+    {
+      "name": "ERC20PermitLight",
+      "kind": "contract",
+      "file": "contracts/ERC20PermitLight.sol",
+      "line": 9,
+      "loc": 65,
+      "parents": [
+        "ERC20"
+      ]
+    },
+    {
+      "name": "Equity",
+      "kind": "contract",
+      "file": "contracts/Equity.sol",
+      "line": 20,
+      "loc": 299,
+      "parents": [
+        "ERC20PermitLight",
+        "MathUtil",
+        "IReserve"
+      ]
+    },
+    {
+      "name": "Frankencoin",
+      "kind": "contract",
+      "file": "contracts/Frankencoin.sol",
+      "line": 20,
+      "loc": 285,
+      "parents": [
+        "ERC20PermitLight",
+        "IFrankencoin"
+      ]
+    },
+    {
+      "name": "MathUtil",
+      "kind": "contract",
+      "file": "contracts/MathUtil.sol",
+      "line": 8,
+      "loc": 36,
+      "parents": []
+    },
+    {
+      "name": "MintingHub",
+      "kind": "contract",
+      "file": "contracts/MintingHub.sol",
+      "line": 15,
+      "loc": 283,
+      "parents": []
+    },
+    {
+      "name": "IPositionFactory",
+      "kind": "interface",
+      "file": "contracts/MintingHub.sol",
+      "line": 299,
+      "loc": 17,
+      "parents": []
+    },
+    {
+      "name": "Ownable",
+      "kind": "contract",
+      "file": "contracts/Ownable.sol",
+      "line": 19,
+      "loc": 35,
+      "parents": []
+    },
+    {
+      "name": "Position",
+      "kind": "contract",
+      "file": "contracts/Position.sol",
+      "line": 14,
+      "loc": 379,
+      "parents": [
+        "Ownable",
+        "IPosition",
+        "MathUtil"
+      ]
+    },
+    {
+      "name": "PositionFactory",
+      "kind": "contract",
+      "file": "contracts/PositionFactory.sol",
+      "line": 7,
+      "loc": 42,
+      "parents": []
+    },
+    {
+      "name": "StablecoinBridge",
+      "kind": "contract",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 11,
+      "loc": 76,
+      "parents": []
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "ERC20",
+      "name": "totalSupply",
+      "file": "contracts/ERC20.sol",
+      "line": 66,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "balanceOf",
+      "file": "contracts/ERC20.sol",
+      "line": 73,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "transfer",
+      "file": "contracts/ERC20.sol",
+      "line": 85,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "allowance",
+      "file": "contracts/ERC20.sol",
+      "line": 93,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "approve",
+      "file": "contracts/ERC20.sol",
+      "line": 108,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "transferFrom",
+      "file": "contracts/ERC20.sol",
+      "line": 125,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ERC20",
+      "name": "transferAndCall",
+      "file": "contracts/ERC20.sol",
+      "line": 162,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ERC20PermitLight",
+      "name": "permit",
+      "file": "contracts/ERC20PermitLight.sol",
+      "line": 21,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "ERC20PermitLight",
+      "name": "DOMAIN_SEPARATOR",
+      "file": "contracts/ERC20PermitLight.sol",
+      "line": 61,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "name",
+      "file": "contracts/Equity.sol",
+      "line": 97,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "symbol",
+      "file": "contracts/Equity.sol",
+      "line": 101,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "price",
+      "file": "contracts/Equity.sol",
+      "line": 108,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "canRedeem",
+      "file": "contracts/Equity.sol",
+      "line": 127,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "canRedeem",
+      "file": "contracts/Equity.sol",
+      "line": 135,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "votes",
+      "file": "contracts/Equity.sol",
+      "line": 179,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "totalVotes",
+      "file": "contracts/Equity.sol",
+      "line": 186,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "votes",
+      "file": "contracts/Equity.sol",
+      "line": 190,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "checkQualified",
+      "file": "contracts/Equity.sol",
+      "line": 209,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "delegateVoteTo",
+      "file": "contracts/Equity.sol",
+      "line": 220,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "onTokenTransfer",
+      "file": "contracts/Equity.sol",
+      "line": 241,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "calculateShares",
+      "file": "contracts/Equity.sol",
+      "line": 262,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "redeem",
+      "file": "contracts/Equity.sol",
+      "line": 275,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "calculateProceeds",
+      "file": "contracts/Equity.sol",
+      "line": 290,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Equity",
+      "name": "restructureCapTable",
+      "file": "contracts/Equity.sol",
+      "line": 309,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "name",
+      "file": "contracts/Frankencoin.sol",
+      "line": 64,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "symbol",
+      "file": "contracts/Frankencoin.sol",
+      "line": 68,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "suggestMinter",
+      "file": "contracts/Frankencoin.sol",
+      "line": 83,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "minterReserve",
+      "file": "contracts/Frankencoin.sol",
+      "line": 117,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "registerPosition",
+      "file": "contracts/Frankencoin.sol",
+      "line": 125,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "equity",
+      "file": "contracts/Frankencoin.sol",
+      "line": 138,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "denyMinter",
+      "file": "contracts/Frankencoin.sol",
+      "line": 152,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "mint",
+      "file": "contracts/Frankencoin.sol",
+      "line": 165,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "mint",
+      "file": "contracts/Frankencoin.sol",
+      "line": 172,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "burn",
+      "file": "contracts/Frankencoin.sol",
+      "line": 179,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "burn",
+      "file": "contracts/Frankencoin.sol",
+      "line": 194,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "calculateAssignedReserve",
+      "file": "contracts/Frankencoin.sol",
+      "line": 204,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "burnFrom",
+      "file": "contracts/Frankencoin.sol",
+      "line": 223,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "calculateFreedAmount",
+      "file": "contracts/Frankencoin.sol",
+      "line": 235,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "burnWithReserve",
+      "file": "contracts/Frankencoin.sol",
+      "line": 251,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "burn",
+      "file": "contracts/Frankencoin.sol",
+      "line": 262,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "notifyLoss",
+      "file": "contracts/Frankencoin.sol",
+      "line": 280,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "minterOnly"
+      ]
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "isMinter",
+      "file": "contracts/Frankencoin.sol",
+      "line": 293,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Frankencoin",
+      "name": "isPosition",
+      "file": "contracts/Frankencoin.sol",
+      "line": 300,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 59,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 88,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "clonePosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 124,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "validPos"
+      ]
+    },
+    {
+      "unit": "MintingHub",
+      "name": "launchChallenge",
+      "file": "contracts/MintingHub.sol",
+      "line": 140,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "validPos"
+      ]
+    },
+    {
+      "unit": "MintingHub",
+      "name": "splitChallenge",
+      "file": "contracts/MintingHub.sol",
+      "line": 156,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "minBid",
+      "file": "contracts/MintingHub.sol",
+      "line": 181,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 199,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 235,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "isChallengeOpen",
+      "file": "contracts/MintingHub.sol",
+      "line": 239,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 252,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MintingHub",
+      "name": "returnPostponedCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 281,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Ownable",
+      "name": "transferOwnership",
+      "file": "contracts/Ownable.sol",
+      "line": 31,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "initializeClone",
+      "file": "contracts/Position.sol",
+      "line": 76,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyHub"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "reduceLimitForClone",
+      "file": "contracts/Position.sol",
+      "line": 97,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "noChallenge",
+        "noCooldown",
+        "alive",
+        "onlyHub"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "deny",
+      "file": "contracts/Position.sol",
+      "line": 109,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Position",
+      "name": "getUsableMint",
+      "file": "contracts/Position.sol",
+      "line": 120,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Position",
+      "name": "adjust",
+      "file": "contracts/Position.sol",
+      "line": 132,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "adjustPrice",
+      "file": "contracts/Position.sol",
+      "line": 159,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner",
+        "noChallenge"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "mint",
+      "file": "contracts/Position.sol",
+      "line": 177,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner",
+        "noChallenge",
+        "noCooldown",
+        "alive"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "calculateCurrentFee",
+      "file": "contracts/Position.sol",
+      "line": 181,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Position",
+      "name": "repay",
+      "file": "contracts/Position.sol",
+      "line": 227,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "withdraw",
+      "file": "contracts/Position.sol",
+      "line": 249,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "withdrawCollateral",
+      "file": "contracts/Position.sol",
+      "line": 263,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner",
+        "noChallenge",
+        "noCooldown"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "notifyChallengeStarted",
+      "file": "contracts/Position.sol",
+      "line": 292,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyHub"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "tryAvertChallenge",
+      "file": "contracts/Position.sol",
+      "line": 304,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyHub"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "notifyChallengeSucceeded",
+      "file": "contracts/Position.sol",
+      "line": 329,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyHub"
+      ]
+    },
+    {
+      "unit": "Position",
+      "name": "isClosed",
+      "file": "contracts/Position.sol",
+      "line": 360,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PositionFactory",
+      "name": "createNewPosition",
+      "file": "contracts/PositionFactory.sol",
+      "line": 13,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PositionFactory",
+      "name": "clonePosition",
+      "file": "contracts/PositionFactory.sol",
+      "line": 30,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "StablecoinBridge",
+      "name": "mint",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 36,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "StablecoinBridge",
+      "name": "mint",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 44,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "StablecoinBridge",
+      "name": "burn",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 55,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "StablecoinBridge",
+      "name": "burn",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 63,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "StablecoinBridge",
+      "name": "onTokenTransfer",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 75,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "Equity",
+      "file": "contracts/Equity.sol",
+      "line": 242,
+      "kind": "inline"
+    },
+    {
+      "unit": "Ownable",
+      "file": "contracts/Ownable.sol",
+      "line": 31,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 76,
+      "kind": "modifier:onlyHub"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 97,
+      "kind": "modifier:onlyHub"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 132,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 159,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 177,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 227,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 249,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 263,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 292,
+      "kind": "modifier:onlyHub"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 304,
+      "kind": "modifier:onlyHub"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 329,
+      "kind": "modifier:onlyHub"
+    },
+    {
+      "unit": "Position",
+      "file": "contracts/Position.sol",
+      "line": 388,
+      "kind": "inline"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 76,
+      "kind": "inline"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 78,
+      "kind": "inline"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "ERC20",
+      "function": "_transfer",
+      "file": "contracts/ERC20.sol",
+      "line": 156,
+      "target": "_balances"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_transfer",
+      "file": "contracts/ERC20.sol",
+      "line": 157,
+      "target": "_balances"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_mint",
+      "file": "contracts/ERC20.sol",
+      "line": 184,
+      "target": "_totalSupply"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_mint",
+      "file": "contracts/ERC20.sol",
+      "line": 185,
+      "target": "_balances"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_burn",
+      "file": "contracts/ERC20.sol",
+      "line": 203,
+      "target": "_totalSupply"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_burn",
+      "file": "contracts/ERC20.sol",
+      "line": 204,
+      "target": "_balances"
+    },
+    {
+      "unit": "ERC20",
+      "function": "_approve",
+      "file": "contracts/ERC20.sol",
+      "line": 222,
+      "target": "_allowances"
+    },
+    {
+      "unit": "ERC20PermitLight",
+      "function": "permit",
+      "file": "contracts/ERC20PermitLight.sol",
+      "line": 45,
+      "target": "nonces"
+    },
+    {
+      "unit": "Equity",
+      "function": "adjustTotalVotes",
+      "file": "contracts/Equity.sol",
+      "line": 146,
+      "target": "totalVotesAtAnchor"
+    },
+    {
+      "unit": "Equity",
+      "function": "adjustTotalVotes",
+      "file": "contracts/Equity.sol",
+      "line": 147,
+      "target": "totalVotesAnchorTime"
+    },
+    {
+      "unit": "Equity",
+      "function": "adjustRecipientVoteAnchor",
+      "file": "contracts/Equity.sol",
+      "line": 161,
+      "target": "voteAnchor"
+    },
+    {
+      "unit": "Equity",
+      "function": "delegateVoteTo",
+      "file": "contracts/Equity.sol",
+      "line": 221,
+      "target": "delegates"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "suggestMinter",
+      "file": "contracts/Frankencoin.sol",
+      "line": 88,
+      "target": "minters"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "registerPosition",
+      "file": "contracts/Frankencoin.sol",
+      "line": 127,
+      "target": "positions"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "denyMinter",
+      "file": "contracts/Frankencoin.sol",
+      "line": 155,
+      "target": "minters"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "mint",
+      "file": "contracts/Frankencoin.sol",
+      "line": 169,
+      "target": "minterReserveE6"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "burn",
+      "file": "contracts/Frankencoin.sol",
+      "line": 196,
+      "target": "minterReserveE6"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "burnFrom",
+      "file": "contracts/Frankencoin.sol",
+      "line": 227,
+      "target": "minterReserveE6"
+    },
+    {
+      "unit": "Frankencoin",
+      "function": "burnWithReserve",
+      "file": "contracts/Frankencoin.sol",
+      "line": 253,
+      "target": "minterReserveE6"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 213,
+      "target": "challenges"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 275,
+      "target": "challenges"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnPostponedCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 283,
+      "target": "pendingReturns"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 291,
+      "target": "pendingReturns"
+    },
+    {
+      "unit": "Ownable",
+      "function": "setOwner",
+      "file": "contracts/Ownable.sol",
+      "line": 41,
+      "target": "owner"
+    },
+    {
+      "unit": "Position",
+      "function": "constructor",
+      "file": "contracts/Position.sol",
+      "line": 57,
+      "target": "price"
+    },
+    {
+      "unit": "Position",
+      "function": "constructor",
+      "file": "contracts/Position.sol",
+      "line": 65,
+      "target": "cooldown"
+    },
+    {
+      "unit": "Position",
+      "function": "constructor",
+      "file": "contracts/Position.sol",
+      "line": 67,
+      "target": "limit"
+    },
+    {
+      "unit": "Position",
+      "function": "initializeClone",
+      "file": "contracts/Position.sol",
+      "line": 80,
+      "target": "price"
+    },
+    {
+      "unit": "Position",
+      "function": "initializeClone",
+      "file": "contracts/Position.sol",
+      "line": 82,
+      "target": "limit"
+    },
+    {
+      "unit": "Position",
+      "function": "reduceLimitForClone",
+      "file": "contracts/Position.sol",
+      "line": 99,
+      "target": "limit"
+    },
+    {
+      "unit": "Position",
+      "function": "deny",
+      "file": "contracts/Position.sol",
+      "line": 112,
+      "target": "cooldown"
+    },
+    {
+      "unit": "Position",
+      "function": "adjust",
+      "file": "contracts/Position.sol",
+      "line": 143,
+      "target": "minted"
+    },
+    {
+      "unit": "Position",
+      "function": "adjustPrice",
+      "file": "contracts/Position.sol",
+      "line": 165,
+      "target": "price"
+    },
+    {
+      "unit": "Position",
+      "function": "mintInternal",
+      "file": "contracts/Position.sol",
+      "line": 196,
+      "target": "minted"
+    },
+    {
+      "unit": "Position",
+      "function": "restrictMinting",
+      "file": "contracts/Position.sol",
+      "line": 205,
+      "target": "cooldown"
+    },
+    {
+      "unit": "Position",
+      "function": "notifyRepaidInternal",
+      "file": "contracts/Position.sol",
+      "line": 242,
+      "target": "minted"
+    },
+    {
+      "unit": "Position",
+      "function": "internalWithdrawCollateral",
+      "file": "contracts/Position.sol",
+      "line": 272,
+      "target": "cooldown"
+    },
+    {
+      "unit": "Position",
+      "function": "notifyChallengeStarted",
+      "file": "contracts/Position.sol",
+      "line": 295,
+      "target": "challengedAmount"
+    },
+    {
+      "unit": "Position",
+      "function": "tryAvertChallenge",
+      "file": "contracts/Position.sol",
+      "line": 309,
+      "target": "challengedAmount"
+    },
+    {
+      "unit": "Position",
+      "function": "notifyChallengeSucceeded",
+      "file": "contracts/Position.sol",
+      "line": 330,
+      "target": "challengedAmount"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "Equity",
+      "function": "redeem",
+      "file": "contracts/Equity.sol",
+      "line": 279,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 108,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 110,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "clonePosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 129,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "launchChallenge",
+      "file": "contracts/MintingHub.sol",
+      "line": 142,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 204,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 225,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 210,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 211,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 263,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 268,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 272,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnPostponedCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 284,
+      "kind": "transfer"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 294,
+      "kind": "transfer"
+    },
+    {
+      "unit": "Position",
+      "function": "adjust",
+      "file": "contracts/Position.sol",
+      "line": 138,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "Position",
+      "function": "repay",
+      "file": "contracts/Position.sol",
+      "line": 228,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "Position",
+      "function": "withdraw",
+      "file": "contracts/Position.sol",
+      "line": 253,
+      "kind": "transfer"
+    },
+    {
+      "unit": "Position",
+      "function": "internalWithdrawCollateral",
+      "file": "contracts/Position.sol",
+      "line": 269,
+      "kind": "transfer"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "function": "mint",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 45,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "function": "burnInternal",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 69,
+      "kind": "transfer"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "Equity",
+      "function": "redeem",
+      "file": "contracts/Equity.sol",
+      "line": 279,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 108,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "openPosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 110,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "clonePosition",
+      "file": "contracts/MintingHub.sol",
+      "line": 129,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "launchChallenge",
+      "file": "contracts/MintingHub.sol",
+      "line": 142,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 204,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 225,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 210,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "bid",
+      "file": "contracts/MintingHub.sol",
+      "line": 211,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 263,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 268,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "end",
+      "file": "contracts/MintingHub.sol",
+      "line": 272,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnPostponedCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 284,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MintingHub",
+      "function": "returnCollateral",
+      "file": "contracts/MintingHub.sol",
+      "line": 294,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "Position",
+      "function": "adjust",
+      "file": "contracts/Position.sol",
+      "line": 138,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "Position",
+      "function": "repay",
+      "file": "contracts/Position.sol",
+      "line": 228,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "Position",
+      "function": "withdraw",
+      "file": "contracts/Position.sol",
+      "line": 253,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "Position",
+      "function": "internalWithdrawCollateral",
+      "file": "contracts/Position.sol",
+      "line": 269,
+      "kind": "transfer",
+      "asset": "token"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "function": "mint",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 45,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "StablecoinBridge",
+      "function": "burnInternal",
+      "file": "contracts/StablecoinBridge.sol",
+      "line": 69,
+      "kind": "transfer",
+      "asset": "token"
+    }
+  ],
+  "counters": {
+    "contracts/ERC20.sol": {
+      "loc": 241,
+      "external_calls": 0,
+      "state_writers": 4,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/ERC20PermitLight.sol": {
+      "loc": 72,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 1
+    },
+    "contracts/Equity.sol": {
+      "loc": 317,
+      "external_calls": 1,
+      "state_writers": 4,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/Frankencoin.sol": {
+      "loc": 305,
+      "external_calls": 0,
+      "state_writers": 11,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/MathUtil.sol": {
+      "loc": 42,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/MintingHub.sol": {
+      "loc": 315,
+      "external_calls": 13,
+      "state_writers": 9,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/Ownable.sol": {
+      "loc": 52,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/Position.sol": {
+      "loc": 391,
+      "external_calls": 4,
+      "state_writers": 12,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/PositionFactory.sol": {
+      "loc": 47,
+      "external_calls": 0,
+      "state_writers": 2,
+      "payable": 0,
+      "assembly_blocks": 1,
+      "unchecked_blocks": 0
+    },
+    "contracts/StablecoinBridge.sol": {
+      "loc": 85,
+      "external_calls": 2,
+      "state_writers": 5,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    }
+  }
+}

@@ -1,0 +1,652 @@
+[
+ {
+  "id": "DC-1",
+  "chain": "solidity",
+  "title": "Treasury per-block expenditure counter is shared by all tokens and by both governance paths (GSC and CORE_VOTING), so one executed action can make an unrelated one revert",
+  "severity": "Low",
+  "category": "accounting-mismatch",
+  "status": "downgraded",
+  "locations": [
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 358,
+    "line_end": 362,
+    "unit": "ArcadeTreasury",
+    "function": "_spend"
+   },
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 384,
+    "line_end": 388,
+    "unit": "ArcadeTreasury",
+    "function": "_approve"
+   },
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 68,
+    "line_end": 68,
+    "unit": "ArcadeTreasury",
+    "function": "blockExpenditure"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "attacker",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q5.4 / Q7.8 (two callers sequenced in one block; cross-contract read of Council CoreVoting.execute and the shared Timelock). Confirms and deepens DP1-1. blockExpenditure is mapping(block.number => amount) with no token key and no caller key. gscSpend/gscApprove (GSC_CORE_VOTING_ROLE) and the small/medium/large spend and approve functions (CORE_VOTING_ROLE) all add their raw token amounts to the same slot and compare the sum with the threshold of the token being moved. Proposal execution is a permissionless call (CoreVoting.execute / Timelock execute run once the unlock block is reached), so any account can choose which ready proposal is executed first in a block. A ready GSC spend or approve can therefore be placed ahead of a ready governance spend in the same block, and the second execution reverts with T_BlockSpendLimit. The same happens across tokens because raw units of different decimals are summed.",
+  "root_cause": "The per-block limit is keyed only by block.number, so the check 'amount + spentThisBlock > limit' mixes different tokens, different units and different authorities. The counter is never partitioned by token or by role.",
+  "vulnerable_code": "uint256 spentThisBlock = blockExpenditure[block.number];\nif (amount + spentThisBlock > limit) revert T_BlockSpendLimit();\nblockExpenditure[block.number] = amount + spentThisBlock;",
+  "harm": {
+   "who": "DAO / GSC executing treasury actions",
+   "loses_what": "liveness of a valid treasury execution in a given block",
+   "magnitude": "temporary revert; retry in a later block or split the package"
+  },
+  "exploit_trace": [
+   "1. Token X has small threshold 1e12 and the GSC has a gscAllowance of 1e12 for X. A governance proposal containing smallSpend(X, 1e12, dest) and a GSC proposal containing gscSpend(X, 1e12, dest2) are both past their unlock block.",
+   "2. A third party calls execute for the GSC proposal first in block B; gscSpend writes blockExpenditure[B] = 1e12.",
+   "3. The governance execution for smallSpend(X, 1e12, dest) in the same block B computes 1e12 + 1e12 > 1e12 and reverts with T_BlockSpendLimit, which reverts the whole proposal execution (CoreVoting.execute requires every call to succeed).",
+   "4. Cross-token variant: largeSpend(ARCD, 1e24, a) followed in the same call package by smallSpend(USDC, 1e9, b) fails because 1e24 + 1e9 > 1e12 (USDC small limit)."
+  ],
+  "preconditions": [
+   {
+    "text": "two treasury spends or approvals (different token, or GSC and core voting) are executed in the same block",
+    "type": "TIMING"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "the later execution reverts and must be retried in another block",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✗(single-step)",
+    "R10:✓(worst state is a multi-token package or same-block GSC plus core voting execution)",
+    "R11:✗(no unsolicited tokens)",
+    "R12:✗",
+    "R15:✗(no flash-loan accessible state)",
+    "R16:✗(no oracle)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:USDC amount 1e9, prior ARCD spend 1e24, limit 1e12 -> revert]",
+    "[VARIATION:order USDC then ARCD -> sum 1e9+1e24 compared with ARCD limit; the counter is only ever stricter than a per-token counter, never looser]",
+    "[TRACE:gscSpend(X,1e12) then smallSpend(X,1e12) same block -> T_BlockSpendLimit]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "whole timelock execution reverts until retried"
+   ],
+   "who_benefits": "No one directly (liveness harm); a third party executing proposals in a chosen order can grief"
+  },
+  "merged_from": [
+   "DP1-1",
+   "D-1"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "Mechanism confirmed in _spend/_approve: blockExpenditure[block.number] is keyed only by block, so amounts of different tokens and authorities are summed against one token's limit. Impact is temporary revert of an otherwise valid execution that can be retried in a later block or split, so Medium is inflated; Low.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "hybrid",
+   "original_severity": "Medium"
+  }
+ },
+ {
+  "id": "DA-1",
+  "chain": "solidity",
+  "title": "Zero-weight caller can spam voting-power checkpoints for any delegatee via delegate() without holding a registration or grant",
+  "severity": "Low",
+  "category": "dos-griefing",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/NFTBoostVault.sol",
+    "line_start": 182,
+    "line_end": 212,
+    "unit": "NFTBoostVault",
+    "function": "delegate"
+   },
+   {
+    "file": "contracts/ARCDVestingVault.sol",
+    "line_start": 260,
+    "line_end": 282,
+    "unit": "ARCDVestingVault",
+    "function": "delegate"
+   },
+   {
+    "file": "contracts/external/council/libraries/History.sol",
+    "unit": "History",
+    "function": "findAndClear/_clear"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "attacker",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: Lens A, GOV-02 / ZERO-WEIGHT-01 (delegation griefing, voting dust inflation). Both vaults' delegate(to) never check that msg.sender has a registration or grant. With latestVotingPower == 0 the function still executes History.push for the old delegatee (loadTop - 0) and for the new delegatee (loadTop + 0). Each call in a new block therefore appends a fresh checkpoint to the history array of any chosen address 'to' (and of the previous ghost delegatee) at zero token cost. Alternating delegate(victim) / delegate(other) lets a zero-balance attacker add one entry per block to a victim delegatee's history. Stale entries are only removed inside queryVotePower -> findAndClear -> _clear, which zeroes every stale slot in one loop (no chunking, staleBlock is fixed to block.number - staleBlockLag). If nobody calls queryVotePower for that delegatee for several thousand blocks, the single clearing loop can exceed the block gas limit, so the delegatee's queryVotePower (called by CoreVoting.vote/proposal and GSCVault membership proofs) reverts out of gas.",
+  "root_cause": "delegate() does not require an existing registration/grant (nonzero latestVotingPower) and pushes a checkpoint unconditionally, even when the amount moved is 0, while the History library clears stale entries in one unbounded loop.",
+  "vulnerable_code": "NFTBoostVaultStorage.Registration storage registration = _getRegistrations()[msg.sender];\nif (to == registration.delegatee) revert NBV_AlreadyDelegated();\nHistory.HistoricalBalances memory votingPower = _votingPower();\nuint256 oldDelegateeVotes = votingPower.loadTop(registration.delegatee);\nvotingPower.push(registration.delegatee, oldDelegateeVotes - registration.latestVotingPower);\n...\nvotingPower.push(to, newDelegateeVotes + addedVotingPower);",
+  "harm": {
+   "who": "Active delegatees (and their delegators) in NFTBoostVault / ARCDVestingVault",
+   "loses_what": "ability to cast votes or prove GSC membership through that vault until history is cleared or delegators re-delegate",
+   "magnitude": "temporary governance liveness loss for a targeted delegatee; attacker cost is gas only (roughly one tx per block for several thousand blocks)"
+  },
+  "exploit_trace": [
+   "1. Attacker (no tokens, no registration) calls NFTBoostVault.delegate(victim) in block N: pushes a checkpoint for address(0) and for victim (value unchanged).",
+   "2. In block N+1 attacker calls delegate(other); old delegatee victim gets another checkpoint. Repeat alternating every block for several thousand blocks.",
+   "3. Victim's history array now holds thousands of entries older than staleBlockLag that nobody cleared.",
+   "4. Victim calls CoreVoting.vote; queryVotePower -> findAndClear -> _clear must zero all stale slots in one transaction and runs out of gas."
+  ],
+  "preconditions": [
+   {
+    "text": "no one calls queryVotePower for the victim delegatee for a long window (thousands of blocks), so stale entries accumulate",
+    "type": "TIMING"
+   },
+   {
+    "text": "attacker pays gas for roughly one delegate tx per block",
+    "type": "BALANCE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim delegatee's queryVotePower becomes too expensive to execute; delegators must re-delegate",
+    "type": "STATE"
+   }
+  ],
+  "recommendation": "Revert delegate() when the caller has no registration/grant (delegatee == address(0) / latestVotingPower == 0), and skip pushes when the moved amount is 0.",
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✗ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✓(repeated calls across blocks)",
+    "R10:✓(worst state is thousands of uncleared stale checkpoints)",
+    "R11:✗",
+    "R12:✗",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:latestVotingPower=0 caller -> push still executed]",
+    "[VARIATION:ARCDVestingVault.delegate has same missing check and also lacks zero-address check on 'to']"
+   ],
+   "missing_precondition": "Requires ~6000+ blocks without any queryVotePower call on the victim; any user can call queryVotePower to clear earlier",
+   "postconditions_created": [
+    "bloated checkpoint array for victim delegatee"
+   ],
+   "who_benefits": "Attacker opposing the victim delegatee's vote"
+  },
+  "verdict": {
+   "gate": "D",
+   "reason": "Speculative: needs thousands of consecutive blocks of attacker txs while no one calls the permissionless queryVotePower (called on every vote) for the victim; stale entries are cleared incrementally by any such call. No concrete profitable path; liveness-only griefing at best.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "D-2",
+  "chain": "solidity",
+  "title": "ARCDVestingVault NatSpec specifies timestamps but the schedule uses block.number, so timestamp inputs lock grants almost indefinitely",
+  "severity": "Low",
+  "category": "spec-mismatch / units",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/ARCDVestingVault.sol",
+    "line_start": 91,
+    "line_end": 112,
+    "function": "addGrantAndDelegate"
+   },
+   {
+    "file": "contracts/ARCDVestingVault.sol",
+    "line_start": 317,
+    "line_end": 333,
+    "function": "_getWithdrawableAmount"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "spec-auditor",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "The addGrantAndDelegate NatSpec says expiration and cliff are timestamps. The code compares them with block.number in _getWithdrawableAmount and claim, and defaults startTime to block.number. A manager who follows the NatSpec and passes Unix timestamps (about 1.7e9) creates a grant whose cliff and expiration are about 1.7e9 blocks away, so it effectively never vests. The only schedule checks are cliff >= expiration and cliff < startTime, and a timestamp is far larger than any block number, so the bad input passes both. The manager can only recover the tokens by calling revokeGrant, which sends the unvested part to the manager. ImmutableVestingVault disables revokeGrant, so a mis-scaled grant there is permanent.",
+  "root_cause": "The unit of the schedule parameters (blocks) does not match the documented unit (timestamps), and there is no sanity bound on the schedule.",
+  "recommendation": "Fix the NatSpec to say block numbers, or switch the schedule to block.timestamp. Consider bounding cliff and expiration against the current block.",
+  "vulnerable_code": "if (block.number < grant.cliff) { return 0; }\nif (block.number >= grant.expiration) { return grant.allocation - grant.withdrawn; }",
+  "harm": {
+   "who": "Grant recipients (team and partners) of the ImmutableVestingVault",
+   "loses_what": "Access to vested tokens for an effectively unlimited time",
+   "magnitude": "Requires a manager misconfiguration. It is irreversible in ImmutableVestingVault."
+  },
+  "exploit_trace": [
+   "Manager calls addGrantAndDelegate(who, amount, c, 0, expirationTs, cliffTs, d) with Unix timestamps, following the NatSpec.",
+   "startTime becomes block.number (about 2e7). cliffTs (about 1.7e9) passes the check cliff >= startTime.",
+   "claim() reverts with AVV_CliffNotReached for about 1.7e9 blocks."
+  ],
+  "preconditions": [
+   {
+    "text": "The manager supplies timestamp-valued schedule parameters",
+    "type": "ACCESS"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✗ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "Module B",
+    "Spec Auditor"
+   ],
+   "who_benefits": "Nobody"
+  },
+  "verdict": {
+   "gate": "E",
+   "reason": "Requires the trusted vault manager to supply timestamp values against the code's block-number schedule; a misconfiguration by a trusted role plus a documentation mismatch, not an attacker-triggerable bug.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "DP3-1",
+  "chain": "solidity",
+  "title": "ReputationBadge.mint accepts overpayment and never refunds the excess; excess ETH can only be taken by the badge manager",
+  "severity": "Low",
+  "category": "missing-validation",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/nft/ReputationBadge.sol",
+    "line_start": 97,
+    "line_end": 115,
+    "unit": "ReputationBadge",
+    "function": "mint"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P3",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "mint requires msg.value >= mintPrices[tokenId]*amount (only a lower bound) and forwards nothing back. Any surplus stays in the contract and is swept by withdrawFees to the manager's recipient. Also, mint can be called by anyone for any recipient who has a valid merkle proof.",
+  "root_cause": "Payment check is `msg.value < mintPrice` instead of strict equality or a refund of the excess.",
+  "vulnerable_code": "if (msg.value < mintPrice) revert RB_InvalidMintFee(mintPrice, msg.value);",
+  "harm": {
+   "who": "minter paying too much ETH",
+   "loses_what": "the excess ETH",
+   "magnitude": "bounded by what the minter sends in excess; only through user error or a front-end bug"
+  },
+  "exploit_trace": [
+   "mintPrices[1]=0.1 ether.",
+   "User calls mint{value: 1 ether}(user,1,1,1,proof).",
+   "0.9 ETH excess is retained and later withdrawn through withdrawFees."
+  ],
+  "preconditions": [
+   {
+    "text": "user sends msg.value above the exact price",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "excess ETH held by contract",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✗ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [],
+   "depth_evidence": [
+    "[BOUNDARY:msg.value = price + 1 wei -> accepted, not refunded]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "excess ETH held by contract"
+   ],
+   "who_benefits": "badge manager"
+  },
+  "verdict": {
+   "gate": "A",
+   "reason": "Generic best practice (exact-payment or refund check). Loss only arises from user error sending excess ETH; no attacker or concrete exploit.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "PC3-1",
+  "chain": "solidity",
+  "title": "Treasury approvals cannot be revoked: zero-amount approve is rejected and batchCalls is blocked for every token that has thresholds",
+  "severity": "Low",
+  "category": "access-control-state",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 189,
+    "line_end": 201,
+    "unit": "ArcadeTreasury",
+    "function": "gscApprove"
+   },
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 333,
+    "line_end": 345,
+    "unit": "ArcadeTreasury",
+    "function": "batchCalls"
+   },
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 384,
+    "line_end": 394,
+    "unit": "ArcadeTreasury",
+    "function": "_approve"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "ArcadeTreasury"
+  },
+  "description": "Discovery: per-unit step 1 (state completeness) and step 3 (boundary values, amount 0). Every approve entry point reverts with T_ZeroAmount when amount == 0, so an approval can never be set to 0. A token can only be approved if its threshold is non-zero (otherwise limit is 0 and amount + spent > limit reverts), and setThreshold forbids small == 0, so a token that has ever been approved can never return to small == 0. batchCalls reverts with T_InvalidTarget for any token with small != 0, so the ADMIN (timelock) cannot call approve(spender, 0) on the token itself either. The only way to reduce a live approval is to overwrite it with a non-zero amount through a CORE_VOTING proposal (or a GSC call that consumes gscAllowance). The treasury also has no way to claw back an approval that was granted to a spender that is later compromised or found buggy.",
+  "root_cause": "The zero-amount guard is applied to approvals as well as transfers, and the batchCalls blocklist (small != 0) is permanent because thresholds cannot be cleared.",
+  "vulnerable_code": "if (amount == 0) revert T_ZeroAmount();\n...\nif (spendThresholds[targets[i]].small != 0) revert T_InvalidTarget(targets[i]);",
+  "harm": {
+   "who": "Treasury (DAO)",
+   "loses_what": "ability to promptly revoke a standing token approval granted to a spender that later turns malicious or is exploited",
+   "magnitude": "up to the approved amount (bounded by the large threshold per approval); mitigated only by a slow governance vote or by the GSC overwriting with 1 wei while it has allowance"
+  },
+  "exploit_trace": [
+   "1. Governance executes approveLargeSpend(TOKEN, protocolX, A).",
+   "2. protocolX is later exploited or its pull logic is compromised.",
+   "3. ADMIN tries batchCalls([TOKEN], [approve(protocolX, 0)]) and it reverts with T_InvalidTarget; approveSmallSpend(TOKEN, protocolX, 0) reverts with T_ZeroAmount.",
+   "4. Result: the full allowance stays pullable until a new CORE_VOTING proposal overwrites it with a non-zero value."
+  ],
+  "preconditions": [
+   {
+    "text": "a non-zero approval was previously granted to a spender that becomes untrusted",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "spender retains transferFrom rights over treasury funds",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✗ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✓(approvals persist across blocks)",
+    "R10:✓(max approval at large threshold)",
+    "R11:✗",
+    "R12:✗",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:amount=0 -> T_ZeroAmount in all 4 approve functions]",
+    "[TRACE:approved token has small!=0 -> batchCalls reverts T_InvalidTarget]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "residual allowance for untrusted spender"
+   ],
+   "who_benefits": "A compromised spender"
+  },
+  "verdict": {
+   "gate": "D",
+   "reason": "Speculative: depends on governance approving a spender that later turns malicious. Mitigated because a later CORE_VOTING proposal or the GSC can overwrite the approval with a non-zero amount; no concrete attacker path.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "PC3-2",
+  "chain": "solidity",
+  "title": "_approve uses raw IERC20.approve, so approvals revert for USDT-style tokens (no return value) and cannot change a non-zero allowance",
+  "severity": "Low",
+  "category": "token-compat",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 391,
+    "line_end": 391,
+    "unit": "ArcadeTreasury",
+    "function": "_approve"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "ArcadeTreasury"
+  },
+  "description": "Discovery: per-unit step 4 (pairing audit, SafeERC20 used for transfers but not for approvals). _spend uses safeTransfer, but _approve calls IERC20(token).approve(spender, amount) directly. For tokens whose approve returns no data (USDT on mainnet), the ABI decoder reverts on the empty return data, so every approval for such a token reverts. For tokens that require the allowance to be zero before setting a new non-zero value, a second approval reverts while the previous one is unspent, and an approval cannot be reset to zero because of the zero-amount check (see PC3-1). The ignored return value is already in the known-issues list (unused-return); this finding is the resulting revert and stuck-allowance behaviour.",
+  "root_cause": "Raw approve is called instead of SafeERC20 forceApprove, which is imported and in use for transfers.",
+  "vulnerable_code": "IERC20(token).approve(spender, amount);",
+  "harm": {
+   "who": "DAO / GSC",
+   "loses_what": "ability to approve (and pay through pull-based integrations) in USDT or similar tokens",
+   "magnitude": "liveness only; the treasury can still use transfers"
+  },
+  "exploit_trace": [
+   "1. Treasury holds USDT and thresholds are set for it.",
+   "2. Governance executes approveSmallSpend(USDT, spender, 1000e6).",
+   "3. USDT.approve returns no data, the ABI decode of the bool return reverts, and the whole proposal execution reverts."
+  ],
+  "preconditions": [
+   {
+    "text": "treasury holds a token whose approve returns no value or demands a zero allowance first",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "approvals for such tokens cannot be made through the treasury",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✗ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✗",
+    "R10:✗",
+    "R11:✓(non-standard ERC20 return handling)",
+    "R12:✗",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[TRACE:approve on token with empty return data -> abi decode revert at _approve]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Nobody"
+  },
+  "verdict": {
+   "gate": "B",
+   "reason": "Relies on a USDT-style token that is not shown to be in the protocol's actual token list (treasury holds ARCD/ETH); no specific in-scope token named. Unchecked approve return is also in the known slither issues (unused-return).",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "PC3-3",
+  "chain": "solidity",
+  "title": "ETH spends use transfer with a 2300 gas stipend, so spends to Safe proxies and other contract recipients revert",
+  "severity": "Low",
+  "category": "dos-griefing",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "line_start": 365,
+    "line_end": 367,
+    "unit": "ArcadeTreasury",
+    "function": "_spend"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "ArcadeTreasury"
+  },
+  "description": "Discovery: per-unit step 1 and step 3 (ETH branch of _spend). The ETH path sends with payable(destination).transfer(amount), which forwards only 2300 gas. Multisig wallets (Gnosis Safe proxies run a delegatecall in the fallback) and any contract with receive logic cannot receive ETH, so gscSpend and the three spend functions revert. The code comment acknowledges the out-of-gas revert, but it also applies to the common case of a DAO paying a multisig or a vesting/payment contract. Governance can only work around it by sending to an EOA. The known-issues list mentions arbitrary-send-eth for _spend, not this gas-stipend DoS.",
+  "root_cause": "transfer is used instead of a call with a success check.",
+  "vulnerable_code": "payable(destination).transfer(amount);",
+  "harm": {
+   "who": "DAO / GSC, and intended ETH recipients that are contracts",
+   "loses_what": "ability to pay ETH to contract recipients from the treasury",
+   "magnitude": "liveness only; the transaction reverts and no funds are lost"
+  },
+  "exploit_trace": [
+   "1. Governance passes a proposal calling largeSpend(ETH_CONSTANT, 100 ether, safeAddress).",
+   "2. _spend calls transfer, which forwards 2300 gas.",
+   "3. The Safe proxy fallback needs more than 2300 gas, so the transfer reverts and the proposal execution fails."
+  ],
+  "preconditions": [
+   {
+    "text": "the recipient is a contract whose receive/fallback uses more than 2300 gas",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "ETH spend to that recipient cannot execute",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✗ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✗",
+    "R10:✗",
+    "R11:✗",
+    "R12:✗",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:recipient gas need >2300 -> revert]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "Nobody"
+  },
+  "verdict": {
+   "gate": "C",
+   "reason": "Intentional design: the code comment above transfer explicitly states the out-of-gas revert for contract recipients. Governance can choose a recipient that accepts ETH; no funds lost.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ },
+ {
+  "id": "STATE-1",
+  "chain": "solidity",
+  "title": "NFTBoostVault.delegate() lets an address with no registration write registration.delegatee, creating an empty registration that blocks addNftAndDelegate and pins the airdrop delegatee",
+  "severity": "Low",
+  "category": "state-desync",
+  "status": "killed",
+  "locations": [
+   {
+    "file": "contracts/NFTBoostVault.sol",
+    "line_start": 182,
+    "line_end": 212,
+    "unit": "NFTBoostVault",
+    "function": "delegate"
+   },
+   {
+    "file": "contracts/NFTBoostVault.sol",
+    "line_start": 462,
+    "line_end": 488,
+    "unit": "NFTBoostVault",
+    "function": "_registerAndDelegate"
+   },
+   {
+    "file": "contracts/NFTBoostVault.sol",
+    "line_start": 139,
+    "line_end": 172,
+    "unit": "NFTBoostVault",
+    "function": "airdropReceive"
+   }
+  ],
+  "discovery": {
+   "phase": "state",
+   "lens": null,
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": "NFTBoostVault"
+  },
+  "description": "Coupled Pair: registration.delegatee ↔ registration.amount\nBreaking Operation: delegate()\nCross-Feed: DA-1\nThe contract uses registration.delegatee != address(0) as the 'registration exists' flag (addTokens, updateNft, _registerAndDelegate, airdropReceive all test it). delegate() sets registration.delegatee = to without requiring amount > 0, so a caller with no deposit ends with delegatee != 0 and amount == 0. The flag and the amount then disagree.",
+  "root_cause": "Invariant: registration.delegatee != address(0) iff registration.amount > 0 (an existing registration holds tokens). delegate() only checks 'to != 0' and 'to != current delegatee', then unconditionally assigns registration.delegatee = to, so the 'exists' flag can be set with zero amount.",
+  "vulnerable_code": "NFTBoostVaultStorage.Registration storage registration = _getRegistrations()[msg.sender];\nif (to == registration.delegatee) revert NBV_AlreadyDelegated();\n...\nregistration.latestVotingPower = uint128(addedVotingPower);\nregistration.delegatee = to;",
+  "harm": {
+   "who": "the caller itself (e.g. an airdrop recipient or prospective depositor who calls delegate() before registering)",
+   "loses_what": "ability to use addNftAndDelegate (reverts NBV_HasRegistration) and to claim the airdrop with any delegatee other than the one pinned (airdropReceive reverts NBV_WrongDelegatee); recovery is via addTokens/updateNft or by claiming with the same delegatee",
+   "magnitude": "self-inflicted liveness issue only; no funds lost and no third party can trigger it for another account"
+  },
+  "exploit_trace": [
+   "1. User U has no registration (delegatee == 0, amount == 0) and is in the airdrop tree.",
+   "2. U calls delegate(X); history pushes are zero-value, registration.delegatee becomes X while amount stays 0.",
+   "3. U calls addNftAndDelegate(...): _registerAndDelegate sees delegatee != 0 and reverts NBV_HasRegistration, so U cannot register with an NFT in one step.",
+   "4. U calls ArcadeAirdrop.claimAndDelegate(Y, ...) with Y != X: airdropReceive takes the else branch and reverts NBV_WrongDelegatee(Y, X); U must claim with delegatee X."
+  ],
+  "preconditions": [
+   {
+    "text": "caller invokes delegate() before having any registration",
+    "type": "ACCESS"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "an empty registration with a non-zero delegatee exists for the caller",
+    "type": "STATE"
+   }
+  ],
+  "recommendation": "Revert delegate() when registration.amount == 0 (or delegatee == address(0)).",
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✗ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✓(delegate then register/claim sequence)",
+    "R10:✓",
+    "R11:✗",
+    "R12:✓(enumerated writers of registration.delegatee: _registerAndDelegate, delegate, withdraw)",
+    "R15:✗",
+    "R16:✗"
+   ],
+   "depth_evidence": [
+    "[TRACE:delegate(X) with no registration -> delegatee=X, amount=0 -> addNftAndDelegate reverts NBV_HasRegistration]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "empty registration with non-zero delegatee"
+   ],
+   "who_benefits": "No one; self-inflicted"
+  },
+  "verdict": {
+   "gate": "D",
+   "reason": "Self-inflicted only: the caller pins its own delegatee; no third party can trigger it and no funds are lost; recovery is via addTokens/updateNft or claiming with the same delegatee. No attacker or victim.",
+   "evidence_tag": null,
+   "method": null,
+   "original_severity": null
+  }
+ }
+]

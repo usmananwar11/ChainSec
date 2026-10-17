@@ -1,0 +1,71 @@
+[
+  {
+    "id": "STATE-1",
+    "chain": "solidity",
+    "title": "GeVault.deposit mints shares against a TVL that excludes idle funds, so after a disabled-pool withdrawal the next deposit is priced at a fixed $1/share and then absorbs all idle funds",
+    "severity": "Medium",
+    "category": "state-desync",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/GeVault.sol", "line_start": 247, "line_end": 283, "unit": "GeVault", "function": "deposit"},
+      {"file": "contracts/GeVault.sol", "line_start": 392, "line_end": 398, "unit": "GeVault", "function": "getTVL"},
+      {"file": "contracts/GeVault.sol", "line_start": 214, "line_end": 241, "unit": "GeVault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "state", "lens": null, "mindset": "accountant", "consensus": null, "unit": "GeVault"},
+    "description": "Coupled Pair: totalSupply() (GEV shares) <-> vault asset value (token0/token1 balances held idle + aTokens of TRs)\nBreaking Operation: withdraw() with isEnabled == false (removeFromAllTicks, no deployAssets), then deposit() after setEnabled(true)\nMasking Code: deposit() branch `if (tSupply == 0 || vaultValueX8 == 0) liquidity = valueX8 * 1e10` treats TVL == 0 as an empty vault regardless of tSupply\nCross-Feed: DB-1, DB-2\ngetTVL() sums only TR aToken balances; it ignores token0/token1 sitting in the vault. While the pool is disabled, withdraw() pulls every TR out of the lending pool and Uniswap and leaves the remainder idle, so getTVL() == 0 while totalSupply() > 0. When the owner re-enables the pool, the first deposit() sees vaultValueX8 == 0 and mints valueX8 * 1e10 shares at a fixed $1 per 1e18 shares, ignoring existing supply, and the following rebalance() deploys all idle funds, which now count as backing the new shares as well.",
+    "root_cause": "Invariant: share price = (all assets owned by the vault) / totalSupply. getTVL() omits idle token balances, and deposit() special-cases TVL == 0 without checking totalSupply, so the minted share count is unrelated to the real price of existing shares whenever funds are idle.",
+    "vulnerable_code": "if (tSupply == 0 || vaultValueX8 == 0)\n  liquidity = valueX8 * 1e10;\nelse {\n  liquidity = tSupply * valueX8 / vaultValueX8;\n}\nrebalance();",
+    "harm": {"who": "existing GEV holders (or the new depositor, depending on whether the real share price is above or below $1)", "loses_what": "share of the idle assets, repriced by the ratio of the real share price to the fixed $1 mint price", "magnitude": "proportional to the deviation of the real share price from $1 times the idle value; bounded by idle vault assets"},
+    "exploit_trace": [
+      "1. Owner calls setEnabled(false); a holder calls withdraw(); removeFromAllTicks() moves all TR liquidity to idle token0/token1 and deployAssets() is skipped.",
+      "2. The remaining holders' value sits idle in the vault; getTVL() returns 0 while totalSupply() > 0.",
+      "3. Owner calls setEnabled(true) to resume operations.",
+      "4. Attacker deposit()s a small amount when the real share price is above $1 (fees accrued): vaultValueX8 == 0 so liquidity = valueX8 * 1e10, i.e. $1 per share.",
+      "5. rebalance() deploys all idle funds; the attacker's shares now represent a larger fraction of the full vault than the amount paid, and redeems at the real price for profit."
+    ],
+    "preconditions": [{"text": "owner disables the pool and funds remain idle after a withdrawal, then re-enables", "type": "STATE"}, {"text": "real share price differs from $1", "type": "STATE"}],
+    "postconditions": [{"text": "share supply mispriced relative to the vault's assets", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✓ 5=✓ 6=✓ 7=✓ 8=✓",
+      "rules_applied": ["R8:✓(TVL read in deposit and withdraw)", "R10:✓(severity bounded by idle value)", "R12:✓(enumerated writers of idle balances)"],
+      "depth_evidence": ["[TRACE:withdraw(isEnabled=false)->ticks emptied->getTVL()==0 with totalSupply>0->deposit mints valueX8*1e10]"],
+      "missing_precondition": "",
+      "postconditions_created": ["share price reset to $1 anchor"],
+      "who_benefits": "Depositor arriving after pool re-enable when the real share price exceeds $1"
+    }
+  },
+  {
+    "id": "STATE-2",
+    "chain": "solidity",
+    "title": "GeVault.modifyTick overwrites a ticks[] entry without unwinding the vault's position in the replaced TokenisableRange, orphaning those funds and collapsing the share price",
+    "severity": "Low",
+    "category": "state-desync",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/GeVault.sol", "line_start": 167, "line_end": 173, "unit": "GeVault", "function": "modifyTick"},
+      {"file": "contracts/GeVault.sol", "line_start": 313, "line_end": 317, "unit": "GeVault", "function": "removeFromAllTicks"},
+      {"file": "contracts/GeVault.sol", "line_start": 392, "line_end": 398, "unit": "GeVault", "function": "getTVL"}
+    ],
+    "discovery": {"phase": "state", "lens": null, "mindset": "accountant", "consensus": null, "unit": "GeVault"},
+    "description": "Coupled Pair: ticks[] (addresses of TRs tracked by the vault) <-> aToken balances of TRs actually held by the vault in the lending pool\nBreaking Operation: modifyTick()\nCross-Feed: DP3-2\ngetTVL(), getReserves(), removeFromAllTicks() and withdraw() iterate only over ticks[]. modifyTick() replaces ticks[index] with a new TR without first calling removeFromTick(index), so any aTokens the vault holds for the old TR are no longer counted or withdrawable. TVL drops by that value, and new deposits are minted against the understated TVL, diluting existing holders; the stranded position can only be recovered by re-adding the old TR address.",
+    "root_cause": "Invariant: every TR for which the vault holds aTokens is in ticks[]. modifyTick() (an owner-only mutation, also shiftTick/pushTick never remove) breaks it by dropping the old entry while a balance may exist.",
+    "vulnerable_code": "ticks[index] = TokenisableRange(tr);\nemit ModifyTick(tr, index);",
+    "harm": {"who": "GEV holders", "loses_what": "value of the orphaned TR position (until the owner restores it), plus dilution through deposits minted against an understated TVL", "magnitude": "value of the replaced tick's position, potentially a large share of TVL"},
+    "exploit_trace": [
+      "1. Vault has deployed funds; ticks[k] = TR_A and the vault holds aTR_A.",
+      "2. Owner calls modifyTick(TR_B, k) without calling rebalance/removing first (or a deposit lands in between).",
+      "3. getTVL() no longer includes aTR_A; withdraw() and rebalance() never remove it.",
+      "4. A depositor mints shares against the understated TVL and later redeems after the owner restores TR_A, capturing the orphaned value."
+    ],
+    "preconditions": [{"text": "owner calls modifyTick on an index with a non-zero vault position", "type": "ACCESS"}],
+    "postconditions": [{"text": "vault TVL understated; funds stranded in lending pool", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✓ 6=✗(N/A) 7=✗(N/A) 8=✓",
+      "rules_applied": ["R12:✓(enumerated writers of ticks: pushTick, shiftTick, modifyTick)", "R10:✓(owner-only, so Low)"],
+      "depth_evidence": ["[TRACE:modifyTick(TR_B,k)->ticks[k]=TR_B, aTR_A balance unchanged and unreachable]"],
+      "missing_precondition": "",
+      "postconditions_created": ["orphaned aToken position"],
+      "who_benefits": "Depositor entering during the understated-TVL window"
+    }
+  }
+]

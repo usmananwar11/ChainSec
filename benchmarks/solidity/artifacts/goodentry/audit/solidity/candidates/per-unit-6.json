@@ -1,0 +1,130 @@
+[
+ {
+  "id": "PC6-1",
+  "chain": "solidity",
+  "title": "LPOracle.latestAnswer multiplies a*b*priceA unscaled in uint256 and reverts for large pools",
+  "severity": "Low",
+  "category": "arithmetic",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/helper/LPOracle.sol",
+    "line_start": 88,
+    "line_end": 93,
+    "unit": "LPOracle",
+    "function": "latestAnswer"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "LPOracle"
+  },
+  "description": "Discovery: per-unit step 3 (boundary values). a and b are uint112 reserves, so a*b can reach 2^224; multiplying by an 8-decimal price (and 10**(decB-decA)) before the sqrt overflows 2^256 for pools with large raw reserves (high-supply or high-decimals tokens). The code comment acknowledges the overflow but the mitigation only covers the decimals ratio.",
+  "root_cause": "a * b * priceA is computed in full before division and sqrt; checked arithmetic reverts on overflow.",
+  "vulnerable_code": "norm_b = sqrt( a * b * priceA * 10**(decimalsB-decimalsA) / priceB );",
+  "harm": {
+   "who": "lending market consuming the LP oracle",
+   "loses_what": "price availability: borrows, withdrawals and liquidations of LP collateral revert",
+   "magnitude": "all positions collateralised by the affected LP"
+  },
+  "exploit_trace": [
+   "1. LP pool reserves a,b grow so a*b*priceA > 2^256 (e.g. a*b ~ 1e66 raw units).",
+   "2. latestAnswer() reverts with Panic(0x11).",
+   "3. Result: oracle consumers cannot price the LP token."
+  ],
+  "preconditions": [
+   {
+    "text": "pair reserves large enough that a*b*priceA exceeds 2^256",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "oracle reverts for the LP token",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(N/A)",
+   "rules_applied": [
+    "R10:\u2713",
+    "R16:\u2713"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:a=b=2^112 \u2192 a*b=2^224, *priceA(~2^37) > 2^256 \u2192 revert]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "oracle reverts for the LP token"
+   ],
+   "who_benefits": "none (liveness failure)"
+  }
+ },
+ {
+  "id": "PC6-2",
+  "chain": "solidity",
+  "title": "OracleConvert.latestRoundData reports block.timestamp and max round ids, hiding stale or non-positive component feeds",
+  "severity": "Low",
+  "category": "oracle",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/helper/OracleConvert.sol",
+    "line_start": 50,
+    "line_end": 80,
+    "unit": "OracleConvert",
+    "function": "latestRoundData"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "OracleConvert"
+  },
+  "description": "Discovery: per-unit step 3 and 2. getAnswer only checks updatedAt > 0 and does not check price > 0 or freshness. latestAnswer casts int to uint (negative becomes huge, causing revert or absurd product; zero yields price 0). latestRoundData then returns updatedAt = block.timestamp and answeredInRound = type(uint80).max, so any consumer doing a standard staleness / round-completeness check on this oracle always passes even if the underlying feeds are stale.",
+  "root_cause": "Composite round data is synthesised from the current block instead of from the component feeds' updatedAt/round data; component price sign/zero not validated.",
+  "vulnerable_code": "uint priceA = uint(getAnswer(CL_TOKENA)); ... return (type(uint80).max, latestAnswer(), block.timestamp, block.timestamp, type(uint80).max);",
+  "harm": {
+   "who": "protocols consuming OracleConvert via latestRoundData",
+   "loses_what": "staleness protection; collateral/debt valued at stale or zero prices",
+   "magnitude": "depends on feed staleness"
+  },
+  "exploit_trace": [
+   "1. One component Chainlink feed stops updating (or returns 0).",
+   "2. Consumer calls latestRoundData(); updatedAt == block.timestamp so freshness check passes.",
+   "3. Result: stale or zero composite price is accepted."
+  ],
+  "preconditions": [
+   {
+    "text": "a component feed is stale or returns <=0 and consumer relies on latestRoundData freshness",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "stale/zero price accepted as fresh",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(N/A)",
+   "rules_applied": [
+    "R10:\u2713",
+    "R16:\u2713"
+   ],
+   "depth_evidence": [
+    "[TRACE:feed stale \u2192 latestAnswer uses old price \u2192 latestRoundData updatedAt=now]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "stale/zero price accepted as fresh"
+   ],
+   "who_benefits": "none (liveness failure)"
+  }
+ }
+]

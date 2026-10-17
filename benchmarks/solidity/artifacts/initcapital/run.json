@@ -1,0 +1,159 @@
+{
+  "recorded_on": "2026-10-17",
+  "audit_date": "2026-10-16",
+  "status": "audit-complete-ungraded",
+  "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+  "skill_comparison": "Recovered installed skills compared with repository tree on recording date. Differences listed below. Generated Python bytecode excluded.",
+  "skill_differences": [
+    "chainsec/chains/solidity/pack.json"
+  ],
+  "runtime": "Claude Code 2.1.300",
+  "model": "claude-sonnet-5-5",
+  "session_id": "3343512d-1ad7-472c-a2dc-8cc8e70a072b",
+  "started_utc": "2026-10-16T07:16:39.889116+00:00",
+  "elapsed_to_last_timestamp_seconds": 1749.25,
+  "elapsed_note": "Launch to last timestamped transcript event, including any post-report wakeups; not summed API durations.",
+  "facts_mode": "compiler",
+  "preflight": {
+    "chain": "solidity",
+    "mode": "degraded",
+    "tools": {
+      "python3": "OK Python 3.14.6",
+      "forge": "OK 1.7.1",
+      "slither": "MISSING"
+    },
+    "scope_files": 17,
+    "quick": false,
+    "warnings": [
+      "slither not installed: degraded mode, no static-analysis pre-scan",
+      "facts mode is compiler: initial forge build failed (missing OZ 4.9.3 + forge-std), so OZ 4.9.3 (npm) and forge-std v1.9.7 were installed into gitignored contracts/.cache and lib/ and the extractor was re-run",
+      "per-unit: cluster 6 output had depth_evidence as a string; coerced to a list mechanically before merge",
+      "per-unit/state phases ran concurrently (state reads only detect.json); no executable PoCs were run (critic is trace-only)",
+      "AccessControlManager/UnderACM/UncheckedIncrement/Proxy files covered by one small cluster (7); UnderACM repeated in clusters as parent context"
+    ],
+    "incomplete_phases": []
+  },
+  "validation": {
+    "command": "python3 plugins/chainsec/skills/chainsec/scripts/validate-findings.py <artifact>/audit/solidity/findings.json",
+    "exit_code": 0,
+    "output": "[]"
+  },
+  "dispatch": [
+    {
+      "tool": "Agent",
+      "description": "ChainSec Pass 1 detector",
+      "message_id": "msg_011Cg5WUZQdu27SRDK4EGFTS"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens A",
+      "message_id": "msg_011Cg5X6fE8r58qAjhT8gbmU"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens B",
+      "message_id": "msg_011Cg5X6fE8r58qAjhT8gbmU"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens C",
+      "message_id": "msg_011Cg5X6fE8r58qAjhT8gbmU"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens D",
+      "message_id": "msg_011Cg5X6fE8r58qAjhT8gbmU"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec rescan",
+      "message_id": "msg_011Cg5XhpK4TiMyCxMvQtdKS"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 1",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 2",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 3",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 4",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 5",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 6",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 7",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec state auditor",
+      "message_id": "msg_011Cg5Xx3DLe17RtiHy9EBJM"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec critic",
+      "message_id": "msg_011Cg5YAzn6daqNYbkq12WUe"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec reporter",
+      "message_id": "msg_011Cg5YSH7HDLTdzkusypaWu"
+    }
+  ],
+  "transcript_local_path": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/initcapital.jsonl",
+  "transcript_sha256": "023056bfbd283d61fdf56443ed97f3dea5e02ce9bddd65d86f4f968daabd398b",
+  "artifact_sha256": {
+    "audit/METHODOLOGY.md": "e86fdd9828999a53de76c1ac468390a350e714101e91a2474cfadbe852843f56",
+    "audit/chains.json": "d8023d71c256f50a514e8a37c70dcb47da154e0d24e279d3c96361d3812584a4",
+    "audit/findings.json": "5c71cd4e729906511686551e3ffa128c7ca6a7c431ed2415f8337843b4e42933",
+    "audit/report.md": "2d25c380ed30e61c76de57f1eaf9111d0d53446b3f093dbffc81a960984da814",
+    "audit/solidity/candidates/detect-A.json": "5f99d22fb51f639ba74733a5cd1f0ca29a8ec91d345989f13b28367945e20d85",
+    "audit/solidity/candidates/detect-B.json": "066ab47ba5f88f209a1c703188134f055345c2e2d62a268a3bb76d5a78bd96d8",
+    "audit/solidity/candidates/detect-C.json": "5704c0115846dfd1197febcb36c140a729899f275bb7576ee49ee9c3fd9cbb64",
+    "audit/solidity/candidates/detect-D.json": "3323fbb947bc52033a4ab10c2d917003ab751d447a3bbc3dc958db9b1fe9d760",
+    "audit/solidity/candidates/detect-P1.json": "8a5b14a26ac400e6e7d12f13b108dadd3e0f5ca7af787099af15d33ae6ce159d",
+    "audit/solidity/candidates/detect.json": "e9336a56a8f6644f0100ec80133209c30a0e800bd503db00e86aba8dd42e500d",
+    "audit/solidity/candidates/per-unit-1.json": "b403ef7b85939ffe2480b80d71e562543ebf4b4fdbdb5d91ac6a855325430b83",
+    "audit/solidity/candidates/per-unit-2.json": "8de9113958c6324f51946859b55c7f4b9403b85cc94834a7d3b1f5fbaaa4a9e9",
+    "audit/solidity/candidates/per-unit-3.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/per-unit-4.json": "1cb37900b6f4434bec976d2e4867524a28ed4b932a1488794a923eb178440182",
+    "audit/solidity/candidates/per-unit-5.json": "51b30bbc410c0bb05fb121eb897916e00a529e1df60d9c6f2ce0795c2e5edca9",
+    "audit/solidity/candidates/per-unit-6.json": "1648ffb83a66a2b365ce0d5fea7a389556eeccc28c6996a958cafcaf13241ed4",
+    "audit/solidity/candidates/per-unit-7.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/per-unit.json": "02712bba8ec7077266e5f14175742c7acc164d7f0cd3464e86aaef50f778b183",
+    "audit/solidity/candidates/rescan.json": "047db275e830cddf5515984cb04025bd0dee0037d6a0783f242df0442d23a014",
+    "audit/solidity/candidates/state.json": "2c27f3ec4c8b828ff6e7a7151d43d8f652c08f9e187728a70cb9a2d0ccb3b699",
+    "audit/solidity/clusters.json": "99bccd61b3f8c7c3e5d700af46295473c543d2923e7ae205eb3a68c241f0e16c",
+    "audit/solidity/facts.json": "32f10594002610134c9334defced6193d66ac1fa345c01048be36871190b9588",
+    "audit/solidity/findings.json": "04b9c0f7d578d31c6e6e74d5acc7800c670a5ee31acc7a1a9402e8359025657b",
+    "audit/solidity/known-issues.md": "b4f91e7a87c8dd11ab968db360e40881545247aef6e873d89b3272b1ecaf8629",
+    "audit/solidity/pass1-brief.md": "c32021626dc03364ae6a2257bfb24906ca245c81ad6f21bb8f23cdf50f9341ec",
+    "audit/solidity/preflight.json": "6a78472d8002632c9371d47c52994e7c1c4daa06dbc1f6839407922774485e1c",
+    "audit/solidity/recon.md": "1ddc1ef22a045ced8ac80539bfd5a8598d9f6f193d21fe8332b8cb2df704191a",
+    "audit/solidity/report.md": "2d25c380ed30e61c76de57f1eaf9111d0d53446b3f093dbffc81a960984da814",
+    "audit/solidity/risk.json": "27b7f821dadf11d018bc5fcf258c218b7dd6e16a4d4e0aae1b484fa6fca18b7c",
+    "audit/solidity/verdicts.json": "edca92c3e8dff13933ec12fb60900f3a3bfb78a848978512dff5b20ff746f98f"
+  },
+  "target_commit": "a53e401529451b208095b3af11862984d0b32177",
+  "provenance_note": "launch-record.json preserves older setup metadata, including October 14 started_utc. Normalized launch time above uses October 16 process-start epoch; runtime comes from transcript init. No grading or independent finding verification performed during recovery."
+}

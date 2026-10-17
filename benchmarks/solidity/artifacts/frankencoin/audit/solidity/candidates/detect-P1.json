@@ -1,0 +1,186 @@
+[
+  {
+    "id": "DP1-1",
+    "chain": "solidity",
+    "title": "Self-challenge of an overpriced position pays a reserve-funded reward and forgives the owner's debt (no bidder, loss minted via notifyLoss)",
+    "severity": "High",
+    "category": "economic-design",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 252, "line_end": 276, "unit": "MintingHub", "function": "end"},
+      {"file": "contracts/Position.sol", "line_start": 329, "line_end": 354, "unit": "Position", "function": "notifyChallengeSucceeded"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q4.5 / Q3.2 / ECON-02 (value derived from an owner-controlled parameter). The challenger reward (2% of volume) and the repayment are computed from volume = position.price * size, where price is set by the position owner. When no bidder averts the challenge, effectiveBid is 0 and hub calls zchf.notifyLoss(reward + repayment), which transfers from the equity reserve and mints the rest. The end() caller (anyone when there is no bidder) also receives the position's collateral. The owner (or a colluding second address) can therefore set a price slightly above market (nobody will pay price*size to avert), mint M ZCHF, then challenge and call end() himself: his own collateral comes back, his debt M is burned out of reserve/minted funds, and he collects a 2% reward on price*size.",
+    "root_cause": "Reward and repayment are tied to the owner-chosen liquidation price rather than to the realised bid, and any shortfall versus the (possibly zero) bid is covered by notifyLoss (reserve, then fresh mint). There is no cap by market value and no protection against the owner being the challenger or the end() caller.",
+    "vulnerable_code": "uint256 reward = (volume * CHALLENGER_REWARD) / 1000_000;\nuint256 fundsNeeded = reward + repayment;\nif (effectiveBid > fundsNeeded){\n    zchf.transfer(owner, effectiveBid - fundsNeeded);\n} else if (effectiveBid < fundsNeeded){\n    zchf.notifyLoss(fundsNeeded - effectiveBid); // ensure we have enough to pay everything\n}\nzchf.transfer(challenge.challenger, reward);\n---\nuint256 volumeZCHF = _mulD18(price, _size);\nuint256 repayment = minted < volumeZCHF ? minted : volumeZCHF;",
+    "harm": {"who": "FPS holders (equity reserve) and all ZCHF holders (dilution by minted loss cover)", "loses_what": "reserve ZCHF equal to the owner's minted debt plus 2% of price*size per challenge, or newly minted unbacked ZCHF", "magnitude": "up to position.minted plus 2% of price*collateral per self-challenge"},
+    "exploit_trace": [
+      "1. Attacker opens (or clones) a position with price slightly above market and, after the init period, mints M ZCHF against collateral C.",
+      "2. A second attacker address calls launchChallenge(position, size) with its own collateral; no honest bidder bids because price*size exceeds market value.",
+      "3. After challengePeriod the attacker calls end(n): returnCollateral gives the challenger his own collateral back, recipient = msg.sender receives the position collateral C, effectiveBid = 0.",
+      "4. fundsNeeded = 2%*price*size + min(minted, price*size); hub calls zchf.notifyLoss(fundsNeeded), draining the equity reserve (then minting), pays the reward to the challenger and burns the repayment.",
+      "5. Result: attacker keeps M ZCHF and C and the reward; reserve/FPS holders absorb the loss."
+    ],
+    "preconditions": [
+      {"text": "position price above market so nobody averts; governance did not veto in the init period (or the position is a clone, which has no veto window)", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "equity reserve reduced / ZCHF supply inflated by the loss cover", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(single call path)", "R10:✓(worst state: large minted, no bids)", "R11:✗(no unsolicited tokens)", "R12:✓(enablers: price raise, clone, no bidder)", "R15:✗(not flash-loan based)", "R16:✗(no oracle, price is owner-set)"],
+      "depth_evidence": ["[TRACE:end()->notifyChallengeSucceeded(msg.sender,0,size)->notifyLoss(fundsNeeded)->reward to challenger]", "[BOUNDARY:bid=0 -> effectiveBid=0, fundsNeeded fully covered by reserve/mint]"],
+      "missing_precondition": "",
+      "postconditions_created": ["equity reserve reduced / ZCHF supply inflated by the loss cover"],
+      "who_benefits": "Position owner / challenger (same entity)"
+    }
+  },
+  {
+    "id": "DP1-2",
+    "chain": "solidity",
+    "title": "Owner can raise the liquidation price at any time (only a 3-day cooldown) and clones skip the veto window, allowing unbacked minting up to the limit",
+    "severity": "High",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Position.sol", "line_start": 159, "line_end": 167, "unit": "Position", "function": "adjustPrice"},
+      {"file": "contracts/Position.sol", "line_start": 76, "line_end": 86, "unit": "Position", "function": "initializeClone"},
+      {"file": "contracts/MintingHub.sol", "line_start": 124, "line_end": 132, "unit": "MintingHub", "function": "clonePosition"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q3.1 / Q1.4 (sufficiency of the check). Governance's only protection against a bad price is the veto during the first 3 days (Position.deny, start check). adjustPrice() allows increasing the price without any collateral check or governance hook; it only triggers restrictMinting(3 days). A clone is created without veto window (cooldown storage starts at 0, no OPENING_FEE) and gets price = _mint*1e18/_coll, which is 0 for _mint = 0; the clone owner can then raise the price arbitrarily. After 3 days the owner mints up to the clone's limit against dust collateral.",
+    "root_cause": "The price used by checkCollateral() is fully owner-controlled after the veto period, so the collateral invariant 'collateral * price >= minted' can be made trivially true; vetting by governance applies only at position creation, not to later price changes or clones.",
+    "vulnerable_code": "function adjustPrice(uint256 newPrice) public onlyOwner noChallenge {\n    if (newPrice > price) {\n        restrictMinting(3 days);\n    } else {\n        checkCollateral(collateralBalance(), newPrice);\n    }\n    price = newPrice;\n    emitUpdate();\n}",
+    "harm": {"who": "ZCHF holders and FPS holders", "loses_what": "backing of ZCHF minted against worthless collateral (up to the position/clone limit); loss falls on the reserve when the position is later liquidated", "magnitude": "up to the limit given to the clone (half of the remaining limit of the original) or the original's limit"},
+    "exploit_trace": [
+      "1. Attacker calls MintingHub.clonePosition(vettedPosition, minCollateral, 0): receives half of the remaining limit L, no veto window, price = 0.",
+      "2. Attacker calls adjustPrice(hugePrice): price increase has no collateral check, sets a 3-day mint cooldown.",
+      "3. After 3 days attacker calls mint(attacker, L): checkCollateral passes because collateral * hugePrice >= minted * 1e18.",
+      "4. Attacker keeps L ZCHF; abandoning the dust collateral leaves bad debt covered by the reserve (see DP1-1 for extracting even the collateral)."
+    ],
+    "preconditions": [
+      {"text": "no challenge during the 3-day cooldown window (challenges are possible and a challenger would be rewarded via DP1-1 mechanics)", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "unbacked ZCHF in circulation", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✓(price is cached state used by later mint)", "R10:✓(worst state: max limit)", "R11:✗(n/a)", "R12:✓(enablers: clone, price raise, cooldown elapsed)", "R15:✗(n/a)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:_mint=0 -> clone price = 0]", "[TRACE:adjustPrice(big)->cooldown 3d->mint(L)->checkCollateral passes]"],
+      "missing_precondition": "a challenger/auction during the cooldown that averts or liquidates",
+      "postconditions_created": ["unbacked ZCHF in circulation"],
+      "who_benefits": "Position/clone owner"
+    }
+  },
+  {
+    "id": "DP1-3",
+    "chain": "solidity",
+    "title": "Zero or dust bids pass minBid and extend a challenge indefinitely at no cost",
+    "severity": "Medium",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 188, "line_end": 190, "unit": "MintingHub", "function": "minBid"},
+      {"file": "contracts/MintingHub.sol", "line_start": 214, "line_end": 228, "unit": "MintingHub", "function": "bid"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q5.6 (math boundary check, bid = 0 / small). minBid = bid*1005/1000, which is 0 when bid = 0 and equals bid for bid < 200 wei. A bidder can call bid(n, 0, size) every <30 minutes; the 'bump remaining time' branch pushes challenge.end to now + 30 minutes each time, with nothing paid and previous bid not increased. The comment that postponing 'must increase the bid by 0.5% every 30 minutes' does not hold at zero/dust bids. A position owner can keep an undercollateralised position's challenge open forever (blocking liquidation) unless some honest party posts a real bid and escalates.",
+    "root_cause": "No absolute minimum increment: the 0.5% minimum increase rounds down to 0 for small bids, and a bid equal to the previous one is accepted and still resets the end time.",
+    "vulnerable_code": "function minBid(Challenge storage challenge) internal view returns (uint256) {\n    return (challenge.bid * 1005) / 1000;\n}\n...\nif (_bidAmountZCHF < minBid(challenge)) revert BidTooLow(_bidAmountZCHF, minBid(challenge));\nuint256 earliestEnd = block.timestamp + 30 minutes;\nif (earliestEnd >= challenge.end) {\n    challenge.end = earliestEnd;\n}",
+    "harm": {"who": "challenger and the protocol (bad debt stays open)", "loses_what": "the challenger's collateral stays locked and the liquidation of an undercollateralised position is postponed without bound", "magnitude": "indefinite per challenge; position owner pays only gas"},
+    "exploit_trace": [
+      "1. Owner of an undercollateralised position is challenged.",
+      "2. Owner calls bid(n, 0, size) (or 1 wei): tryAvertChallenge fails (bid below price*size), minBid is 0, so the call passes and sets end = now + 30 minutes if end is within 30 minutes.",
+      "3. Owner repeats every 29 minutes; the challenge never reaches end() and noChallenge keeps blocking position actions of others/clones.",
+      "4. Only a real counter-bid forces the attacker to escalate."
+    ],
+    "preconditions": [
+      {"text": "no honest party posts a non-trivial bid", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "challenge never settles", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(worst state: bid=0)", "R11:✗(n/a)", "R12:✓(enumerated 0 and sub-200 wei bids)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:bid=0 -> minBid=0]", "[BOUNDARY:bid=199 -> minBid=199]", "[TRACE:bid(n,0,size)->end bumped to now+30min]"],
+      "missing_precondition": "",
+      "postconditions_created": ["challenge never settles"],
+      "who_benefits": "Position owner under challenge"
+    }
+  },
+  {
+    "id": "DP1-4",
+    "chain": "solidity",
+    "title": "restructureCapTable always indexes addressesToWipe[0], so only the first address is ever wiped",
+    "severity": "Medium",
+    "category": "logic-error",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Equity.sol", "line_start": 309, "line_end": 316, "unit": "Equity", "function": "restructureCapTable"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q1.2 / CONST-01 (wrong index). The loop variable i is never used; each iteration reads addressesToWipe[0]. A qualified caller who passes several addresses only wipes the first one (the later iterations burn a zero balance). The recapitalisation path described in the NatSpec ('bootstrap the system again owning 100% of all FPS shares') cannot wipe many holders in one call and the extra array entries silently do nothing.",
+    "root_cause": "Typo: addressesToWipe[0] instead of addressesToWipe[i].",
+    "vulnerable_code": "for (uint256 i = 0; i<addressesToWipe.length; i++){\n    address current = addressesToWipe[0];\n    _burn(current, balanceOf(current));\n}",
+    "harm": {"who": "qualified FPS holders trying to recapitalise the system", "loses_what": "ability to wipe passive holders in the restructuring call; they must call the function once per address (and repeat the qualification check)", "magnitude": "liveness/cost of the last-resort recovery path"},
+    "exploit_trace": [
+      "1. Equity < 1000 ZCHF; a qualified holder calls restructureCapTable(helpers, [A, B, C]).",
+      "2. Iterations 0, 1, 2 all burn balanceOf(A); B and C are untouched.",
+      "3. Passive holders B and C retain FPS and dilute the recapitalisers."
+    ],
+    "preconditions": [
+      {"text": "zchf.equity() < MINIMUM_EQUITY", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "unwiped holders keep their FPS shares", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(assessed with multi-address list)", "R11:✗(n/a)", "R12:✗(n/a)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[TRACE:addressesToWipe=[A,B]->burn(A) twice]"],
+      "missing_precondition": "",
+      "postconditions_created": ["unwiped holders keep their FPS shares"],
+      "who_benefits": "Passive FPS holders"
+    }
+  },
+  {
+    "id": "DP1-5",
+    "chain": "solidity",
+    "title": "Zero-mint clones each take half of the remaining limit of a position (limit stealing / griefing)",
+    "severity": "Medium",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Position.sol", "line_start": 97, "line_end": 101, "unit": "Position", "function": "reduceLimitForClone"},
+      {"file": "contracts/MintingHub.sol", "line_start": 124, "line_end": 132, "unit": "MintingHub", "function": "clonePosition"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q5.3 (called repeatedly) / Q3.1. clonePosition is permissionless and charges no fee. With _initialMint = 0, reduceLimitForClone transfers (limit - minted)/2 of the original's limit to the clone. Repeating with minimum collateral halves the original's remaining capacity each time (n clones leave L/2^n); the captured limit sits in clones owned by the attacker, who can use it (see DP1-2) or just starve the original owner and any later cloner.",
+    "root_cause": "The limit moved to a clone is not tied to the collateral or mint the cloner actually provides, and cloning costs no fee.",
+    "vulnerable_code": "uint256 reduction = (limit - minted - _minimum)/2;\nlimit -= reduction + _minimum;\nreturn reduction + _minimum;",
+    "harm": {"who": "the original position owner and honest cloners", "loses_what": "available minting capacity of the position they paid the opening fee for", "magnitude": "all but L/2^n of the remaining limit after n clones"},
+    "exploit_trace": [
+      "1. Attacker calls clonePosition(P, minCollateral, 0) n times (original not challenged, not in cooldown).",
+      "2. Each call moves half of P's remaining limit to the attacker's clone.",
+      "3. P's owner can now mint only L/2^n; the attacker owns clones with the captured limit."
+    ],
+    "preconditions": [
+      {"text": "position is past its init period, not expired, not challenged", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "limit concentrated in attacker-owned clones", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(n clones)", "R11:✗(n/a)", "R12:✗(n/a)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[VARIATION:n=1->L/2, n=2->L/4, n=10->L/1024]"],
+      "missing_precondition": "",
+      "postconditions_created": ["limit concentrated in attacker-owned clones"],
+      "who_benefits": "Attacker"
+    }
+  }
+]

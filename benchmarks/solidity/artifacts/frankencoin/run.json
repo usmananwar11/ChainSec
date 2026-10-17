@@ -1,0 +1,144 @@
+{
+  "recorded_on": "2026-10-17",
+  "audit_date": "2026-10-16",
+  "status": "audit-complete-ungraded",
+  "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+  "skill_comparison": "Recovered installed skills compared with repository tree on recording date. Differences listed below. Generated Python bytecode excluded.",
+  "skill_differences": [
+    "chainsec/chains/solidity/pack.json"
+  ],
+  "runtime": "Claude Code 2.1.300",
+  "model": "claude-sonnet-5-5",
+  "session_id": "d96c7903-535d-44ea-962b-568c84dfab82",
+  "started_utc": "2026-10-16T07:16:39.990053+00:00",
+  "elapsed_to_last_timestamp_seconds": 1883.29,
+  "elapsed_note": "Launch to last timestamped transcript event, including any post-report wakeups; not summed API durations.",
+  "facts_mode": "compiler",
+  "preflight": {
+    "chain": "solidity",
+    "mode": "degraded",
+    "tools": {
+      "python3": "OK Python 3.14.6",
+      "forge": "OK 1.7.1",
+      "slither": "MISSING"
+    },
+    "scope_files": 10,
+    "quick": false,
+    "warnings": [
+      "rescan reinforced DB-2: supply==0 launch path mints 1000 FPS for dust since minter application fee already satisfies MINIMUM_EQUITY",
+      "rescan reinforced DB-1: reward-from-notifyLoss drain also works on expired zero-debt positions"
+    ],
+    "incomplete_phases": []
+  },
+  "validation": {
+    "command": "python3 plugins/chainsec/skills/chainsec/scripts/validate-findings.py <artifact>/audit/solidity/findings.json",
+    "exit_code": 0,
+    "output": "[]"
+  },
+  "dispatch": [
+    {
+      "tool": "Agent",
+      "description": "ChainSec Pass 1 detect",
+      "message_id": "msg_011Cg5WQnjicJv1siDHzg823"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens A",
+      "message_id": "msg_011Cg5WtizX7kaPwbyu97jBp"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens B",
+      "message_id": "msg_011Cg5WtizX7kaPwbyu97jBp"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens C",
+      "message_id": "msg_011Cg5WtizX7kaPwbyu97jBp"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec lens D",
+      "message_id": "msg_011Cg5WtizX7kaPwbyu97jBp"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec rescan",
+      "message_id": "msg_011Cg5XQ6cLsoD86JLCBwkVp"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 1",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 2",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 3",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 4",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec per-unit 5",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec state auditor",
+      "message_id": "msg_011Cg5XwnamPsgWfrkH4YE7i"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec critic verify",
+      "message_id": "msg_011Cg5YEtj5P8Pj9BvEvWFAn"
+    },
+    {
+      "tool": "Agent",
+      "description": "ChainSec reporter",
+      "message_id": "msg_011Cg5YcFiUTt4hN6T7No8ch"
+    }
+  ],
+  "transcript_local_path": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/frankencoin.jsonl",
+  "transcript_sha256": "1458a4a604beb9b3c6277d1350a0947f5a9c1461863fac2261d5d456c19021cd",
+  "artifact_sha256": {
+    "audit/METHODOLOGY.md": "7b949fd4cfe205baba82b7de3dd80f02a758111a16928a89e011ba7110dfedc7",
+    "audit/chains.json": "d8023d71c256f50a514e8a37c70dcb47da154e0d24e279d3c96361d3812584a4",
+    "audit/findings.json": "dda3531465ab89603571b9163ebc4bac45153079d17f11185aef4b76b828a55a",
+    "audit/report.md": "38c7ac2a21860e10e3e7efa57be78f7a553d8ebb4d635dca9eb9efa4a81257d5",
+    "audit/solidity/candidates/detect-A.json": "407d76af0c5d34ce0c8321dd7cfdb0712b99f42507423c1e7ea6bcd6a4cc7a14",
+    "audit/solidity/candidates/detect-B.json": "3b6085344f498a678199567318917e4b080addd3f12d793040dd0494740cc611",
+    "audit/solidity/candidates/detect-C.json": "0f04823cb71235650467690d87e2561bdedeb67f1c5ab308a0ee40230c4fba25",
+    "audit/solidity/candidates/detect-D.json": "af224df8b1ccf391cf9de4ddcf8ff6a91f63639bebde47c14556d58310446250",
+    "audit/solidity/candidates/detect-P1.json": "79e43e85509402a5c37a5b1fca72b3744216d3b671cd603dff8b8649c305baff",
+    "audit/solidity/candidates/detect.json": "b069e1e943f3e33c4447a5227eaedf3d093e067a5ea86e23e226567ad62302ca",
+    "audit/solidity/candidates/per-unit-1.json": "0ae82355f65a25a4f98e0bc2e11bac588169d03e7fa95d3fc543c8c5ff30f204",
+    "audit/solidity/candidates/per-unit-2.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/per-unit-3.json": "d971e13a321f3e9df03e3c05b10022571772a1dac83fb4f1d0ad6a6e6ad7162b",
+    "audit/solidity/candidates/per-unit-4.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/per-unit-5.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/per-unit.json": "594db20b326a6901098036bf140431ec3371e1c62911b32cda648727eb217ffd",
+    "audit/solidity/candidates/rescan.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "audit/solidity/candidates/state.json": "30c2e734af9fc1cbd061417610370d671295958602b0bbfad95cde64b886ba3e",
+    "audit/solidity/clusters.json": "17325fb034850e3b33411db0b7fc5dc6ee21ae5f0d9f793710d5e13689856747",
+    "audit/solidity/facts.json": "bd20c1356244a1b123f72ce382cc1f8fa8f9733e0d4d9383cd1b0c2ecc8f1de8",
+    "audit/solidity/findings.json": "f56a31fe4543dbec3beea75d2d0d7cbcb6431f8270d2b757f24046758fd93575",
+    "audit/solidity/known-issues.md": "5078dcfa2f93009fb49362d45c571eb00b1bf8508c059e1d7f9460b3758d7e6f",
+    "audit/solidity/pass1-brief.md": "69400ddf0aa10f66dd9fccb54b476f3e69682715fb00aac267d5804e8d38d071",
+    "audit/solidity/preflight.json": "5a6d3e7e4374b9b38fda8d47724fb0885e5cdb8e15dfdfb93f350c76fa795f67",
+    "audit/solidity/recon.md": "dd83fbb7634baa3e9e6c02e54d8020bdb5f5ef0ec9093c8e0a908a0e607fc6eb",
+    "audit/solidity/report.md": "38c7ac2a21860e10e3e7efa57be78f7a553d8ebb4d635dca9eb9efa4a81257d5",
+    "audit/solidity/risk.json": "8611601615b7e037bbe3c56350f41f4cec8af70af7a4516a21405ababf8e90e1",
+    "audit/solidity/verdicts.json": "a1b704930e27bdc9f414a3e5c281e67774bb63f7b44eb9d6c587df379837620d"
+  },
+  "target_commit": "1022cb106919fba963a89205d3b90bf62543f68f",
+  "provenance_note": "launch-record.json preserves older setup metadata, including October 14 started_utc. Normalized launch time above uses October 16 process-start epoch; runtime comes from transcript init. No grading or independent finding verification performed during recovery."
+}

@@ -1,0 +1,126 @@
+[
+ {
+  "id": "STATE-1",
+  "chain": "solidity",
+  "title": "StablecoinBridge enforces its mint limit on raw source-token balance, not on ZCHF minted, so donated XCHF permanently consumes mint capacity",
+  "severity": "Low",
+  "category": "state-desync",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/StablecoinBridge.sol",
+    "line_start": 49,
+    "line_end": 52,
+    "unit": "StablecoinBridge",
+    "function": "mintInternal"
+   }
+  ],
+  "discovery": {
+   "phase": "state",
+   "lens": null,
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": "StablecoinBridge"
+  },
+  "description": "Coupled Pair: chf.balanceOf(bridge) ↔ ZCHF minted through the bridge\nBreaking Operation: direct chf.transfer(bridge, x) (no bridge function runs)\nMasking Code: require(chf.balanceOf(address(this)) <= limit)\nThe bridge has no minted counter; it infers outstanding ZCHF from its XCHF balance. XCHF sent straight to the bridge raises the balance without any ZCHF being minted, so the limit check then rejects legitimate mints.",
+  "root_cause": "Invariant: XCHF held == ZCHF minted by the bridge (minus burned). A plain token transfer into the bridge breaks it, and the limit check trusts the balance. The surplus XCHF can only leave via ZCHF burns, so the capacity is lost until holders burn.",
+  "vulnerable_code": "require(chf.balanceOf(address(this)) <= limit, \"limit\");\nzchf.mint(target, amount);",
+  "harm": {
+   "who": "users of the bridge",
+   "loses_what": "availability of mint capacity (DoS up to limit)",
+   "magnitude": "attacker must donate up to limit minus current balance in XCHF, recoverable only by ZCHF burners"
+  },
+  "exploit_trace": [
+   "1. Bridge limit L, balance B.",
+   "2. Attacker transfers L-B XCHF directly to the bridge.",
+   "3. Any mint(amount>0) now fails the limit check; no ZCHF backs the donated XCHF.",
+   "4. Capacity returns only as ZCHF holders burn and withdraw the donated XCHF."
+  ],
+  "preconditions": [
+   {
+    "text": "attacker holds XCHF equal to the remaining limit",
+    "type": "BALANCE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "bridge mint path blocked",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✓ 5=✓ 6=✗(N/A) 7=✓ 8=✓",
+   "rules_applied": [
+    "R12:✓(enumerated writers)"
+   ],
+   "depth_evidence": [
+    "[TRACE:chf.transfer(bridge,L-B)->mint reverts 'limit']"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "No direct profit; griefing"
+  }
+ },
+ {
+  "id": "STATE-2",
+  "chain": "solidity",
+  "title": "Equity voteAnchor doubles as holding-duration clock, so anyone can reset a holder's redeem eligibility by sending them freshly acquired FPS",
+  "severity": "Low",
+  "category": "state-desync",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/Equity.sol",
+    "line_start": 135,
+    "line_end": 167,
+    "unit": "Equity",
+    "function": "adjustRecipientVoteAnchor"
+   }
+  ],
+  "discovery": {
+   "phase": "state",
+   "lens": null,
+   "mindset": "attacker",
+   "consensus": null,
+   "unit": "Equity"
+  },
+  "description": "Coupled Pair: balanceOf[holder] ↔ voteAnchor[holder] (holding duration used by canRedeem)\nBreaking Operation: _beforeTokenTransfer() on an inbound transfer from a third party\nThe recipient's anchor is moved to the balance-weighted average on every inbound transfer, with no consent from the recipient. canRedeem() reads the same anchor to enforce the 90-day minimum holding, so unsolicited transfers shorten a victim's average holding time.",
+  "root_cause": "Invariant: a holder's average holding age reflects only shares they chose to acquire. The anchor is updated for any incoming transfer, so a third party can drive anchorTime - voteAnchor below MIN_HOLDING_DURATION and block redeem() until the new average ages.",
+  "vulnerable_code": "voteAnchor[to] = uint64(anchorTime() - recipientVotes / newbalance);",
+  "harm": {
+   "who": "FPS holders near the 90-day threshold",
+   "loses_what": "ability to redeem for up to ~90 days",
+   "magnitude": "attacker must give away the transferred FPS; a holder only slightly past the threshold needs little"
+  },
+  "exploit_trace": [
+   "1. Victim holds B FPS with average age just above 90 days.",
+   "2. Attacker sends x freshly acquired FPS to victim.",
+   "3. Victim anchor moves to age*B/(B+x) < 90 days.",
+   "4. canRedeem(victim) is false and redeem() reverts until the average ages again."
+  ],
+  "preconditions": [
+   {
+    "text": "victim average holding age close to or above threshold",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim redemption blocked temporarily",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✓ 5=✓ 6=✗(N/A) 7=✓ 8=✓",
+   "rules_applied": [
+    "R12:✓(enumerated writers)"
+   ],
+   "depth_evidence": [
+    "[TRACE:inbound transfer->voteAnchor[victim] moved forward->canRedeem false]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "No direct profit; griefing"
+  }
+ }
+]

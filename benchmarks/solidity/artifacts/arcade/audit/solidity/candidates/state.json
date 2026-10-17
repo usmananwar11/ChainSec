@@ -1,0 +1,41 @@
+[
+  {
+    "id": "STATE-1",
+    "chain": "solidity",
+    "title": "NFTBoostVault.delegate() lets an address with no registration write registration.delegatee, creating an empty registration that blocks addNftAndDelegate and pins the airdrop delegatee",
+    "severity": "Low",
+    "category": "state-desync",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/NFTBoostVault.sol", "line_start": 182, "line_end": 212, "unit": "NFTBoostVault", "function": "delegate"},
+      {"file": "contracts/NFTBoostVault.sol", "line_start": 462, "line_end": 488, "unit": "NFTBoostVault", "function": "_registerAndDelegate"},
+      {"file": "contracts/NFTBoostVault.sol", "line_start": 139, "line_end": 172, "unit": "NFTBoostVault", "function": "airdropReceive"}
+    ],
+    "discovery": {"phase": "state", "lens": null, "mindset": "accountant", "consensus": null, "unit": "NFTBoostVault"},
+    "description": "Coupled Pair: registration.delegatee ↔ registration.amount\nBreaking Operation: delegate()\nCross-Feed: DA-1\nThe contract uses registration.delegatee != address(0) as the 'registration exists' flag (addTokens, updateNft, _registerAndDelegate, airdropReceive all test it). delegate() sets registration.delegatee = to without requiring amount > 0, so a caller with no deposit ends with delegatee != 0 and amount == 0. The flag and the amount then disagree.",
+    "root_cause": "Invariant: registration.delegatee != address(0) iff registration.amount > 0 (an existing registration holds tokens). delegate() only checks 'to != 0' and 'to != current delegatee', then unconditionally assigns registration.delegatee = to, so the 'exists' flag can be set with zero amount.",
+    "vulnerable_code": "NFTBoostVaultStorage.Registration storage registration = _getRegistrations()[msg.sender];\nif (to == registration.delegatee) revert NBV_AlreadyDelegated();\n...\nregistration.latestVotingPower = uint128(addedVotingPower);\nregistration.delegatee = to;",
+    "harm": {
+      "who": "the caller itself (e.g. an airdrop recipient or prospective depositor who calls delegate() before registering)",
+      "loses_what": "ability to use addNftAndDelegate (reverts NBV_HasRegistration) and to claim the airdrop with any delegatee other than the one pinned (airdropReceive reverts NBV_WrongDelegatee); recovery is via addTokens/updateNft or by claiming with the same delegatee",
+      "magnitude": "self-inflicted liveness issue only; no funds lost and no third party can trigger it for another account"
+    },
+    "exploit_trace": [
+      "1. User U has no registration (delegatee == 0, amount == 0) and is in the airdrop tree.",
+      "2. U calls delegate(X); history pushes are zero-value, registration.delegatee becomes X while amount stays 0.",
+      "3. U calls addNftAndDelegate(...): _registerAndDelegate sees delegatee != 0 and reverts NBV_HasRegistration, so U cannot register with an NFT in one step.",
+      "4. U calls ArcadeAirdrop.claimAndDelegate(Y, ...) with Y != X: airdropReceive takes the else branch and reverts NBV_WrongDelegatee(Y, X); U must claim with delegatee X."
+    ],
+    "preconditions": [{"text": "caller invokes delegate() before having any registration", "type": "ACCESS"}],
+    "postconditions": [{"text": "an empty registration with a non-zero delegatee exists for the caller", "type": "STATE"}],
+    "recommendation": "Revert delegate() when registration.amount == 0 (or delegatee == address(0)).",
+    "audit_trail": {
+      "step_execution": "Phases: 1=✓ 2=✓ 3=✓ 4=✓ 5=✓ 6=✓ 7=✗(no masking found) 8=✓",
+      "rules_applied": ["R8:✓(delegate then register/claim sequence)", "R10:✓", "R11:✗", "R12:✓(enumerated writers of registration.delegatee: _registerAndDelegate, delegate, withdraw)", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[TRACE:delegate(X) with no registration -> delegatee=X, amount=0 -> addNftAndDelegate reverts NBV_HasRegistration]"],
+      "missing_precondition": "",
+      "postconditions_created": ["empty registration with non-zero delegatee"],
+      "who_benefits": "No one; self-inflicted"
+    }
+  }
+]

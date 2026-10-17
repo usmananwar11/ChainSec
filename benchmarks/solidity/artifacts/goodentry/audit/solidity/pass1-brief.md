@@ -1,0 +1,22 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - DP1-1 | contracts/PositionManager/OptionsPositionManager.sol:38-79,159-177 | High | executeOperation ignores initiator; anyone can call lendingPool.flashLoan(OPM, mode 2, onBehalfOf=victim with credit delegation, params.user=attacker) and receive the collateral
+  - DP1-2 | contracts/PositionManager/OptionsPositionManager.sol:223-241,275-304,491-504 | High | close() is permissionless for any `user`: pulls the user's full aToken balances, 1% fee to treasury, swapTokensForExactTokens maxAmount = user's whole balance (sandwichable)
+  - DP1-3 | contracts/GeVault.sol:202-206,214-241,392-398 | High | getTVL ignores idle balances; with isEnabled=false rebalance/withdraw park funds idle, later withdrawals pay 0
+  - DP1-4 | contracts/helper/V3Proxy.sol:124-135,160-176 | High | swapTokensForExactETH never refunds unspent amountInMax; swapTokensForExactTokens refunds whole proxy balance to the caller
+  - DP1-5 | contracts/RangeManager.sol:95-102,139-142,190-207 | Medium | cleanup() sweeps entire balance to caller; TR.init refund left in RangeManager is claimable by first removeAssetsFromStep caller
+  - DP1-6 | contracts/GeVault.sol:337-363,428-438 | Medium | deployAssets reads ticks[length] when price is past the listed ticks; deposit/withdraw/rebalance DoS
+  - DP1-7 | contracts/TokenisableRange.sol:222-227,292-327 | Medium | TR can reach totalSupply 0 (vault withdraws last supply) and then deposit reverts "TR Closed" permanently
+- Files with NO candidates: contracts/PositionManager/PositionManager.sol, contracts/RoeRouter.sol, contracts/helper/FixedOracle.sol, contracts/helper/LPOracle.sol, contracts/helper/OracleConvert.sol, all interfaces/* (only skimmed; interfaces not read in full)
+- Suspicious areas flagged but not promoted to candidate:
+  - TokenisableRange.deposit fee branch (L237-247) uses slot0 spot to split fee vs liquidity; spot manipulation can mis-assign value between depositor and existing holders when the caller has no oracle guard (RangeManager, OPM.sellOptions, OPM.closeDebt). Not traced end to end.
+  - TokenisableRange.claimFee compounding check (L190-209) reverts on oracle/spot mismatch, so deposit/withdraw (which call claimFee) can be griefed by moving spot while fees >1% are pending.
+  - TokenisableRange.deposit/init minimums are 95% of n0/n1; sandwich on sellOptions (no checkExpectedBalances) and on buyOptions' TR.withdraw(flashAmount,0,0) with no oracle check (withdrawOptionAssets L135); narrow ranges make value impact small.
+  - GeVault idle leftovers (TR deposit refunds n0-added0, donations) are not in TVL until the next deployAssets; next depositor's share calc excludes them (small).
+  - GeVault.withdraw does not validate `token` (only oracle price must exist); payout in a single chosen token can revert if vault lacks it; payable.transfer to ETH recipients (2300 gas).
+  - PositionManager.cleanup / removeDust use balanceOf(this): stray OPM balances go to the next caller of close/liquidate/swapTokens/sellOptions; closeDebt dust TR (debt+addDust) stays in OPM.
+  - OPM executeOperation / getPoolAddresses never check RoeRouter isDeprecated.
+  - RangeManager.removeFromStep: withdraw(type(uint).max) may return less than PMTransferred amount if lending pool liquidity is short (listed in known issues); Withdraw event for ticker emits trAmt not ttAmt (cosmetic).
+  - GeVault.modifyTick/shiftTick/pushTick: replacing a tick that still holds aTokens drops it from TVL (owner action, Gate E).
+  - Floating pragma / unsafe transferFrom in TR.deposit / msg.sender.call return unchecked in V3Proxy: bot-class, treated as known.
+- Analyzer findings NOT yet covered by a candidate: none (slither skipped; A/analyzers absent)

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "DA-1",
+    "chain": "solidity",
+    "title": "Zero-weight caller can spam voting-power checkpoints for any delegatee via delegate() without holding a registration or grant",
+    "severity": "Low",
+    "category": "dos-griefing",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/NFTBoostVault.sol", "line_start": 182, "line_end": 212, "unit": "NFTBoostVault", "function": "delegate"},
+      {"file": "contracts/ARCDVestingVault.sol", "line_start": 260, "line_end": 282, "unit": "ARCDVestingVault", "function": "delegate"},
+      {"file": "contracts/external/council/libraries/History.sol", "unit": "History", "function": "findAndClear/_clear"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Lens A, GOV-02 / ZERO-WEIGHT-01 (delegation griefing, voting dust inflation). Both vaults' delegate(to) never check that msg.sender has a registration or grant. With latestVotingPower == 0 the function still executes History.push for the old delegatee (loadTop - 0) and for the new delegatee (loadTop + 0). Each call in a new block therefore appends a fresh checkpoint to the history array of any chosen address 'to' (and of the previous ghost delegatee) at zero token cost. Alternating delegate(victim) / delegate(other) lets a zero-balance attacker add one entry per block to a victim delegatee's history. Stale entries are only removed inside queryVotePower -> findAndClear -> _clear, which zeroes every stale slot in one loop (no chunking, staleBlock is fixed to block.number - staleBlockLag). If nobody calls queryVotePower for that delegatee for several thousand blocks, the single clearing loop can exceed the block gas limit, so the delegatee's queryVotePower (called by CoreVoting.vote/proposal and GSCVault membership proofs) reverts out of gas.",
+    "root_cause": "delegate() does not require an existing registration/grant (nonzero latestVotingPower) and pushes a checkpoint unconditionally, even when the amount moved is 0, while the History library clears stale entries in one unbounded loop.",
+    "vulnerable_code": "NFTBoostVaultStorage.Registration storage registration = _getRegistrations()[msg.sender];\nif (to == registration.delegatee) revert NBV_AlreadyDelegated();\nHistory.HistoricalBalances memory votingPower = _votingPower();\nuint256 oldDelegateeVotes = votingPower.loadTop(registration.delegatee);\nvotingPower.push(registration.delegatee, oldDelegateeVotes - registration.latestVotingPower);\n...\nvotingPower.push(to, newDelegateeVotes + addedVotingPower);",
+    "harm": {"who": "Active delegatees (and their delegators) in NFTBoostVault / ARCDVestingVault", "loses_what": "ability to cast votes or prove GSC membership through that vault until history is cleared or delegators re-delegate", "magnitude": "temporary governance liveness loss for a targeted delegatee; attacker cost is gas only (roughly one tx per block for several thousand blocks)"},
+    "exploit_trace": [
+      "1. Attacker (no tokens, no registration) calls NFTBoostVault.delegate(victim) in block N: pushes a checkpoint for address(0) and for victim (value unchanged).",
+      "2. In block N+1 attacker calls delegate(other); old delegatee victim gets another checkpoint. Repeat alternating every block for several thousand blocks.",
+      "3. Victim's history array now holds thousands of entries older than staleBlockLag that nobody cleared.",
+      "4. Victim calls CoreVoting.vote; queryVotePower -> findAndClear -> _clear must zero all stale slots in one transaction and runs out of gas."
+    ],
+    "preconditions": [
+      {"text": "no one calls queryVotePower for the victim delegatee for a long window (thousands of blocks), so stale entries accumulate", "type": "TIMING"},
+      {"text": "attacker pays gas for roughly one delegate tx per block", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "victim delegatee's queryVotePower becomes too expensive to execute; delegators must re-delegate", "type": "STATE"}
+    ],
+    "recommendation": "Revert delegate() when the caller has no registration/grant (delegatee == address(0) / latestVotingPower == 0), and skip pushes when the moved amount is 0.",
+    "audit_trail": {
+      "step_execution": "Lens A: Step 5=✓ Step 6=✓",
+      "rules_applied": ["R8:✓(repeated calls across blocks)", "R10:✓(worst state is thousands of uncleared stale checkpoints)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:latestVotingPower=0 caller -> push still executed]", "[VARIATION:ARCDVestingVault.delegate has same missing check and also lacks zero-address check on 'to']"],
+      "missing_precondition": "Requires ~6000+ blocks without any queryVotePower call on the victim; any user can call queryVotePower to clear earlier",
+      "postconditions_created": ["bloated checkpoint array for victim delegatee"],
+      "who_benefits": "Attacker opposing the victim delegatee's vote"
+    }
+  }
+]

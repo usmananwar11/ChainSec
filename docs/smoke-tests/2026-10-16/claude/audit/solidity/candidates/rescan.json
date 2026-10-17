@@ -1,0 +1,39 @@
+[
+  {
+    "id": "RS-1",
+    "chain": "solidity",
+    "title": "deposit() credits the requested amount without checking transferFrom's result or the amount actually received",
+    "severity": "Medium",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/Vault.sol", "line_start": 21, "line_end": 25, "unit": "Vault", "function": "deposit"},
+      {"file": "src/Vault.sol", "line_start": 36, "line_end": 42, "unit": "Vault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "rescan", "lens": null, "mindset": "spec-auditor", "consensus": null, "unit": null},
+    "description": "Discovery: rescan class 2 (asymmetric operations) and class 4 (economic edges). deposit() ignores the bool returned by token.transferFrom and credits balances and totalDeposits by the full requested amount. For a token that returns false instead of reverting (insufficient balance or allowance), or that takes a transfer fee, the credit exceeds what the vault received. withdraw() then pays out the full credited amount from other depositors' tokens. This is a different root cause from the shared ETH and token ledger in DP1-2.",
+    "root_cause": "The credit is based on the caller-supplied amount rather than on a verified or balance-delta receipt of tokens.",
+    "vulnerable_code": "token.transferFrom(msg.sender, address(this), amount);\nbalances[msg.sender] += amount;\ntotalDeposits += amount;",
+    "harm": {"who": "other ERC20 depositors", "loses_what": "deposited tokens paid out against unbacked credit", "magnitude": "up to the vault's whole token balance when the token returns false on failure"},
+    "exploit_trace": [
+      "1. Honest users deposit 1,000 token units; the vault holds 1,000.",
+      "2. Attacker with zero token balance calls deposit(1000); the token's transferFrom returns false without reverting and the return value is ignored.",
+      "3. balances[attacker] = 1000 and totalDeposits = 2000.",
+      "4. Attacker calls withdraw(1000); token.transfer sends 1,000 units of other users' tokens to the attacker."
+    ],
+    "preconditions": [
+      {"text": "the immutable token returns false on failed transferFrom, or charges a transfer fee", "type": "EXTERNAL"}
+    ],
+    "postconditions": [
+      {"text": "vault token holdings are below the sum of token credits", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Rescan: pass 1=✓ pass 2=✓",
+      "rules_applied": ["R8:✓(deposit then withdraw)", "R10:✓(assessed with a zero-balance attacker)", "R11:✓(external token return semantics)", "R12:✗(no enabler needed)", "R15:✗(no flash-loan state)", "R16:✗(no oracle dependency)"],
+      "depth_evidence": ["[BOUNDARY:attacker token balance=0, transferFrom returns false]", "[TRACE:deposit(1000)→credit 1000→withdraw(1000)→token.transfer(attacker,1000)]"],
+      "missing_precondition": "token must return false rather than revert, or be fee-on-transfer; token is unknown per recon",
+      "postconditions_created": ["vault token holdings are below the sum of token credits"],
+      "who_benefits": "Attacker"
+    }
+  }
+]

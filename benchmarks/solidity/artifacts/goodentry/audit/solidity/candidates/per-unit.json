@@ -1,0 +1,587 @@
+[
+  {
+    "id": "PC1-1",
+    "chain": "solidity",
+    "title": "OPM.executeLiquidation ignores the flashloan premium: the TR re-minted by closeDebt only covers amount plus a tiny dust, so the pool's repayment pull of amount+premium fails",
+    "severity": "Medium",
+    "category": "flashloan-repayment / accounting",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 83,
+        "line_end": 111,
+        "unit": "OptionsPositionManager",
+        "function": "executeLiquidation"
+      },
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 250,
+        "line_end": 310,
+        "unit": "OptionsPositionManager",
+        "function": "closeDebt"
+      },
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 38,
+        "line_end": 57,
+        "unit": "OptionsPositionManager",
+        "function": "executeOperation"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "accountant",
+      "consensus": null,
+      "unit": "OptionsPositionManager"
+    },
+    "description": "Discovery: per-unit step 5 (fee trace) and step 4 (pairing audit: flashloan borrow vs repay). liquidate() flashloans the debt TR with mode 0, so the lending pool pulls back amounts[k] + premiums[k] after executeOperation returns. executeOperation/executeLiquidation never read `premiums`. closeDebt(user == address(this)) mints TR through TokenisableRange.deposit for exactly `amount + addDust()` (dust is about 1e14 TR wei for a 6-decimal asset at $1, see addDust), skips LP.repay, and leaves that TR in the OPM for the pool to pull. With a standard Aave v2 premium (9 bps of amount) the OPM holds amount + ~1e14 TR but must supply amount + 0.0009*amount, so the pull reverts for any non-trivial liquidation unless the ROE pool waives the premium for this receiver (ROE is out of scope and not verified).",
+    "root_cause": "The repayment side of the flashloan is sized as amount + a fixed dust instead of amount + premium; premiums[] is ignored.",
+    "vulnerable_code": "uint debt = closeDebt(poolId, address(this), debtAsset, amount, collateral);\n...\ndebt = repayAmount + addDust(debtAsset, token0, token1);\n...\ndebt = TokenisableRange(debtAsset).deposit(token0Amount, token1Amount);",
+    "harm": {
+      "who": "liquidators and the protocol (unhealthy positions are not liquidated through OPM)",
+      "loses_what": "OPM liquidation path is unusable (reverts) when the flashloan premium is non-zero and exceeds dust, leaving bad debt to accumulate",
+      "magnitude": "liveness of the liquidation feature; premium bps times the liquidated amount is the shortfall"
+    },
+    "exploit_trace": [
+      "1. Position becomes unhealthy; liquidator calls liquidate(poolId, user, [TR], [amount], collateral).",
+      "2. LP.flashLoan lends `amount` TR with premium p > 0; executeLiquidation liquidates and closeDebt re-mints about amount + 1e14 TR wei.",
+      "3. The pool pulls amount + p TR from the OPM; balance is short by p - 1e14, so the call reverts."
+    ],
+    "preconditions": [
+      {
+        "text": "ROE flashloan premium is non-zero for this receiver and exceeds the dust margin",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "OPM liquidations revert",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2713 6=\u2713",
+      "rules_applied": [
+        "R10:\u2713(assessed at 9 bps premium)",
+        "R12:\u2717(single path)",
+        "R8:\u2717",
+        "R11:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[VARIATION:premium 0 -> works; premium 9bps of 1e21 TR = 9e17 >> dust 1e14 -> shortfall]",
+        "[TRACE:liquidate->flashLoan->executeLiquidation->closeDebt(user=this)->TR minted amount+dust->pool pulls amount+premium]"
+      ],
+      "missing_precondition": "ROE flashloan premium must be non-zero (unverified, pool out of scope)",
+      "postconditions_created": [
+        "liquidation path reverts"
+      ],
+      "who_benefits": "Nobody (borrowers escape liquidation)"
+    }
+  },
+  {
+    "id": "PC1-2",
+    "chain": "solidity",
+    "title": "closeDebt's self-close 'swap other token back to collateral' runs after every aToken was already PMWithdrawn, so it swaps nothing and the exposure control never happens",
+    "severity": "Low",
+    "category": "state-staleness / ineffective logic",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 275,
+        "line_end": 286,
+        "unit": "OptionsPositionManager",
+        "function": "closeDebt"
+      },
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 326,
+        "line_end": 327,
+        "unit": "OptionsPositionManager",
+        "function": "closeDebt"
+      },
+      {
+        "file": "contracts/PositionManager/OptionsPositionManager.sol",
+        "line_start": 439,
+        "line_end": 456,
+        "unit": "OptionsPositionManager",
+        "function": "swapTokens"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "OptionsPositionManager"
+    },
+    "description": "Discovery: per-unit step 1 (state completeness) and step 2 (branch audit). When user != address(this), closeDebt PMWithdraws the user's entire token0 and token1 aToken balances (amtA, amtB) into the OPM. When user == msg.sender it then calls swapTokens(poolId, otherToken, 0), which reads the user's remaining aToken balance of otherToken (amount==0 branch). That balance is already ~0, so swapTokens returns 0 early (before its cleanup). The leftover underlying stays in the OPM and is simply re-deposited unswapped by close()'s cleanup. The documented intent ('Swap other token back to collateral: this allows to control exposure') is never achieved in the self-close flow.",
+    "root_cause": "The swap reads the user's aToken balance after it was fully moved into the OPM, instead of swapping the OPM-held leftovers.",
+    "vulnerable_code": "amtB = IERC20(LP.getReserveData(token1).aTokenAddress ).balanceOf(user);\nPMWithdraw(LP, user, token1, amtB );\n...\nif (user == msg.sender) swapTokens(poolId, collateralAsset == token0 ? token1 : token0, 0);",
+    "harm": {
+      "who": "users who self-close expecting their residual to be converted to collateralAsset",
+      "loses_what": "no loss of funds; residual exposure to the non-collateral token stays, contrary to the documented behaviour",
+      "magnitude": "the post-close leftover of the non-collateral token"
+    },
+    "exploit_trace": [
+      "1. User with TR debt calls close(poolId, user, TR, 0, token0).",
+      "2. closeDebt PMWithdraws all token0 and token1 aTokens; after repay, leftover token1 sits in the OPM.",
+      "3. swapTokens(poolId, token1, 0) sees user's token1 aToken balance == 0 and returns; close() cleanup re-deposits the unswapped token1."
+    ],
+    "preconditions": [
+      {
+        "text": "self-close with leftover non-collateral token",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "leftover remains in the non-collateral token",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R8:\u2713(aToken balance read after being drained)",
+        "R10:\u2717",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[TRACE:close(self)->PMWithdraw(amtB)->swapTokens(...,0)->aToken balance 0->return 0]",
+        "[BOUNDARY:amount==0 early return]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "exposure not rebalanced"
+      ],
+      "who_benefits": "None"
+    }
+  },
+  {
+    "id": "PC2-1",
+    "chain": "solidity",
+    "title": "GeVault.withdraw pays the whole oracle-valued amount in one chosen token with no swap, so a holder of more than the vault's balance of that token cannot exit and the last holder can never fully withdraw",
+    "severity": "Medium",
+    "category": "liveness / withdrawal-in-kind",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/GeVault.sol",
+        "line_start": 214,
+        "line_end": 241,
+        "unit": "GeVault",
+        "function": "withdraw"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "GeVault"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values: liquidity = full balance) and step 5 (fee and reward trace). withdraw() computes amount = share of TVL (valueX8) converted to a single caller-chosen token at the oracle price, then calls removeFromAllTicks() and transfers fee and amount - fee of that token. Ticks are single-sided and deployAssets splits holdings across both tokens (ticks[tick0Index..+1] hold token0, ticks[tick1Index..+1] hold token1), so after removal the vault holds both token0 and token1. Nothing converts one into the other. If the share value in the chosen token exceeds the vault's balance of it, safeTransfer reverts. A holder whose share exceeds the vault's holding of either token (any holder near 100% when both sides are non-empty, including the last depositor) cannot withdraw by calling withdraw(0, token) for either token. Only a partial withdrawal bounded by the vault's balance of one token succeeds, after which deployAssets redeploys the remainder 50/50 into both sides again, so each exit round is bounded and pays the treasury fee again.",
+    "root_cause": "The payout token is chosen by the caller and valued at oracle price, but the vault never rebalances its token mix to the requested token and has no proportional (both-token) payout path.",
+    "vulnerable_code": "amount = valueX8 * 10**ERC20(token).decimals() / oracle.getAssetPrice(token);\nuint fee = amount * getAdjustedBaseFee(token == address(token1)) / 1e4;\n_burn(msg.sender, liquidity);\nremoveFromAllTicks();\nERC20(token).safeTransfer(treasury, fee);\n...\nERC20(token).safeTransfer(msg.sender, bal);",
+    "harm": {
+      "who": "large holders and the last remaining depositor of a GeVault",
+      "loses_what": "ability to exit in a single transaction; repeated partial exits pay the withdrawal fee on each round and are exposed to price and fee drift between rounds",
+      "magnitude": "full exit blocked whenever the vault holds both tokens; extra fee of about 0.1-0.3 percent per partial round"
+    },
+    "exploit_trace": [
+      "1. Vault holds TVL V as token0 (about V/2 in value) and token1 (about V/2), deployed in ticks on each side of the price; a single user owns 100 percent of the shares.",
+      "2. The user calls withdraw(0, token0): amount = V worth of token0; removeFromAllTicks() returns only about V/2 worth of token0.",
+      "3. safeTransfer(treasury, fee) or safeTransfer(msg.sender, bal) reverts on insufficient balance; the same happens for token1.",
+      "4. The only way out is multiple partial withdrawals, each capped by the vault's balance of one token, each paying the fee again."
+    ],
+    "preconditions": [
+      {
+        "text": "vault holds both token0 and token1 (the normal deployed state)",
+        "type": "STATE"
+      },
+      {
+        "text": "the withdrawer's share value in the chosen token exceeds the vault's balance of that token",
+        "type": "BALANCE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "withdrawal reverts or is forced into multiple fee-paying partial rounds",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A: no encode/decode pair) 5=\u2713 6=\u2717(N/A: no parent in cluster)",
+      "rules_applied": [
+        "R8:\u2717(no cached parameter)",
+        "R10:\u2713(assessed at a 100 percent share with a two-sided vault)",
+        "R11:\u2717(no unsolicited transfers)",
+        "R12:\u2717(single enabler: no conversion)",
+        "R15:\u2717(no flash-loan-accessible state)",
+        "R16:\u2713(payout sized by oracle, funds held at pool composition)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:liquidity=balanceOf(msg.sender)=totalSupply -> amount = full TVL in one token > vault balance of that token -> revert]",
+        "[TRACE:withdraw->getTVL->oracle conversion->removeFromAllTicks->safeTransfer(token) with both tokens held]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "withdrawal reverts or is forced into multiple fee-paying partial rounds"
+      ],
+      "who_benefits": "Treasury (repeated fees); no attacker"
+    }
+  },
+  {
+    "id": "PC3-1",
+    "chain": "solidity",
+    "title": "TokenisableRange.deposit routes the depositor's whole one-sided/off-ratio token amount into the shared fee pool when the position holds none (or little) of that token",
+    "severity": "Low",
+    "category": "rounding-boundary",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/TokenisableRange.sol",
+        "line_start": 237,
+        "line_end": 246,
+        "unit": "TokenisableRange",
+        "function": "deposit"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "TokenisableRange"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values) and step 1 (state completeness). The fee-pool split computes newFee0 = n0*fee0/(token0Amount+fee0) on the caller's full n0 (and likewise for token1), before Uniswap decides how much of n0 can actually be added. When the position is out of range on the side where token0Amount == 0 and fee0 > 0, newFee0 = n0 and the entire n0 is moved into fee0 (n0 becomes 0). Uniswap would have refunded that token (added0 = 0), but here it is donated pro rata to all LP holders and the depositor receives LP only for the other side. In-range, the same formula charges the fee share on the portion of n0 that will later be refunded, so off-ratio depositors overpay the fee pool by about excess*fee0/(token0Amount+fee0). This is a different root cause from the spot-price manipulation already recorded at TokenisableRange.sol:237.",
+    "root_cause": "The fee-pool share is taken from the requested n0/n1 rather than from the amounts Uniswap will actually add, and token0Amount == 0 gives a 100% rate.",
+    "vulnerable_code": "if (token0Amount + fee0 > 0) newFee0 = n0 * fee0 / (token0Amount + fee0);\nif (token1Amount + fee1 > 0) newFee1 = n1 * fee1 / (token1Amount + fee1);\nfee0 += newFee0;\nfee1 += newFee1;\nn0   -= newFee0;\nn1   -= newFee1;",
+    "harm": {
+      "who": "depositors passing both tokens into a TR whose current price is outside its range",
+      "loses_what": "the token that cannot be added, which should have been refunded, is given to existing LP holders",
+      "magnitude": "up to the full n0 (or n1) of the deposit when the position holds none of that token and fee > 0; otherwise a small fraction of the unused excess"
+    },
+    "exploit_trace": [
+      "1. TR has fee0 > 0 pending and spot price lies beyond the range so getAmountsForLiquidity returns token0Amount = 0.",
+      "2. A user calls deposit(n0, n1) with both n0 > 0 and n1 > 0 (UI/aggregator sends both tokens).",
+      "3. newFee0 = n0*fee0/(0+fee0) = n0, so fee0 += n0 and n0 = 0; only n1 is added to Uniswap.",
+      "4. The user receives LP only for the n1 liquidity; n0 now belongs pro rata to all LP holders."
+    ],
+    "preconditions": [
+      {
+        "text": "position out of range on one side with fee > 0 on that token, and the caller supplies both tokens",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "fee0 or fee1 inflated by the depositor's unused tokens",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2713 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2713(fee0/fee1 cached across deposits)",
+        "R10:\u2713(token0Amount=0 boundary)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:token0Amount=0,fee0>0 -> newFee0 = n0 (100%)]",
+        "[VARIATION:in range, n0 excess 10% -> fee pool taken on excess]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "fee0 or fee1 inflated by the depositor's unused tokens"
+      ],
+      "who_benefits": "Existing LP holders"
+    }
+  },
+  {
+    "id": "PC4-1",
+    "chain": "solidity",
+    "title": "V3Proxy ETH-out paths ignore the result of the final ETH send, so a failed send leaves the user's proceeds stuck in the proxy",
+    "severity": "Low",
+    "category": "unchecked-return",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/helper/V3Proxy.sol",
+        "line_start": 174,
+        "line_end": 174,
+        "unit": "V3Proxy",
+        "function": "swapTokensForExactETH"
+      },
+      {
+        "file": "contracts/helper/V3Proxy.sol",
+        "line_start": 192,
+        "line_end": 192,
+        "unit": "V3Proxy",
+        "function": "swapExactTokensForETH"
+      },
+      {
+        "file": "contracts/helper/V3Proxy.sol",
+        "line_start": 156,
+        "line_end": 156,
+        "unit": "V3Proxy",
+        "function": "swapETHForExactTokens"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "V3Proxy"
+    },
+    "description": "Discovery: per-unit step 2 (conditional branch audit) and step 5 (asset trace). swapTokensForExactETH, swapExactTokensForETH and swapETHForExactTokens pull the user's input first and then pay out with a low-level call whose success flag is discarded. If msg.sender cannot receive ETH (a contract without a payable receive, or one that reverts), the call fails silently, the transaction succeeds, the Swap event is emitted and the ETH stays in the proxy. emergencyWithdraw only moves ERC20 balances and there is no ETH rescue, so the ETH is unrecoverable. Related: the three ETH-out token functions are marked payable, so ETH sent with them is also never refunded.",
+    "root_cause": "The success flag of msg.sender.call{value: ...}(\"\") is not checked, and the proxy has no ETH rescue path.",
+    "vulnerable_code": "payable(msg.sender).call{value: amounts[1]}(\"\");\nemit Swap(msg.sender, path[0], path[1], amounts[0], amounts[1]);",
+    "harm": {
+      "who": "contract callers (for example integrators or OPM-like wrappers) that cannot accept ETH",
+      "loses_what": "the full ETH output of the swap, or the unspent ETH refund",
+      "magnitude": "up to the swap output or refund amount per call"
+    },
+    "exploit_trace": [
+      "1. A contract without a payable receive calls swapExactTokensForETH(amountIn, ...).",
+      "2. The router returns WETH to the proxy, the proxy unwraps it, and the call to msg.sender fails with the result ignored.",
+      "3. Result: the transaction succeeds, the user's tokens are spent, and the ETH stays in the proxy with no function able to return it."
+    ],
+    "preconditions": [
+      {
+        "text": "the caller is a contract that rejects plain ETH transfers",
+        "type": "ACCESS"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "ETH is locked in V3Proxy",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A: no encode/decode pair) 5=\u2713 6=\u2717(N/A: no parent in scope)",
+      "rules_applied": [
+        "R8:\u2717(no cached state)",
+        "R10:\u2713(assessed at amountOut = 0 and at reverting receiver)",
+        "R11:\u2713(WETH unwrap and ETH payout)",
+        "R12:\u2717(single path)",
+        "R15:\u2717(no flash-loan-accessible state)",
+        "R16:\u2717(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[TRACE:swapExactTokensForETH\u2192weth.withdraw\u2192call to msg.sender fails\u2192ETH remains in proxy]",
+        "[BOUNDARY:receiver without payable receive \u2192 silent loss]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "ETH is locked in V3Proxy"
+      ],
+      "who_benefits": "nobody; funds are stuck"
+    }
+  },
+  {
+    "id": "PC5-1",
+    "chain": "solidity",
+    "title": "RangeManager.removeFromStep reverts for the whole step if either the range or the ticker reserve is not listed in the lending pool",
+    "severity": "Low",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/RangeManager.sol",
+        "line_start": 107,
+        "line_end": 134,
+        "unit": "RangeManager",
+        "function": "removeFromStep"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "RangeManager"
+    },
+    "description": "Discovery: per-unit step 2 (conditional branch audit). removeFromStep unconditionally calls ERC20(LENDING_POOL.getReserveData(tokenisedRanges[step]).aTokenAddress).balanceOf(msg.sender) and the same for tokenisedTicker[step]. generateRange creates both tokens, but listing them as reserves is a separate lending-pool admin action. For an unlisted token aTokenAddress is address(0), so the balanceOf call to a non-contract reverts. removeAssetsFromStep and both transferAssetsInto*Step functions, which all go through removeFromStep, then revert for that step even if the user only holds the other (listed) token.",
+    "root_cause": "The ticker/range legs are not guarded against a zero aTokenAddress, and removeFromStep handles both legs in one call.",
+    "vulnerable_code": "trAmt = ERC20(LENDING_POOL.getReserveData(address(tokenisedTicker[step])).aTokenAddress).balanceOf(msg.sender);",
+    "harm": {
+      "who": "users holding aTokens of only the listed range or ticker of a step",
+      "loses_what": "ability to exit or rebalance through RangeManager until the other reserve is listed",
+      "magnitude": "temporary DoS; funds recoverable by withdrawing directly from the lending pool"
+    },
+    "exploit_trace": [
+      "1. Owner calls generateRange; only the Range token is listed as a ROE reserve.",
+      "2. A user deposits the Range token and later calls removeAssetsFromStep(step).",
+      "3. The ticker's getReserveData returns aTokenAddress 0 and balanceOf reverts, so the whole call reverts."
+    ],
+    "preconditions": [
+      {
+        "text": "one of the step's two tokens is not a lending pool reserve",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "RangeManager entry points for that step are unusable",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2717(no parent)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(zero aTokenAddress)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:aTokenAddress=0 -> balanceOf reverts]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "step bricked until both reserves listed"
+      ],
+      "who_benefits": "nobody"
+    }
+  },
+  {
+    "id": "PC6-1",
+    "chain": "solidity",
+    "title": "LPOracle.latestAnswer multiplies a*b*priceA unscaled in uint256 and reverts for large pools",
+    "severity": "Low",
+    "category": "arithmetic",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/helper/LPOracle.sol",
+        "line_start": 88,
+        "line_end": 93,
+        "unit": "LPOracle",
+        "function": "latestAnswer"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "LPOracle"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values). a and b are uint112 reserves, so a*b can reach 2^224; multiplying by an 8-decimal price (and 10**(decB-decA)) before the sqrt overflows 2^256 for pools with large raw reserves (high-supply or high-decimals tokens). The code comment acknowledges the overflow but the mitigation only covers the decimals ratio.",
+    "root_cause": "a * b * priceA is computed in full before division and sqrt; checked arithmetic reverts on overflow.",
+    "vulnerable_code": "norm_b = sqrt( a * b * priceA * 10**(decimalsB-decimalsA) / priceB );",
+    "harm": {
+      "who": "lending market consuming the LP oracle",
+      "loses_what": "price availability: borrows, withdrawals and liquidations of LP collateral revert",
+      "magnitude": "all positions collateralised by the affected LP"
+    },
+    "exploit_trace": [
+      "1. LP pool reserves a,b grow so a*b*priceA > 2^256 (e.g. a*b ~ 1e66 raw units).",
+      "2. latestAnswer() reverts with Panic(0x11).",
+      "3. Result: oracle consumers cannot price the LP token."
+    ],
+    "preconditions": [
+      {
+        "text": "pair reserves large enough that a*b*priceA exceeds 2^256",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "oracle reverts for the LP token",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(N/A)",
+      "rules_applied": [
+        "R10:\u2713",
+        "R16:\u2713"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:a=b=2^112 \u2192 a*b=2^224, *priceA(~2^37) > 2^256 \u2192 revert]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "oracle reverts for the LP token"
+      ],
+      "who_benefits": "none (liveness failure)"
+    }
+  },
+  {
+    "id": "PC6-2",
+    "chain": "solidity",
+    "title": "OracleConvert.latestRoundData reports block.timestamp and max round ids, hiding stale or non-positive component feeds",
+    "severity": "Low",
+    "category": "oracle",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/helper/OracleConvert.sol",
+        "line_start": 50,
+        "line_end": 80,
+        "unit": "OracleConvert",
+        "function": "latestRoundData"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "OracleConvert"
+    },
+    "description": "Discovery: per-unit step 3 and 2. getAnswer only checks updatedAt > 0 and does not check price > 0 or freshness. latestAnswer casts int to uint (negative becomes huge, causing revert or absurd product; zero yields price 0). latestRoundData then returns updatedAt = block.timestamp and answeredInRound = type(uint80).max, so any consumer doing a standard staleness / round-completeness check on this oracle always passes even if the underlying feeds are stale.",
+    "root_cause": "Composite round data is synthesised from the current block instead of from the component feeds' updatedAt/round data; component price sign/zero not validated.",
+    "vulnerable_code": "uint priceA = uint(getAnswer(CL_TOKENA)); ... return (type(uint80).max, latestAnswer(), block.timestamp, block.timestamp, type(uint80).max);",
+    "harm": {
+      "who": "protocols consuming OracleConvert via latestRoundData",
+      "loses_what": "staleness protection; collateral/debt valued at stale or zero prices",
+      "magnitude": "depends on feed staleness"
+    },
+    "exploit_trace": [
+      "1. One component Chainlink feed stops updating (or returns 0).",
+      "2. Consumer calls latestRoundData(); updatedAt == block.timestamp so freshness check passes.",
+      "3. Result: stale or zero composite price is accepted."
+    ],
+    "preconditions": [
+      {
+        "text": "a component feed is stale or returns <=0 and consumer relies on latestRoundData freshness",
+        "type": "EXTERNAL"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "stale/zero price accepted as fresh",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(N/A)",
+      "rules_applied": [
+        "R10:\u2713",
+        "R16:\u2713"
+      ],
+      "depth_evidence": [
+        "[TRACE:feed stale \u2192 latestAnswer uses old price \u2192 latestRoundData updatedAt=now]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "stale/zero price accepted as fresh"
+      ],
+      "who_benefits": "none (liveness failure)"
+    }
+  }
+]

@@ -1,0 +1,375 @@
+[
+ {
+  "id": "DD-1",
+  "chain": "solidity",
+  "title": "restructureCapTable always burns addressesToWipe[0]; the remaining addresses are never wiped",
+  "severity": "Medium",
+  "category": "logic-error",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/Equity.sol",
+    "line_start": 309,
+    "line_end": 316,
+    "unit": "Equity",
+    "function": "restructureCapTable"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Parameter-boundary/loop check (array of length n). The loop variable i is never used: `address current = addressesToWipe[0];` is read on every iteration. With a list of n addresses only the first is burned (n times, the later iterations burn 0 since balance is already 0). The recapitalisation path described in the natspec (wipe passive FPS holders when equity < 1000 ZCHF so that rescuers own 100% of shares) cannot be completed. An empty array is a no-op; a list whose first element is address(0) wipes nothing.",
+  "root_cause": "Index typo: addressesToWipe[0] instead of addressesToWipe[i].",
+  "vulnerable_code": "for (uint256 i = 0; i<addressesToWipe.length; i++){\n    address current = addressesToWipe[0];\n    _burn(current, balanceOf(current));\n}",
+  "recommendation": "Use addressesToWipe[i].",
+  "harm": {
+   "who": "Qualified rescuers recapitalising the system; also protocol solvency recovery",
+   "loses_what": "the ability to wipe more than one stale FPS holder; rescue capital must be diluted by every un-wiped holder",
+   "magnitude": "restructuring mechanism broken for any wipe list longer than one address"
+  },
+  "exploit_trace": [
+   "1. Equity falls below 1000 ZCHF after a loss; several old holders still own FPS.",
+   "2. A qualified holder calls restructureCapTable(helpers, [h1,h2,h3]).",
+   "3. Only h1 is burned (three times); h2 and h3 keep their shares and the rescue capital is shared with them."
+  ],
+  "preconditions": [
+   {
+    "text": "zchf.equity() < 1000 ZCHF",
+    "type": "STATE"
+   },
+   {
+    "text": "caller holds >= 3% of votes (or totalVotes is 0)",
+    "type": "ACCESS"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "only first address wiped",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens D: Edge-case loop review",
+   "rules_applied": [
+    "R10:worst state: n>1 wipe list"
+   ],
+   "depth_evidence": [
+    "[TRACE:i=1,2 -> current = addressesToWipe[0] -> burn 0]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "incomplete wipe"
+   ],
+   "who_benefits": "un-wiped passive holders"
+  }
+ },
+ {
+  "id": "DD-2",
+  "chain": "solidity",
+  "title": "Owner can raise price to a value that overflows price*size, making bid() and end() revert forever: position becomes unliquidatable and challenger collateral is stuck in the hub",
+  "severity": "High",
+  "category": "arithmetic-overflow",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 159,
+    "line_end": 167,
+    "unit": "Position",
+    "function": "adjustPrice"
+   },
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 304,
+    "line_end": 317,
+    "unit": "Position",
+    "function": "tryAvertChallenge"
+   },
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 329,
+    "line_end": 354,
+    "unit": "Position",
+    "function": "notifyChallengeSucceeded"
+   },
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 199,
+    "line_end": 229,
+    "unit": "MintingHub",
+    "function": "bid"
+   },
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 252,
+    "line_end": 276,
+    "unit": "MintingHub",
+    "function": "end"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Parameter MAX test on price. adjustPrice() has no upper bound when the price is raised (only a 3 day mint cooldown, no collateral check). Both liquidation paths multiply price by a challenge size with checked arithmetic: tryAvertChallenge computes `price * _collateralAmount` (bid path) and notifyChallengeSucceeded computes `_mulD18(price,_size)` = price*_size/1e18 (end path). For price > 2^256/size (e.g. type(uint256).max) both revert with a Panic. Hence launchChallenge (which does not touch price) still takes the challenger's collateral into the hub, but the challenge can neither be averted (bid reverts) nor ended (end reverts, and the whole tx including returnCollateral rolls back). The challenger's collateral is permanently stuck and the position can never be liquidated, regardless of how far the collateral value falls. An owner that has minted against the collateral can front-run any pending launchChallenge (noChallenge is only checked at execution) or set the price preemptively once the veto window is over.",
+  "root_cause": "Unbounded owner-controlled price combined with unchecked-range multiplications on the liquidation path; no sanity bound on price at adjustPrice and no fallback when volume cannot be computed.",
+  "vulnerable_code": "function adjustPrice(uint256 newPrice) public onlyOwner noChallenge {\n    if (newPrice > price) { restrictMinting(3 days); } else { checkCollateral(collateralBalance(), newPrice); }\n    price = newPrice;\n}\n...\n} else if (_bidAmountZCHF * ONE_DEC18 >= price * _collateralAmount){\n...\nuint256 volumeZCHF = _mulD18(price, _size);",
+  "recommendation": "Bound price at adjustPrice (and in checkCollateral/constructor) so price * maxChallengeSize cannot overflow, or use mulDiv/saturating arithmetic in the liquidation path.",
+  "harm": {
+   "who": "Challengers (stuck collateral) and ZCHF holders / FPS reserve (undliquidatable bad debt)",
+   "loses_what": "challenger collateral locked in MintingHub forever; minted ZCHF of the position can never be recovered via liquidation",
+   "magnitude": "entire minted amount of the position plus any collateral posted by challengers"
+  },
+  "exploit_trace": [
+   "1. Owner mints M ZCHF against collateral C at a vetted price.",
+   "2. After the veto window, owner calls adjustPrice(type(uint256).max) (allowed: no collateral check on increase).",
+   "3. Collateral value drops; challenger calls launchChallenge(position,size) and deposits size tokens into the hub.",
+   "4. bid(): tryAvertChallenge reverts on price*size overflow; end(): notifyChallengeSucceeded reverts on _mulD18 overflow.",
+   "5. Challenge can never be resolved: challenger's tokens are stuck, position never liquidated, loss accumulates in the system."
+  ],
+  "preconditions": [
+   {
+    "text": "no active challenge when owner raises the price, veto window over",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "position unliquidatable; challenger collateral locked in hub",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens D: boundary MAX on price and arithmetic overflow tracing",
+   "rules_applied": [
+    "R10:worst state: price = MAX"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:price=2^256-1,size>=2 -> price*size overflow in bid and end]",
+    "[TRACE:launchChallenge->bid reverts; end reverts]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "undliquidatable position"
+   ],
+   "who_benefits": "position owner"
+  }
+ },
+ {
+  "id": "DD-3",
+  "chain": "solidity",
+  "title": "Zero or dust bids pass minBid (0.5% increase rounds down) and keep resetting challenge.end",
+  "severity": "Medium",
+  "category": "dos",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 188,
+    "line_end": 190,
+    "unit": "MintingHub",
+    "function": "minBid"
+   },
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 214,
+    "line_end": 228,
+    "unit": "MintingHub",
+    "function": "bid"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Arithmetic trace with bid values 0, 1, 199, 200. minBid = bid*1005/1000: bid=0 -> 0, any bid < 200 wei -> equals the old bid (floor of +0.5%). So bid(n, 0, size) (or a repeat of the same dust bid) satisfies `_bidAmountZCHF >= minBid` and executes `challenge.end = block.timestamp + 30 minutes` whenever end is within 30 minutes. Nothing increases and nothing is paid, contradicting the comment that the attacker must raise the bid 0.5% every 30 minutes. Repeating every <30 minutes blocks end() indefinitely at gas cost. Also, after bid>0 a replacement bid of identical amount from another address is accepted for amounts < 200 wei. (Confirms and deepens Pass 1 DP1-3.)",
+  "root_cause": "Relative increment only, no absolute minimum step, comparison uses >= with floor rounding.",
+  "vulnerable_code": "return (challenge.bid * 1005) / 1000;\n...\nif (_bidAmountZCHF < minBid(challenge)) revert BidTooLow(...);\nif (earliestEnd >= challenge.end) { challenge.end = earliestEnd; }",
+  "recommendation": "Require _bidAmountZCHF > challenge.bid and minBid rounded up / strictly greater.",
+  "harm": {
+   "who": "Challenger and protocol (undercollateralised position stays unliquidated)",
+   "loses_what": "challenger collateral locked; liquidation postponed",
+   "magnitude": "unbounded delay per challenge for gas cost"
+  },
+  "exploit_trace": [
+   "1. Position owner is challenged and cannot afford an averting bid.",
+   "2. Owner calls bid(n,0,size) every ~29 minutes.",
+   "3. end() never reaches block.timestamp >= challenge.end."
+  ],
+  "preconditions": [
+   {
+    "text": "challenge open, bid still 0 or dust",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "challenge.end pushed back repeatedly",
+    "type": "TIMING"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens D: mechanical arithmetic",
+   "rules_applied": [
+    "R10:worst state bid=0"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:bid=0 -> minBid=0; bid=199 -> minBid=199]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "position owner"
+  }
+ },
+ {
+  "id": "DD-4",
+  "chain": "solidity",
+  "title": "initializeClone floors the clone price, so checkCollateral fails for every _mint not divisible in the collateral ratio (clone creation reverts)",
+  "severity": "Low",
+  "category": "rounding",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 76,
+    "line_end": 86,
+    "unit": "Position",
+    "function": "initializeClone"
+   },
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 282,
+    "line_end": 284,
+    "unit": "Position",
+    "function": "checkCollateral"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Mechanical trace: _coll=3e18, _mint=1e18. price = 1e18*1e18/3e18 = 333333333333333333 (floor). mintInternal -> checkCollateral(3e18, price): 3e18*333333333333333333 = 999999999999999999e18 < 1e18*1e18 -> InsufficientCollateral. The check passes only if _mint*1e18 % _coll == 0 (or _mint = 0). clonePosition therefore reverts for most amounts; users must pre-compute a divisible pair. For _mint = 0 the price becomes 0 (no minting but price can be raised later, see DP1-2).",
+  "root_cause": "Price derived by rounding down and then re-checked against the exact invariant.",
+  "vulnerable_code": "price = _mint * ONE_DEC18 / _coll;\nif (price > _price) revert InsufficientCollateral();\nlimit = _limit;\nmintInternal(owner, _mint, _coll);",
+  "recommendation": "Round the derived price up.",
+  "harm": {
+   "who": "users cloning positions",
+   "loses_what": "failed transactions / unusable clone path for non-divisible parameters",
+   "magnitude": "availability only"
+  },
+  "exploit_trace": [
+   "1. clonePosition(pos, 3e18, 1e18) -> reduceLimitForClone, factory clone, initializeClone reverts InsufficientCollateral."
+  ],
+  "preconditions": [
+   {
+    "text": "_mint*1e18 not divisible by _coll",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [],
+  "audit_trail": {
+   "step_execution": "Lens D: mechanical arithmetic",
+   "rules_applied": [
+    "R10:non-divisible values"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:coll=3e18,mint=1e18]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [],
+   "who_benefits": "nobody"
+  }
+ },
+ {
+  "id": "DD-5",
+  "chain": "solidity",
+  "title": "Permissionless launchChallenge plus self-avert bid resets position cooldown by 1 day for gas only, locking mint and collateral withdrawal",
+  "severity": "Medium",
+  "category": "dos",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/Position.sol",
+    "line_start": 304,
+    "line_end": 317,
+    "unit": "Position",
+    "function": "tryAvertChallenge"
+   },
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 140,
+    "line_end": 148,
+    "unit": "MintingHub",
+    "function": "launchChallenge"
+   },
+   {
+    "file": "contracts/MintingHub.sol",
+    "line_start": 199,
+    "line_end": 213,
+    "unit": "MintingHub",
+    "function": "bid"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Self-referential edge case (challenger == bidder). An attacker calls launchChallenge(position, minimumCollateral) then, in the same tx, bid(n, price*size/1e18, size). The avert branch pays the bid from msg.sender to challenge.challenger (the same address, net zero), returns the attacker's collateral, and tryAvertChallenge calls restrictMinting(1 days), pushing position.cooldown to now+1 day. mint(), withdrawCollateral() and the withdraw part of adjust() require noCooldown, and adjustPrice requires noChallenge, so by repeating this once per day the owner can neither mint nor withdraw collateral (until expiration+1 day, when tryAvertChallenge returns false). Cost is only gas; the ZCHF needed is transient and recovered. The ZCHF allowance for the hub is infinite (minter).",
+  "root_cause": "A challenge that is averted costs the challenger nothing when challenger == bidder, yet imposes a 1 day cooldown on the position.",
+  "vulnerable_code": "} else if (_bidAmountZCHF * ONE_DEC18 >= price * _collateralAmount){\n    challengedAmount -= _collateralAmount;\n    restrictMinting(1 days);\n    return true;",
+  "recommendation": "Do not extend the cooldown for self-averts, or charge the challenger a fee for launching.",
+  "harm": {
+   "who": "Position owners (and clone creators; cloning also requires noCooldown)",
+   "loses_what": "ability to mint or withdraw collateral/ reposition during the position lifetime",
+   "magnitude": "all positions can be griefed continuously for gas cost"
+  },
+  "exploit_trace": [
+   "1. Attacker holds minimumCollateral of the collateral token and price*size ZCHF.",
+   "2. Calls launchChallenge then bid(n, price*size/1e18, size) in one tx.",
+   "3. Position.cooldown = now+1 day; owner's withdraw/mint revert Hot.",
+   "4. Attacker repeats daily."
+  ],
+  "preconditions": [
+   {
+    "text": "position not expired",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "cooldown extended",
+    "type": "TIMING"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens D: self-referential edge case",
+   "rules_applied": [
+    "R12:enabler: infinite ZCHF allowance of hub, challenger==bidder"
+   ],
+   "depth_evidence": [
+    "[TRACE:launchChallenge->bid->tryAvertChallenge->restrictMinting(1 days)]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "cooldown extended"
+   ],
+   "who_benefits": "griefer"
+  }
+ }
+]

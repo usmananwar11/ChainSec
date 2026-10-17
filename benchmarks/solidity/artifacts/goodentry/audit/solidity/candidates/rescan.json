@@ -1,0 +1,47 @@
+[
+  {
+    "id": "RS-1",
+    "chain": "solidity",
+    "title": "RangeManager.removeFromStep (and OPM.withdrawOptionAssets) withdraw TokenisableRange liquidity with amountMin = 0 and no oracle check, unlike OPM.withdrawOptions: LP unwinds are sandwichable",
+    "severity": "Medium",
+    "category": "slippage / sandwich (asymmetric guard)",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/RangeManager.sol", "line_start": 107, "line_end": 134, "unit": "RangeManager", "function": "removeFromStep"},
+      {"file": "contracts/RangeManager.sol", "line_start": 151, "line_end": 168, "unit": "RangeManager", "function": "transferAssetsIntoStep"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 123, "line_end": 150, "unit": "OptionsPositionManager", "function": "withdrawOptionAssets"},
+      {"file": "contracts/PositionManager/OptionsPositionManager.sol", "line_start": 412, "line_end": 429, "unit": "OptionsPositionManager", "function": "withdrawOptions"}
+    ],
+    "discovery": {"phase": "rescan", "lens": null, "mindset": "spec-auditor", "consensus": null, "unit": null},
+    "description": "Discovery: rescan class 2 (asymmetric operations). OPM.withdrawOptions wraps TokenisableRange.withdraw(amount,0,0) in checkExpectedBalances ('Get output amounts from oracle to avoid sandwich'), and GeVault removes from ticks only behind poolMatchesOracle. RangeManager.removeFromStep calls tokenisedRanges[step].withdraw(trAmt,0,0) and tokenisedTicker[step].withdraw(ttAmt,0,0) with no min amounts, no oracle comparison and no spot guard, and it is reached by removeAssetsFromStep and by every transferAssetsInto*Step call. OPM.withdrawOptionAssets (flashloaned TR in buyOptions) likewise calls TokenisableRange(flashAsset).withdraw(flashAmount,0,0) with no check. TR.withdraw pays out at the Uniswap slot0 composition, so a caller whose pool price was moved in the same block receives an adverse token mix (value at the true price is lower by the position's convexity loss), and the attacker back-runs.",
+    "root_cause": "TR.withdraw settles at manipulable pool spot composition; the callers that unwind TR positions on a user's behalf in RangeManager and OPM.withdrawOptionAssets pass amount0Min = amount1Min = 0 and perform none of the oracle-value checks used in the sibling paths.",
+    "vulnerable_code": "trAmt = LENDING_POOL.withdraw(address(tokenisedRanges[step]), type(uint256).max, address(this));\ntokenisedRanges[step].withdraw(trAmt, 0, 0);",
+    "harm": {
+      "who": "RangeManager users unwinding or moving ranger/ticker positions (and buyOptions users)",
+      "loses_what": "part of the position value, realised as the adverse token mix at the manipulated price",
+      "magnitude": "the LVR/convexity loss of the position for the price displacement the attacker can fund; large for wide rangers, small for 10-tick tickers"
+    },
+    "exploit_trace": [
+      "1. Victim holds aTokens of a wide TokenisableRange (ranger) deposited via RangeManager.",
+      "2. Victim submits removeAssetsFromStep(step) (or transferAssetsIntoRangerStep, which calls removeFromStep first).",
+      "3. Attacker front-runs by swapping the Uniswap V3 pool so spot moves far inside the ranger's range.",
+      "4. removeFromStep PMTransfers the aTokens, withdraws the TR, and tr.withdraw(trAmt,0,0) returns the position's token mix at the manipulated price; cleanup() deposits it to the victim; hf check only looks at debt.",
+      "5. Attacker swaps back; the victim is left with tokens worth less than the position at the true price."
+    ],
+    "preconditions": [
+      {"text": "victim unwinds a TR position through RangeManager (or buyOptions) in a block where the pool price can be moved", "type": "EXTERNAL"},
+      {"text": "TR is a large share of the pool liquidity in its range or the range is wide", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "victim's withdrawn tokens are worth less than the position value", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Rescan: pass 1=✓ pass 2=✓",
+      "rules_applied": ["R8:✗(no cached parameter)", "R10:✓(assessed with wide ranger, large price displacement)", "R11:✗", "R12:✗(single enabler: no min-out)", "R15:✓(price movable by flash capital)", "R16:✓(oracle available but unused on these paths)"],
+      "depth_evidence": ["[TRACE:removeAssetsFromStep->removeFromStep->tr.withdraw(trAmt,0,0) no check L119/L131]", "[BOUNDARY:amount0Min=amount1Min=0]", "[VARIATION:OPM.withdrawOptions L425 has checkExpectedBalances; withdrawOptionAssets L135 does not]"],
+      "missing_precondition": "",
+      "postconditions_created": ["victim's withdrawn tokens are worth less than the position value"],
+      "who_benefits": "Attacker (MEV sandwicher)"
+    }
+  }
+]

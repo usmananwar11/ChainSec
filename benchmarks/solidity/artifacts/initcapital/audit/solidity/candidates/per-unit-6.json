@@ -1,0 +1,193 @@
+[
+ {
+  "id": "PC6-1",
+  "chain": "solidity",
+  "title": "Api3OracleReader returns a zero price without rejecting non-positive feed values",
+  "severity": "Medium",
+  "category": "oracle-validation",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/oracle/Api3OracleReader.sol",
+    "line_start": 84,
+    "line_end": 90,
+    "unit": "Api3OracleReader",
+    "function": "getPrice_e36"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "Api3OracleReader"
+  },
+  "description": "Discovery: per-unit step 3 (boundary values). getPrice_e36 only reverts on negative values (SafeCast); a feed value of 0, or a value that truncates to 0 after dividing by 10**decimals, is returned as a valid price. When Api3 is the only valid source (no secondary, or secondary reverts) InitOracle passes price 0 to the core.",
+  "root_cause": "No price > 0 check after readDataFeedWithId and no minimum on the scaled result.",
+  "vulnerable_code": "(int224 price, uint timestamp) = readDataFeedWithId(id);\n...\nprice_e36 = (price.toUint256() * ONE_E18) / 10 ** decimals;",
+  "harm": {
+   "who": "lenders/protocol or borrowers",
+   "loses_what": "collateral valued at 0 enables liquidation of healthy positions; debt token valued at 0 allows over-borrowing",
+   "magnitude": "full collateral or borrow value of affected token"
+  },
+  "exploit_trace": [
+   "1. Api3 feed reports 0 (or feed with tokens of decimals > 18 yields truncated 0).",
+   "2. InitOracle returns 0 since no other valid source.",
+   "3. Health computed with 0 price: collateral worthless or debt free."
+  ],
+  "preconditions": [
+   {
+    "text": "Api3 is the only valid source for the token, feed returns 0",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "positions mispriced",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+   "rules_applied": [
+    "R10:\u2713(price=0)",
+    "R16:\u2713(oracle dependency)"
+   ],
+   "depth_evidence": [
+    "[VARIATION:price 0 -> price_e36 0 accepted]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "positions mispriced"
+   ],
+   "who_benefits": "attacker / liquidators"
+  }
+ },
+ {
+  "id": "PC6-2",
+  "chain": "solidity",
+  "title": "InitOracle deviation check divides by zero when one source reports price 0, reverting instead of falling back",
+  "severity": "Low",
+  "category": "oracle-fallback",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/oracle/InitOracle.sol",
+    "line_start": 68,
+    "line_end": 75,
+    "unit": "InitOracle",
+    "function": "getPrice_e36"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "InitOracle"
+  },
+  "description": "Discovery: per-unit step 3 (boundary 0). If both sources are valid but one returns 0, minPrice_e36 is 0 and (max*1e18)/min panics. The Panic is outside the try/catch, so the whole getPrice_e36 reverts, which blocks borrow, withdraw collateral and liquidation for that token while the other source is healthy.",
+  "root_cause": "Deviation check does not guard minPrice_e36 == 0 and does not treat a zero price as an invalid source.",
+  "vulnerable_code": "_require((maxPrice_e36 * ONE_E18) / minPrice_e36 <= maxPriceDeviations_e18[_token], ...);",
+  "harm": {
+   "who": "users and liquidators of the token",
+   "loses_what": "availability: liquidation and health checks revert",
+   "magnitude": "for the duration of the zero report"
+  },
+  "exploit_trace": [
+   "1. Primary returns 0, secondary returns a sane price.",
+   "2. minPrice=0, division panics.",
+   "3. All price-dependent operations on that token revert."
+  ],
+  "preconditions": [
+   {
+    "text": "one source returns 0",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "price-dependent operations DoS",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+   "rules_applied": [
+    "R10:\u2713(price=0)",
+    "R16:\u2713(oracle dependency)"
+   ],
+   "depth_evidence": [
+    "[VARIATION:minPrice 0 -> Panic 0x12]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "price-dependent operations DoS"
+   ],
+   "who_benefits": "attacker / liquidators"
+  }
+ },
+ {
+  "id": "PC6-3",
+  "chain": "solidity",
+  "title": "Api3OracleReader reverts with arithmetic underflow when the feed timestamp is ahead of block.timestamp",
+  "severity": "Low",
+  "category": "oracle-staleness",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/oracle/Api3OracleReader.sol",
+    "line_start": 87,
+    "line_end": 87,
+    "unit": "Api3OracleReader",
+    "function": "getPrice_e36"
+   }
+  ],
+  "discovery": {
+   "phase": "per-unit",
+   "lens": null,
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": "Api3OracleReader"
+  },
+  "description": "Discovery: per-unit step 3 (boundary values). block.timestamp - timestamp is checked arithmetic; API3 accepts data timestamps slightly ahead of the chain time, so a fresh update with timestamp > block.timestamp makes getPrice_e36 revert with a panic rather than being treated as fresh, temporarily blocking price reads (and liquidations) when no secondary source exists.",
+  "root_cause": "Unguarded subtraction of feed timestamp from block.timestamp.",
+  "vulnerable_code": "_require(block.timestamp - timestamp <= dataFeedInfo.maxStaleTime, Errors.MAX_STALETIME_EXCEEDED);",
+  "harm": {
+   "who": "users and liquidators",
+   "loses_what": "availability of price",
+   "magnitude": "until block.timestamp catches up"
+  },
+  "exploit_trace": [
+   "1. Api3 update lands with timestamp a few seconds ahead of L2 block time.",
+   "2. Subtraction underflows, getPrice reverts."
+  ],
+  "preconditions": [
+   {
+    "text": "feed timestamp > block.timestamp",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "price reads revert temporarily",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+   "rules_applied": [
+    "R10:\u2713(price=0)",
+    "R16:\u2713(oracle dependency)"
+   ],
+   "depth_evidence": [
+    "[VARIATION:timestamp=now+1 -> underflow revert]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "price reads revert temporarily"
+   ],
+   "who_benefits": "attacker / liquidators"
+  }
+ }
+]

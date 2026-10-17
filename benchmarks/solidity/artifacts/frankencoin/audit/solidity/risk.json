@@ -1,0 +1,157 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "size": "SMALL",
+  "files": [
+    {
+      "file": "contracts/MintingHub.sol",
+      "score": 141.75,
+      "breakdown": {
+        "external_calls": 65,
+        "state_writers": 36,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 15.75,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/Position.sol",
+      "score": 112.55,
+      "breakdown": {
+        "external_calls": 20,
+        "state_writers": 48,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 19.55,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/Frankencoin.sol",
+      "score": 74.25,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 44,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 15.25,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/Equity.sol",
+      "score": 61.85,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 16,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 15.85,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/StablecoinBridge.sol",
+      "score": 59.25,
+      "breakdown": {
+        "external_calls": 10,
+        "state_writers": 20,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.25,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ERC20.sol",
+      "score": 43.05,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 16,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 12.05,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/PositionFactory.sol",
+      "score": 31.35,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 8,
+        "payable": 0,
+        "assembly_blocks": 6,
+        "unchecked_blocks": 0,
+        "loc": 2.35,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ERC20PermitLight.sol",
+      "score": 25.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 3,
+        "loc": 3.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/Ownable.sol",
+      "score": 21.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/MathUtil.sol",
+      "score": 17.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    }
+  ]
+}

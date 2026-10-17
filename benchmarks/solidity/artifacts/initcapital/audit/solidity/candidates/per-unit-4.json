@@ -1,0 +1,15 @@
+[{
+ "id":"PC4-1","chain":"solidity",
+ "title":"MoneyMarketHook.execute unwraps per withdraw entry but the helper sweeps its whole balance, so repeated helper use sends all proceeds to the first receiver and reverts on the next",
+ "severity":"Low","category":"logic-error","status":"candidate",
+ "locations":[{"file":"contracts/hook/MoneyMarketHook.sol","line_start":71,"line_end":74,"unit":"MoneyMarketHook","function":"execute"},{"file":"contracts/helper/rebase_helper/mUSDUSDYHelper.sol","line_start":27,"line_end":32,"unit":"mUSDUSDYHelper","function":"unwrap"}],
+ "discovery":{"phase":"per-unit","lens":null,"mindset":"edge-case","consensus":null,"unit":"MoneyMarketHook"},
+ "description":"Discovery: per-unit step 2/3 (conditional branch audit, boundary values). execute() loops over withdrawParams and calls helper.unwrap(withdrawParams[i].to) for every entry with a helper. mUSDUSDYHelper.unwrap ignores the amount actually burned for that entry and wraps its entire YIELD_BEARING_TOKEN balance, then transfers all shares to _to. With two withdraw entries using the same helper and different receivers, the first unwrap sends the combined proceeds of both withdrawals to the first receiver, and the second unwrap runs with a zero balance (wrap(0) and transferShares of 0, likely reverting), which reverts the whole execute.",
+ "root_cause":"Unwrap amount is not scoped to the per-entry withdrawal; the helper uses balanceOf(this) and the hook calls unwrap once per entry.",
+ "vulnerable_code":"for (...) { address helper = _params.withdrawParams[i].rebaseHelperParams.helper; if (helper != address(0)) IRebaseHelper(helper).unwrap(_params.withdrawParams[i].to); }",
+ "harm":{"who":"hook users withdrawing multiple pools/amounts through the same rebase helper to different receivers","loses_what":"mis-routed withdrawn funds or a DoS of the multi-withdraw operation","magnitude":"the second withdrawal amount; self-inflicted by the caller's parameters"},
+ "exploit_trace":["1. User calls execute with two withdrawParams, same helper, to=A and to=B.","2. Both burnTo calls deliver USDY to the helper.","3. First unwrap(A) converts all USDY and sends all shares to A; second unwrap(B) finds zero balance and reverts or yields nothing for B."],
+ "preconditions":[{"text":"caller supplies more than one withdraw entry with the same rebase helper","type":"STATE"}],
+ "postconditions":[{"text":"all proceeds go to the first receiver or the call reverts","type":"BALANCE"}],
+ "audit_trail":{"step_execution":"Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✗(N/A) 6=✗(no parent logic)","rules_applied":["R8:✗","R10:✓(two entries, one helper)","R11:✓(mUSD rebase token)","R12:✗","R15:✗","R16:✗"],"depth_evidence":["[VARIATION:withdraw entries 1→2 same helper → second unwrap sees balance 0]","[TRACE:execute→unwrap(A)→balanceOf(helper)→wrap→transferShares(A, all)]"],"missing_precondition":"","postconditions_created":["all proceeds go to the first receiver or the call reverts"],"who_benefits":"first receiver"}
+}]

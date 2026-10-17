@@ -1,0 +1,40 @@
+[
+ {
+  "type": "thread.started",
+  "thread_id": "01a148bd-78e5-75b1-bf2e-ed9f2a58212e"
+ },
+ {
+  "type": "item.completed",
+  "item": {
+   "id": "item_0",
+   "type": "agent_message",
+   "text": "I\u2019m using the chainsec-audit skill in quick mode and will follow its audit pipeline.\n"
+  }
+ },
+ {
+  "type": "item.completed",
+  "item": {
+   "id": "item_6",
+   "type": "agent_message",
+   "text": "Detected Solidity. I\u2019m checking the required tools and source scope before starting analysis.\n"
+  }
+ },
+ {
+  "type": "item.completed",
+  "item": {
+   "id": "item_13",
+   "type": "agent_message",
+   "text": "Preflight passed with Slither unavailable, so the audit is in degraded mode. Compiler-based extraction and risk scoring are complete; I\u2019m mapping the two contracts.\n"
+  }
+ },
+ {
+  "type": "error",
+  "message": "You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/settings/usage to purchase more credits or try again at 4:57 PM."
+ },
+ {
+  "type": "turn.failed",
+  "error": {
+   "message": "You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/settings/usage to purchase more credits or try again at 4:57 PM."
+  }
+ }
+]

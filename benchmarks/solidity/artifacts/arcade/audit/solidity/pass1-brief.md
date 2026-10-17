@@ -1,0 +1,16 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - DP1-1 | contracts/ArcadeTreasury.sol:358-394 (blockExpenditure at :68) | Medium | Per-block spend/approve counter is shared across all tokens (and between GSC and CORE_VOTING), so amounts in different units consume each other's limit; same-block multi-token spends can revert with T_BlockSpendLimit.
+- Files with NO candidates: contracts/NFTBoostVault.sol, contracts/ARCDVestingVault.sol, contracts/BaseVotingVault.sol, contracts/token/ArcadeTokenDistributor.sol, contracts/nft/ReputationBadge.sol, contracts/token/ArcadeAirdrop.sol (+ libraries/ArcadeMerkleRewards.sol), contracts/token/ArcadeToken.sol, contracts/nft/BadgeDescriptor.sol, contracts/ImmutableVestingVault.sol, contracts/ArcadeGSCVault.sol, contracts/ArcadeGSCCoreVoting.sol. These need extra scrutiny in Pass 2 (read in full once by Pass 1; Council History library only skimmed; facts are regex-mode).
+- Suspicious areas flagged but not promoted to candidate:
+  - NFTBoostVault.delegate (L182-212) and ARCDVestingVault.delegate (L260-282) have no existence check for a registration or grant: a caller without one gets a "ghost" delegatee set; in NFTBoostVault this makes addNftAndDelegate revert NBV_HasRegistration for that caller (self-inflicted only; addTokens and updateNft still work). No third-party victim found.
+  - NFTBoostVault.updateNft (L305-330) does not require a non-zero multiplier (addNftAndDelegate does, via NBV_NoMultiplierSet) and accepts any ERC1155 address that reports a balance; the registration's voting power falls to 0 and a hostile ERC1155's safeTransferFrom is later called in _withdrawNft (self-harm; can brick the caller's own full withdraw).
+  - NFTBoostVault: recorded voting power goes stale after setMultiplier until someone calls updateVotingPower (permissionless, max 50 users); holders have no incentive to sync a downward change. NatSpec says this is by design.
+  - NFTBoostVault._withdrawNft (L548-570) transfers the ERC1155 (callback to the user) before clearing tokenAddress/tokenId; reentry possible only into the non-nonReentrant delegate/updateVotingPower. Traced and found consistent (latestVotingPower stays in sync), but re-check with the Pass 2 lens.
+  - NFTBoostVault.onERC1155Received accepts any ERC1155 from anyone (lost tokens; documented). No onERC1155BatchReceived.
+  - ARCDVestingVault: NatSpec says timestamps for cliff/expiration/start but the code compares block.number; revokeGrant sends unvested tokens to the manager, not to `unassigned`. Looks like design/doc mismatch.
+  - ARCDVestingVault.revokeGrant has no nonReentrant (plain ERC20, known slither item).
+  - ReputationBadge.mint: anyone can mint for any recipient (pays fee); overpayment of msg.value is not refunded. Low/Gate A.
+  - ArcadeTreasury._approve overwrites allowance (approve race) and uses non-safe approve (USDT-style tokens revert); ETH sent with transfer (2300 gas). Known/Gate A/B.
+  - ArcadeAirdrop/ArcadeMerkleRewards: claimAndDelegate reverts NBV_WrongDelegatee when the claimant already has a vault registration with another delegatee (claimant can retry with the right one); owner can setMerkleRoot at any time (admin trust).
+- Analyzer findings NOT yet covered by a candidate: none (no A/analyzers/*.md present; slither skipped). Known-issue categories from known-issues.md were excluded (Gate H).

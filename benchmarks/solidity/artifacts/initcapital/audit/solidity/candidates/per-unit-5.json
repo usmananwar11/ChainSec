@@ -1,0 +1,42 @@
+[
+  {
+    "id": "PC5-1",
+    "chain": "solidity",
+    "title": "Config.maxHealthAfterLiq_e18 defaults to 0 and is only set by a separate guardian call, so liquidations revert in any mode configured via factors alone",
+    "severity": "Low",
+    "category": "unsafe-default",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/core/Config.sol", "line_start": 80, "line_end": 82, "unit": "Config", "function": "getMaxHealthAfterLiq_e18"},
+      {"file": "contracts/core/Config.sol", "line_start": 135, "line_end": 140, "unit": "Config", "function": "setMaxHealthAfterLiq_e18"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "Config"},
+    "description": "Discovery: per-unit step 3 (boundary values: unset storage = 0) and step 2. InitCore._ensurePosHealthAfterLiq treats type(uint64).max as 'no check' and otherwise requires getPosHealthCurrent_e18 <= maxHealthAfterLiq_e18. For a mode never passed to setMaxHealthAfterLiq_e18 (guardian-only, separate from the governor-only setCollFactors_e18/setBorrFactors_e18 that create the mode) the getter returns 0, so every post-liquidation health (> 0) fails with INVALID_HEALTH_AFTER_LIQUIDATION. The setter also forbids values <= 1e18 and has no way to restore 0, so the only safe values are > 1e18. Positions in such a mode can borrow but can never be liquidated, which accrues bad debt. Requires the operators to forget the extra call; the default is fail-closed for liquidation rather than fail-open for the check. Boundary with InitCore (outside this cluster) noted only.",
+    "root_cause": "Mode creation (factor setters) does not initialize maxHealthAfterLiq_e18, and the liquidation check interprets the zero default as a threshold of 0 instead of 'unset'.",
+    "vulnerable_code": "maxHealthAfterLiq_e18 = __modeConfigs[_mode].maxHealthAfterLiq_e18;",
+    "harm": {
+      "who": "pool lenders",
+      "loses_what": "bad debt from positions in a mode that cannot be liquidated",
+      "magnitude": "all debt in the misconfigured mode while unset"
+    },
+    "exploit_trace": [
+      "1. Governor lists pools and factors for mode M via setCollFactors_e18/setBorrFactors_e18; guardian never calls setMaxHealthAfterLiq_e18(M).",
+      "2. Users open positions in M and borrow; prices fall and positions become unhealthy.",
+      "3. liquidate reaches _ensurePosHealthAfterLiq with threshold 0 and reverts, because post-liquidation health is > 0."
+    ],
+    "preconditions": [
+      {"text": "a mode is made usable without a maxHealthAfterLiq_e18 being set", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "unhealthy positions in the mode cannot be liquidated", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✗(N/A) 6=✓",
+      "rules_applied": ["R8:✗", "R10:✓(assessed at unset = 0)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:maxHealthAfterLiq_e18 unset=0 -> any post-liq health > 0 reverts]", "[BOUNDARY:setter requires > 1e18, cannot reset to 0]"],
+      "missing_precondition": "operators must omit the guardian setMaxHealthAfterLiq_e18 call for the mode",
+      "postconditions_created": ["mode with unliquidatable positions"],
+      "who_benefits": "Underwater borrowers"
+    }
+  }
+]

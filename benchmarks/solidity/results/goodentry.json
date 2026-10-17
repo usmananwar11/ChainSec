@@ -1,0 +1,149 @@
+{
+  "id": "goodentry",
+  "tool": "chainsec",
+  "official_total": 14,
+  "exact": 4,
+  "partial": 0,
+  "fp": 4,
+  "matches": [
+    {
+      "official_id": "H-01",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/373",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-007"
+      ],
+      "reason": "Same TokenisableRange.deposit fee-clawing root cause: newFee0/newFee1 computed from slot0 spot, so when one token amount goes to ~0 the caller's whole deposit of that token is credited to the fee pool."
+    },
+    {
+      "official_id": "H-02",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/325",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-03",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/140",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-04",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/85",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "SOL-007 touches the same deposit fee block but describes a different root cause (spot-price manipulation of the fee split, not the 1% fee-amount cap / skipped LP downscaling flash-loan attack); no credit."
+    },
+    {
+      "official_id": "H-05",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/64",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-008"
+      ],
+      "reason": "Same V3Proxy.swapTokensForExactETH root cause: pulls amountInMax from the caller and never refunds the unspent amountInMax - amountIn."
+    },
+    {
+      "official_id": "H-06",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/58",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-01",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/463",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-02",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/397",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-03",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/379",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-004"
+      ],
+      "reason": "Same GeVault.getActiveTickIndex boundary bug (loop bound ticks.length - 3) causing deployAssets to index ticks out of bounds and revert, freezing deposit/withdraw/rebalance."
+    },
+    {
+      "official_id": "M-04",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/367",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-003"
+      ],
+      "reason": "Same GeVault first-depositor share-price manipulation: no minimum-liquidity burn, balance-based TVL donation inflates price and dilutes later depositors."
+    },
+    {
+      "official_id": "M-05",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/358",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-06",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/254",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "SOL-006 concerns RangeManager.removeFromStep with amountMin=0, not the initRange refunded-token theft; different function and root cause."
+    },
+    {
+      "official_id": "M-07",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/202",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "Only SOL-007 is nearby (same newFee0/newFee1 block) but it is already credited to H-01 and its root cause (spot-manipulated split) differs from M-07's raw n0/n1 ratio mismatch causing immediate loss; no double credit."
+    },
+    {
+      "official_id": "M-08",
+      "official_url": "https://github.com/code-423n4/2023-08-goodentry-findings/issues/83",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    }
+  ],
+  "false_positives": [
+    {
+      "chainsec_id": "SOL-001",
+      "reason": "GeVault withdraw burning shares for 0 when isEnabled=false matches no official High/Medium finding."
+    },
+    {
+      "chainsec_id": "SOL-002",
+      "reason": "OptionsPositionManager.close callable for any user matches no official High/Medium finding."
+    },
+    {
+      "chainsec_id": "SOL-005",
+      "reason": "OptionsPositionManager.closeDebt swap without price bound matches no official High/Medium finding."
+    },
+    {
+      "chainsec_id": "SOL-006",
+      "reason": "RangeManager.removeFromStep / withdrawOptionAssets amountMin=0 sandwich matches no official High/Medium finding."
+    }
+  ],
+  "notes": {
+    "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+    "target_commit": "71c0c0eca8af957202ccdbf5ce2f2a514ffe2e24",
+    "runtime": "Claude Code 2.1.300",
+    "model": "claude-sonnet-5-5",
+    "facts_mode": "regex",
+    "tooling_mode": "degraded (slither unavailable)",
+    "quick": false,
+    "incomplete_phases": [],
+    "elapsed_seconds": 1944.35,
+    "artifacts": "../artifacts/goodentry",
+    "scope": "38 files from README scope table (10 implementation contracts, 28 interfaces); source/tests unchanged",
+    "comparison": "Single-target comparison only; five-contest acceptance remains pending. Baseline model/tooling are not controlled.",
+    "grading": "Only final report findings receive credit. No PoC was run. Official findings were retrieved only after the audit output was frozen."
+  }
+}

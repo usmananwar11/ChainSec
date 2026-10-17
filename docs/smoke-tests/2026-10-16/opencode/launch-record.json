@@ -1,0 +1,15 @@
+{
+  "command": [
+    "opencode",
+    "run",
+    "--dir",
+    "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/opencode",
+    "--auto",
+    "--format",
+    "json",
+    "Use the chainsec-audit skill --quick. TARGET is /var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/opencode. Skills installed in TARGET/.opencode/skills. Audit only TARGET, a fresh fixture copy. Follow complete pipeline through final report."
+  ],
+  "pid": 72170,
+  "started": 1792134879.001494,
+  "cwd": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/opencode"
+}

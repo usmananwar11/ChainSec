@@ -1,0 +1,563 @@
+[
+  {
+    "id": "PC1-1",
+    "chain": "solidity",
+    "title": "InitCore.callback is permissionless and forwards an arbitrary _value from core's own ETH balance, so ETH left in core by unconsumed multicall msg.value can be taken by anyone",
+    "severity": "Low",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 505,
+        "line_end": 514,
+        "unit": "InitCore",
+        "function": "callback"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 389,
+        "line_end": 403,
+        "unit": "InitCore",
+        "function": "multicall"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "accountant",
+      "consensus": null,
+      "unit": "InitCore"
+    },
+    "description": "Discovery: per-unit step 1 (state completeness) and step 5 (value trace) on payable multicall and callback. multicall is payable and delegatecalls the core itself, but no function except callback consumes msg.value, and nothing refunds the remainder. callback has no auth, no nonReentrant, and takes the ETH amount from the caller-supplied _value, not from msg.value. Any ETH that stays in core (unused msg.value on multicall, a payable callback with msg.value > _value, forced sends) can therefore be sent by a later caller to an attacker-controlled ICallbackReceiver via callback(attacker, core.balance, data). The ETH is not owed to any protocol accounting, so the harm is limited to user ETH that was stranded in core.",
+    "root_cause": "callback spends core's whole ETH balance on caller-chosen _value instead of bounding it by msg.value, and payable entry points never refund leftover ETH.",
+    "vulnerable_code": "return ICallbackReceiver(_to).coreCallback{value: _value}(msg.sender, _data);",
+    "harm": {
+      "who": "users who send msg.value to core.multicall/callback and do not consume all of it",
+      "loses_what": "the unconsumed ETH",
+      "magnitude": "the ETH balance held by core"
+    },
+    "exploit_trace": [
+      "1. A user calls multicall{value: 1 ether} with a callback that forwards only 0.4 ether, or sends excess msg.value; 0.6 ether stays in core.",
+      "2. Attacker deploys a receiver whose coreCallback accepts ETH and calls core.callback(receiver, address(core).balance, '').",
+      "3. Core sends its whole ETH balance to the receiver."
+    ],
+    "preconditions": [
+      {
+        "text": "core holds a non-zero ETH balance",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "stranded ETH is moved to the attacker",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2717(N/A) 3=\u2713 4=\u2717(N/A) 5=\u2713 6=\u2717(N/A)",
+      "rules_applied": [
+        "R8:\u2717(single-step)",
+        "R10:\u2713(_value = core.balance)",
+        "R11:\u2713(forced ETH considered)",
+        "R12:\u2713(two sources of stray ETH)",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_value = address(core).balance -> all ETH forwarded]",
+        "[TRACE:multicall{value:v} -> callback(_value<v) -> remainder stays -> second callback drains]"
+      ],
+      "missing_precondition": "requires ETH to be left in core",
+      "postconditions_created": [
+        "stranded ETH moved to attacker"
+      ],
+      "who_benefits": "Any caller"
+    }
+  },
+  {
+    "id": "PC1-2",
+    "chain": "solidity",
+    "title": "_repay emits Repay with the requested _shares instead of the clamped sharesToRepay actually repaid",
+    "severity": "Low",
+    "category": "event-accuracy",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 537,
+        "line_end": 550,
+        "unit": "InitCore",
+        "function": "_repay"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "InitCore"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values: _shares > position debt shares) and step 4 (pairing audit between the clamp and the event). _repay clamps sharesToRepay to the position's debt shares, repays and updates debt using sharesToRepay, but emits _shares. With _shares = type(uint).max (full repay or liquidation) the event reports a share amount that was never repaid, so off-chain indexers and accounting that read Repay (including liquidation flows that go through _repay) record wrong share values.",
+    "root_cause": "The event uses the unclamped input instead of the value used for state changes.",
+    "vulnerable_code": "uint sharesToRepay = _shares < positionDebtShares ? _shares : positionDebtShares;\n...\nemit Repay(_pool, _posId, msg.sender, _shares, amt);",
+    "harm": {
+      "who": "off-chain indexers, front-ends and integrators reading Repay events",
+      "loses_what": "correct repaid-share data",
+      "magnitude": "informational, no on-chain fund loss"
+    },
+    "exploit_trace": [
+      "1. Position holds 100 debt shares in pool P.",
+      "2. A caller calls repay(P, type(uint).max, posId).",
+      "3. State reduces by 100 shares, but Repay is emitted with shares = 2^256-1."
+    ],
+    "preconditions": [
+      {
+        "text": "_shares exceeds the position's debt shares",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "event log disagrees with state change",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2713 5=\u2717(N/A) 6=\u2717(N/A)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(_shares = max)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_shares=type(uint).max -> event shares=max, state shares=positionDebtShares]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "event/state mismatch"
+      ],
+      "who_benefits": "None"
+    }
+  },
+  {
+    "id": "PC2-1",
+    "chain": "solidity",
+    "title": "accrueInterest advances lastAccruedTime even when the truncated interest is 0, so frequent public accrual erases interest on small-debt or low-decimal pools",
+    "severity": "Low",
+    "category": "rounding",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/lending_pool/LendingPool.sol",
+        "line_start": 155,
+        "line_end": 169,
+        "unit": "LendingPool",
+        "function": "accrueInterest"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "LendingPool"
+    },
+    "description": "Discovery: per-unit step 2 (conditional branch audit) and step 3 (boundary values). accrueInterest is public. It computes accruedInterest = rate * dt * totalDebt / 1e18 (rounds down) and then always writes lastAccruedTime = block.timestamp. When rate * dt * totalDebt < 1e18 the interest is 0 but the elapsed time is consumed, so the fraction is never carried forward. Anyone (typically a borrower) can call accrueInterest every block, or every borrow/repay accrues anyway, to keep dt tiny. Example: a 10% APR rate is about 3.17e9 per second in e18; for a WBTC (8 decimals) pool with totalDebt = 3e8 (3 BTC), interest per 1 second is 0.95 units and truncates to 0 each time, so interest on that debt is almost entirely lost if accrued every second or two. Pools with 6 to 8 decimal tokens and modest total debt are affected most.",
+    "root_cause": "Time is checkpointed unconditionally while the interest increment is floored, with no remainder carried over.",
+    "vulnerable_code": "uint accruedInterest = (borrowRate_e18 * (block.timestamp - _lastAccruedTime) * _totalDebt) / ONE_E18;\n...\ntotalDebt = _totalDebt + accruedInterest;\nlastAccruedTime = block.timestamp;",
+    "harm": {
+      "who": "lenders and treasury of low-decimal or low-debt pools",
+      "loses_what": "accrued interest that rounds to 0 on each short accrual",
+      "magnitude": "up to nearly all interest when rate * dt * totalDebt < 1e18 per accrual, e.g. totalDebt below about 3e8 units at 10% APR with 1 second accruals"
+    },
+    "exploit_trace": [
+      "1. Pool of an 8-decimal token has totalDebt = 3e8 and a borrow rate of about 3.17e9 (e18) per second.",
+      "2. A borrower calls accrueInterest() every block (about 1 to 2 s apart).",
+      "3. Each call computes 3.17e9 * 1 * 3e8 / 1e18 = 0, then sets lastAccruedTime = now.",
+      "4. Debt never grows, so lenders earn nothing and the borrower pays no interest."
+    ],
+    "preconditions": [
+      {
+        "text": "pool debt small enough in raw units that per-interval interest truncates to 0",
+        "type": "STATE"
+      },
+      {
+        "text": "someone calls accrueInterest (or other accruing functions) at short intervals",
+        "type": "TIMING"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "totalDebt does not reflect elapsed time; lenders' yield is lost",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2713 6=\u2717(N/A: parent UnderACM has no state logic)",
+      "rules_applied": [
+        "R8:\u2713(lastAccruedTime cached across calls)",
+        "R10:\u2713(assessed at totalDebt=3e8, dt=1s)",
+        "R11:\u2717(no external tokens beyond underlying)",
+        "R12:\u2717(single path)",
+        "R15:\u2717(no flash-loan-accessible state)",
+        "R16:\u2717(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:totalDebt=3e8, rate=3.17e9, dt=1 -> interest=0]",
+        "[TRACE:accrueInterest -> accruedInterest floors to 0 -> lastAccruedTime=now]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "interest accrual skipped for elapsed interval"
+      ],
+      "who_benefits": "Borrowers"
+    }
+  },
+  {
+    "id": "PC4-1",
+    "chain": "solidity",
+    "title": "MoneyMarketHook.execute unwraps per withdraw entry but the helper sweeps its whole balance, so repeated helper use sends all proceeds to the first receiver and reverts on the next",
+    "severity": "Low",
+    "category": "logic-error",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/hook/MoneyMarketHook.sol",
+        "line_start": 71,
+        "line_end": 74,
+        "unit": "MoneyMarketHook",
+        "function": "execute"
+      },
+      {
+        "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+        "line_start": 27,
+        "line_end": 32,
+        "unit": "mUSDUSDYHelper",
+        "function": "unwrap"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "MoneyMarketHook"
+    },
+    "description": "Discovery: per-unit step 2/3 (conditional branch audit, boundary values). execute() loops over withdrawParams and calls helper.unwrap(withdrawParams[i].to) for every entry with a helper. mUSDUSDYHelper.unwrap ignores the amount actually burned for that entry and wraps its entire YIELD_BEARING_TOKEN balance, then transfers all shares to _to. With two withdraw entries using the same helper and different receivers, the first unwrap sends the combined proceeds of both withdrawals to the first receiver, and the second unwrap runs with a zero balance (wrap(0) and transferShares of 0, likely reverting), which reverts the whole execute.",
+    "root_cause": "Unwrap amount is not scoped to the per-entry withdrawal; the helper uses balanceOf(this) and the hook calls unwrap once per entry.",
+    "vulnerable_code": "for (...) { address helper = _params.withdrawParams[i].rebaseHelperParams.helper; if (helper != address(0)) IRebaseHelper(helper).unwrap(_params.withdrawParams[i].to); }",
+    "harm": {
+      "who": "hook users withdrawing multiple pools/amounts through the same rebase helper to different receivers",
+      "loses_what": "mis-routed withdrawn funds or a DoS of the multi-withdraw operation",
+      "magnitude": "the second withdrawal amount; self-inflicted by the caller's parameters"
+    },
+    "exploit_trace": [
+      "1. User calls execute with two withdrawParams, same helper, to=A and to=B.",
+      "2. Both burnTo calls deliver USDY to the helper.",
+      "3. First unwrap(A) converts all USDY and sends all shares to A; second unwrap(B) finds zero balance and reverts or yields nothing for B."
+    ],
+    "preconditions": [
+      {
+        "text": "caller supplies more than one withdraw entry with the same rebase helper",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "all proceeds go to the first receiver or the call reverts",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2717(no parent logic)",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(two entries, one helper)",
+        "R11:\u2713(mUSD rebase token)",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[VARIATION:withdraw entries 1\u21922 same helper \u2192 second unwrap sees balance 0]",
+        "[TRACE:execute\u2192unwrap(A)\u2192balanceOf(helper)\u2192wrap\u2192transferShares(A, all)]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "all proceeds go to the first receiver or the call reverts"
+      ],
+      "who_benefits": "first receiver"
+    }
+  },
+  {
+    "id": "PC5-1",
+    "chain": "solidity",
+    "title": "Config.maxHealthAfterLiq_e18 defaults to 0 and is only set by a separate guardian call, so liquidations revert in any mode configured via factors alone",
+    "severity": "Low",
+    "category": "unsafe-default",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/core/Config.sol",
+        "line_start": 80,
+        "line_end": 82,
+        "unit": "Config",
+        "function": "getMaxHealthAfterLiq_e18"
+      },
+      {
+        "file": "contracts/core/Config.sol",
+        "line_start": 135,
+        "line_end": 140,
+        "unit": "Config",
+        "function": "setMaxHealthAfterLiq_e18"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "Config"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values: unset storage = 0) and step 2. InitCore._ensurePosHealthAfterLiq treats type(uint64).max as 'no check' and otherwise requires getPosHealthCurrent_e18 <= maxHealthAfterLiq_e18. For a mode never passed to setMaxHealthAfterLiq_e18 (guardian-only, separate from the governor-only setCollFactors_e18/setBorrFactors_e18 that create the mode) the getter returns 0, so every post-liquidation health (> 0) fails with INVALID_HEALTH_AFTER_LIQUIDATION. The setter also forbids values <= 1e18 and has no way to restore 0, so the only safe values are > 1e18. Positions in such a mode can borrow but can never be liquidated, which accrues bad debt. Requires the operators to forget the extra call; the default is fail-closed for liquidation rather than fail-open for the check. Boundary with InitCore (outside this cluster) noted only.",
+    "root_cause": "Mode creation (factor setters) does not initialize maxHealthAfterLiq_e18, and the liquidation check interprets the zero default as a threshold of 0 instead of 'unset'.",
+    "vulnerable_code": "maxHealthAfterLiq_e18 = __modeConfigs[_mode].maxHealthAfterLiq_e18;",
+    "harm": {
+      "who": "pool lenders",
+      "loses_what": "bad debt from positions in a mode that cannot be liquidated",
+      "magnitude": "all debt in the misconfigured mode while unset"
+    },
+    "exploit_trace": [
+      "1. Governor lists pools and factors for mode M via setCollFactors_e18/setBorrFactors_e18; guardian never calls setMaxHealthAfterLiq_e18(M).",
+      "2. Users open positions in M and borrow; prices fall and positions become unhealthy.",
+      "3. liquidate reaches _ensurePosHealthAfterLiq with threshold 0 and reverts, because post-liquidation health is > 0."
+    ],
+    "preconditions": [
+      {
+        "text": "a mode is made usable without a maxHealthAfterLiq_e18 being set",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "unhealthy positions in the mode cannot be liquidated",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R8:\u2717",
+        "R10:\u2713(assessed at unset = 0)",
+        "R11:\u2717",
+        "R12:\u2717",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:maxHealthAfterLiq_e18 unset=0 -> any post-liq health > 0 reverts]",
+        "[BOUNDARY:setter requires > 1e18, cannot reset to 0]"
+      ],
+      "missing_precondition": "operators must omit the guardian setMaxHealthAfterLiq_e18 call for the mode",
+      "postconditions_created": [
+        "mode with unliquidatable positions"
+      ],
+      "who_benefits": "Underwater borrowers"
+    }
+  },
+  {
+    "id": "PC6-1",
+    "chain": "solidity",
+    "title": "Api3OracleReader returns a zero price without rejecting non-positive feed values",
+    "severity": "Medium",
+    "category": "oracle-validation",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/oracle/Api3OracleReader.sol",
+        "line_start": 84,
+        "line_end": 90,
+        "unit": "Api3OracleReader",
+        "function": "getPrice_e36"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "Api3OracleReader"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values). getPrice_e36 only reverts on negative values (SafeCast); a feed value of 0, or a value that truncates to 0 after dividing by 10**decimals, is returned as a valid price. When Api3 is the only valid source (no secondary, or secondary reverts) InitOracle passes price 0 to the core.",
+    "root_cause": "No price > 0 check after readDataFeedWithId and no minimum on the scaled result.",
+    "vulnerable_code": "(int224 price, uint timestamp) = readDataFeedWithId(id);\n...\nprice_e36 = (price.toUint256() * ONE_E18) / 10 ** decimals;",
+    "harm": {
+      "who": "lenders/protocol or borrowers",
+      "loses_what": "collateral valued at 0 enables liquidation of healthy positions; debt token valued at 0 allows over-borrowing",
+      "magnitude": "full collateral or borrow value of affected token"
+    },
+    "exploit_trace": [
+      "1. Api3 feed reports 0 (or feed with tokens of decimals > 18 yields truncated 0).",
+      "2. InitOracle returns 0 since no other valid source.",
+      "3. Health computed with 0 price: collateral worthless or debt free."
+    ],
+    "preconditions": [
+      {
+        "text": "Api3 is the only valid source for the token, feed returns 0",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "positions mispriced",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R10:\u2713(price=0)",
+        "R16:\u2713(oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[VARIATION:price 0 -> price_e36 0 accepted]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "positions mispriced"
+      ],
+      "who_benefits": "attacker / liquidators"
+    }
+  },
+  {
+    "id": "PC6-2",
+    "chain": "solidity",
+    "title": "InitOracle deviation check divides by zero when one source reports price 0, reverting instead of falling back",
+    "severity": "Low",
+    "category": "oracle-fallback",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/oracle/InitOracle.sol",
+        "line_start": 68,
+        "line_end": 75,
+        "unit": "InitOracle",
+        "function": "getPrice_e36"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "InitOracle"
+    },
+    "description": "Discovery: per-unit step 3 (boundary 0). If both sources are valid but one returns 0, minPrice_e36 is 0 and (max*1e18)/min panics. The Panic is outside the try/catch, so the whole getPrice_e36 reverts, which blocks borrow, withdraw collateral and liquidation for that token while the other source is healthy.",
+    "root_cause": "Deviation check does not guard minPrice_e36 == 0 and does not treat a zero price as an invalid source.",
+    "vulnerable_code": "_require((maxPrice_e36 * ONE_E18) / minPrice_e36 <= maxPriceDeviations_e18[_token], ...);",
+    "harm": {
+      "who": "users and liquidators of the token",
+      "loses_what": "availability: liquidation and health checks revert",
+      "magnitude": "for the duration of the zero report"
+    },
+    "exploit_trace": [
+      "1. Primary returns 0, secondary returns a sane price.",
+      "2. minPrice=0, division panics.",
+      "3. All price-dependent operations on that token revert."
+    ],
+    "preconditions": [
+      {
+        "text": "one source returns 0",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "price-dependent operations DoS",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R10:\u2713(price=0)",
+        "R16:\u2713(oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[VARIATION:minPrice 0 -> Panic 0x12]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "price-dependent operations DoS"
+      ],
+      "who_benefits": "attacker / liquidators"
+    }
+  },
+  {
+    "id": "PC6-3",
+    "chain": "solidity",
+    "title": "Api3OracleReader reverts with arithmetic underflow when the feed timestamp is ahead of block.timestamp",
+    "severity": "Low",
+    "category": "oracle-staleness",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "contracts/oracle/Api3OracleReader.sol",
+        "line_start": 87,
+        "line_end": 87,
+        "unit": "Api3OracleReader",
+        "function": "getPrice_e36"
+      }
+    ],
+    "discovery": {
+      "phase": "per-unit",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "Api3OracleReader"
+    },
+    "description": "Discovery: per-unit step 3 (boundary values). block.timestamp - timestamp is checked arithmetic; API3 accepts data timestamps slightly ahead of the chain time, so a fresh update with timestamp > block.timestamp makes getPrice_e36 revert with a panic rather than being treated as fresh, temporarily blocking price reads (and liquidations) when no secondary source exists.",
+    "root_cause": "Unguarded subtraction of feed timestamp from block.timestamp.",
+    "vulnerable_code": "_require(block.timestamp - timestamp <= dataFeedInfo.maxStaleTime, Errors.MAX_STALETIME_EXCEEDED);",
+    "harm": {
+      "who": "users and liquidators",
+      "loses_what": "availability of price",
+      "magnitude": "until block.timestamp catches up"
+    },
+    "exploit_trace": [
+      "1. Api3 update lands with timestamp a few seconds ahead of L2 block time.",
+      "2. Subtraction underflows, getPrice reverts."
+    ],
+    "preconditions": [
+      {
+        "text": "feed timestamp > block.timestamp",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "price reads revert temporarily",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=\u2713 2=\u2713 3=\u2713 4=\u2717(N/A) 5=\u2717(N/A) 6=\u2713",
+      "rules_applied": [
+        "R10:\u2713(price=0)",
+        "R16:\u2713(oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[VARIATION:timestamp=now+1 -> underflow revert]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "price reads revert temporarily"
+      ],
+      "who_benefits": "attacker / liquidators"
+    }
+  }
+]

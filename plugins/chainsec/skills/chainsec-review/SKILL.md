@@ -6,8 +6,9 @@ argument-hint: "[path] [--chain <name>]"
 
 # ChainSec review
 
-1. Resolve CORE as in chainsec-audit (`cd ../chainsec && pwd`; stop with the INSTALL.md message if
-   `../chainsec/engine/phases/review.md` is missing).
+1. Resolve CORE as in chainsec-audit: from this skill's folder (not the project folder) run
+   `cd ../chainsec && pwd`; stop with the INSTALL.md message if `../chainsec/engine/phases/review.md`
+   is missing.
 2. TARGET = first non-flag argument or the current directory. For each `TARGET/.audit/<chain>/verdicts.json`
    (or only `--chain`'s): if none exist, tell the user to run chainsec-audit first and stop.
 3. Follow `../chainsec/engine/phases/review.md` for that chain (dispatch per `../chainsec/engine/pipeline.md`

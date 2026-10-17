@@ -1,0 +1,137 @@
+{
+  "id": "initcapital",
+  "tool": "chainsec",
+  "official_total": 15,
+  "exact": 3,
+  "partial": 0,
+  "fp": 0,
+  "matches": [
+    {
+      "official_id": "H-01",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/42",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-002"
+      ],
+      "reason": "Same root cause and location: PosManager.updatePosDebtShares snapshots lastDebtAmt assuming debt ratio is stable, so a 1-share dust repay/borrow in the same timestamp makes the next update underflow and blocks liquidation. Severity differs (reported Medium vs official High); grading is on root cause."
+    },
+    {
+      "official_id": "H-02",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/31",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-001"
+      ],
+      "reason": "Same root cause and location: PosManager.removeCollateralWLpTo only checks tokenId membership when the remaining amount is zero, so decollateralizeWLp/liquidateWLp with a partial or zero amount lets an attacker unwrap/harvest another position's wLp NFT."
+    },
+    {
+      "official_id": "H-03",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/28",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-003"
+      ],
+      "reason": "Same root cause and location: MoneyMarketHook._handleRepay pulls tokens for requested shares without clamping to the position's actual debt shares, leaving excess in the hook."
+    },
+    {
+      "official_id": "M-01",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/38",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-02",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/36",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-03",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/29",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report. SOL-003 touches the returnNative sweep but not the _handleWithdraw receiver/returnNative mismatch."
+    },
+    {
+      "official_id": "M-04",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/26",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-05",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/25",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-06",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/22",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-07",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/19",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report. SOL-003 mentions the L76-80 returnNative sweep as a downstream consequence of overpaid repay, but the official root cause (no reentrancy guard on execute, ERC777/677 callback) is not identified; not credited."
+    },
+    {
+      "official_id": "M-08",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/17",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-09",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/13",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-10",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/9",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-11",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/4",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-12",
+      "official_url": "https://github.com/code-423n4/2023-12-initcapital-findings/issues/3",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    }
+  ],
+  "false_positives": [],
+  "notes": {
+    "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+    "target_commit": "a53e401529451b208095b3af11862984d0b32177",
+    "runtime": "Claude Code 2.1.300",
+    "model": "claude-sonnet-5-5",
+    "facts_mode": "compiler",
+    "tooling_mode": "degraded (slither unavailable)",
+    "quick": false,
+    "incomplete_phases": [],
+    "elapsed_seconds": 1749.25,
+    "artifacts": "../artifacts/initcapital",
+    "scope": "17 scope files from contest scope; source/tests unchanged",
+    "comparison": "Single-target comparison only; five-contest acceptance remains pending. Baseline model/tooling are not controlled.",
+    "grading": "Only final report findings receive credit. No PoC was run. Published findings were kept out of the audit session."
+  }
+}

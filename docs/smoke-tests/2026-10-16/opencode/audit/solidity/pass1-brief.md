@@ -1,0 +1,14 @@
+PASS 1 BRIEF:
+- Candidates found:
+  - src/Vault.sol:32-34 (DP1-1, High) — `sweep()` has no access control; any caller drains the entire native balance to an arbitrary `to`, and it is the only ETH exit path.
+  - src/Vault.sol:27-29 + 36-42 (DP1-2, High) — `depositEth` credits the unified `balances` ledger with no ERC20 backing; `withdraw` pays ERC20, so ETH credits redeem other users' token deposits (cross-asset theft) and totalDeposits desyncs.
+  - src/Vault.sol:36-42 (DP1-3, Medium) — `unchecked { totalDeposits -= amount }` underflows when amount > totalDeposits (reachable via depositEth credits), wraps the counter to ~2^256, and DoS-es `deposit()` via checked overflow.
+- Files with NO candidates: src/Base.sol (Owned: single-step transferOwnership is Gate A/E pre-filtered; no other issue found — needs extra scrutiny in Pass 2).
+- Suspicious areas flagged but not promoted to candidate:
+  - src/Vault.sol:44 + :15 — `setFee` is an empty no-op and `FEE_BPS = 30` is never read (dead/unfinished fee feature; no concrete user harm → Gate D).
+  - src/Vault.sol:22,41 — ERC20 `transferFrom`/`transfer` return values unchecked (would credit/withdraw against a false-returning token; no specific token named in protocol context → Gate B/G).
+  - src/Vault.sol:36-42 — no reentrancy guard on `withdraw`; CEI order is correct today (state before call), risk is token-behavior-dependent → Gate B.
+  - src/Vault.sol:21-25 — direct ERC20 transfers/donations to the vault leave tokens permanently stuck (no sweep for tokens; `sweep` only moves ETH).
+  - src/Vault.sol:50-54 — `_selfBalance()` internal assembly helper is dead code (never called).
+  - src/Base.sol:16-18 — single-step `transferOwnership` with no zero-address check (Gate A/E).
+- Analyzer findings NOT yet covered by a candidate: none — slither was SKIPPED (not available); no `A/analyzers/*.md` exist.

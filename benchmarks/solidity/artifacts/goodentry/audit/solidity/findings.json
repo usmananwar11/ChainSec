@@ -1,0 +1,759 @@
+[
+ {
+  "id": "SOL-001",
+  "chain": "solidity",
+  "title": "GeVault withdraw burns shares for 0 once funds are parked idle: with isEnabled=false every withdrawal after the first pays nothing",
+  "severity": "High",
+  "category": "accounting / value-flow",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 214,
+    "line_end": 241,
+    "unit": "GeVault",
+    "function": "withdraw"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 392,
+    "line_end": 398,
+    "unit": "GeVault",
+    "function": "getTVL"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 202,
+    "line_end": 206,
+    "unit": "GeVault",
+    "function": "rebalance"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "B",
+   "mindset": "accountant",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q2 (accountant, trace every wei) / TVL-01. withdraw() prices shares from getTVL(), which only sums aToken balances of the ticks (getTickBalance). withdraw() and rebalance() both call removeFromAllTicks() and only redeploy `if (isEnabled)`. When the owner has set isEnabled=false (the documented way to wind the pool down: 'otherwise just let assets sit here until totally withdrawn'), the first withdraw or any public rebalance() moves every position into idle token0/token1 balances of the vault. From then on getTVL()==0, so valueX8 and amount are 0 for every later withdrawer, yet _burn(msg.sender, liquidity) still executes and no check requires amount>0. The idle tokens stay in the vault and are not attributable to any share.",
+  "root_cause": "Share valuation (getTVL) ignores the vault's own idle token0/token1 balances, while the disabled path deliberately parks all assets idle; withdraw has no amount>0 check.",
+  "vulnerable_code": "function rebalance() public {\n  require(poolMatchesOracle(), \"GEV: Oracle Error\");\n  removeFromAllTicks();\n  if (isEnabled) deployAssets();\n}\n...\nuint vaultValueX8 = getTVL();\nuint valueX8 = vaultValueX8 * liquidity / totalSupply();\namount = valueX8 * 10**ERC20(token).decimals() / oracle.getAssetPrice(token);\n...\n_burn(msg.sender, liquidity);\nremoveFromAllTicks();",
+  "harm": {
+   "who": "every vault depositor who withdraws after the first withdrawal/rebalance while the pool is disabled",
+   "loses_what": "their whole share value (shares burned, 0 paid)",
+   "magnitude": "up to the entire vault TVL minus the first withdrawer's share"
+  },
+  "exploit_trace": [
+   "1. Owner calls setEnabled(false) to wind the vault down; ticks still hold all assets as aTokens.",
+   "2. User A calls withdraw(): TVL is still correct, A is paid, removeFromAllTicks() moves every other depositor's assets to idle balances and deployAssets() is skipped.",
+   "3. User B calls withdraw(all): getTVL() sums only aToken balances and returns 0, so amount = 0; the fee transfer and payout transfer move 0, _burn destroys B's shares.",
+   "4. Alternatively anyone calls rebalance() right after setEnabled(false) to park everything idle, making every following withdrawal pay 0."
+  ],
+  "preconditions": [
+   {
+    "text": "owner sets isEnabled=false while depositors remain",
+    "type": "ACCESS"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "vault holds idle tokens unaccounted by any share; later withdrawers lose all value",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(worst realistic state: disabled pool)"
+   ],
+   "depth_evidence": [
+    "[TRACE:setEnabled(false)->withdraw#1->removeFromAllTicks->idle->withdraw#2->getTVL()==0->amount 0, _burn]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "idle vault balances outside TVL"
+   ],
+   "who_benefits": "Nobody directly; funds remain stuck for the owner (or are captured by the next depositor after re-enable)"
+  },
+  "merged_from": [
+   "DB-1",
+   "DP1-3",
+   "DA-3"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "Confirmed GeVault.sol:214-241 and 392-398: getTVL sums only TR aToken balances, withdraw/rebalance leave assets idle when isEnabled is false, later withdraw computes amount 0 and still burns shares. Requires the owner to disable the pool (documented wind-down) with depositors remaining. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "code-trace",
+   "original_severity": null
+  },
+  "recommendation": "Value idle vault balances in getTVL() and refuse zero-payout burns. In getTVL() add the vault's own balances of token0/token1 (priced via the oracle) to the aToken sum, and in withdraw() add `require(amount > 0, \"GEV: zero amount\");` before `_burn`. Alternatively, in withdraw()/rebalance() do not call removeFromAllTicks() permanently when `!isEnabled` without accounting for the parked funds."
+ },
+ {
+  "id": "SOL-002",
+  "chain": "solidity",
+  "title": "OPM.close is callable by anyone for any user: PMTransfers the victim's whole token0/token1 balances, charges a 1% fee on their collateral and swaps with maxAmount = the victim's entire balance",
+  "severity": "High",
+  "category": "access-control / slippage",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 223,
+    "line_end": 241,
+    "unit": "OptionsPositionManager",
+    "function": "close"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 275,
+    "line_end": 304,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 491,
+    "line_end": 504,
+    "unit": "OptionsPositionManager",
+    "function": "swapTokensForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "A",
+   "mindset": "attacker",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: MODIFIER-01 sibling diff. sellOptions, withdrawOptions and swapTokens all PMTransfer from msg.sender, but close() takes an arbitrary `user` with no msg.sender == user check, no health or liquidatability check. The OPM is a PMTransfer-whitelisted contract, so this single param decides whose aTokens are pulled. closeDebt withdraws ALL of the user's token0 and token1 aTokens, charges a 1% treasury fee out of the user's collateral when user != msg.sender, and if one side is short calls swapTokensForExactTokens(router, shortfall, maxAmount = other-side whole balance). The only guard is getAmountsIn from the same AMM, so there is no price protection (checkExpectedBalances only checks the TR deposit amounts, not the swap). Confirms and deepens DP1-2.",
+  "root_cause": "A permissionless entry point operates on a third party's assets via PMTransfer without any authorization and with a swap whose limit is derived from the same pool it trades against.",
+  "vulnerable_code": "function close(uint poolId, address user, address debtAsset, uint repayAmount, address collateralAsset) external {\n  ...\n  debt = closeDebt(poolId, user, debtAsset, debt, collateralAsset);\n...\n  amtA = IERC20(LP.getReserveData(token0).aTokenAddress ).balanceOf(user);\n  amtB = IERC20(LP.getReserveData(token1).aTokenAddress ).balanceOf(user);\n  PMWithdraw(LP, user, token0, amtA );\n  PMWithdraw(LP, user, token1, amtB );\n  if (user != msg.sender ) { uint feeAmount = calculateAndSendFee(...); ... }\n  swapTokensForExactTokens(ammRouter, token0Amount - amtA, amtB, path);",
+  "harm": {
+   "who": "any user with an open TR debt in a ROE pool served by the OPM",
+   "loses_what": "collateral lost to forced swaps at attacker-set prices plus a 1% fee on the closed debt, on a position they did not choose to close",
+   "magnitude": "up to the victim's whole balance of the swapped-in token per call"
+  },
+  "exploit_trace": [
+   "1. Victim has TR debt and holds token0 collateral only; closing requires token1 so a swap is needed.",
+   "2. Attacker front-runs by moving the Uniswap V3 pool price against the required swap direction.",
+   "3. Attacker calls close(poolId, victim, debtAsset, 0, collateral): OPM pulls all victim aTokens, getAmountsIn quotes the manipulated pool, amountsIn <= maxAmount (victim's entire balance) passes, swap executes at the bad price.",
+   "4. Attacker back-runs to restore the price and keeps the profit; the victim's debt is repaid but collateral is reduced by the price impact plus the 1% fee."
+  ],
+  "preconditions": [
+   {
+    "text": "victim has TR debt registered in the pool",
+    "type": "STATE"
+   },
+   {
+    "text": "victim's collateral mix needs a swap to repay the TR",
+    "type": "BALANCE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim position closed and collateral reduced, possibly below health",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(worst case = whole balance as maxAmount)",
+    "R15:✓(price movable by flash capital)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:close(user!=msg.sender)->PMWithdraw(all)->swapTokensForExactTokens(maxAmount=amtB)]",
+    "[BOUNDARY:repayAmount=0 -> debt=full]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim position closed and collateral reduced"
+   ],
+   "who_benefits": "Attacker (sandwich) and treasury (1% fee)"
+  },
+  "merged_from": [
+   "DA-2",
+   "DB-4",
+   "DC-2",
+   "DP1-2"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "close() has no msg.sender==user or health check; PMWithdraw pulls all of the victim's token0/token1 aTokens, 1% fee charged on third-party close, exact-output swap bounded only by the victim's whole balance (OptionsPositionManager.sol:223-241, 275-304, 491-504). Comment at line 280 suggests third-party soft liquidation is intended, so severity rests on the missing health check and the sandwichable swap. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "hybrid",
+   "original_severity": null
+  },
+  "recommendation": "Bind the entry point to the position owner or to a verified-liquidatable position. Add `require(msg.sender == user, \"OPM: not owner\");` to close(), or if third-party soft liquidation is intended, require the user's health factor to be below a threshold. Replace the swap's maxAmount (the user's whole balance) with an oracle-derived bound, e.g. `oracle value of recvAmount * 101 / 100`."
+ },
+ {
+  "id": "SOL-003",
+  "chain": "solidity",
+  "title": "GeVault share price is manipulable by first-depositor donation: shares can be reduced to 1 wei and the vault donated to, so a following deposit mints rounded-down shares",
+  "severity": "Medium",
+  "category": "vault share inflation / donation",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 247,
+    "line_end": 284,
+    "unit": "GeVault",
+    "function": "deposit"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 214,
+    "line_end": 241,
+    "unit": "GeVault",
+    "function": "withdraw"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 202,
+    "line_end": 206,
+    "unit": "GeVault",
+    "function": "rebalance"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "B",
+   "mindset": "edge-case",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: Q2/Edge Case first-depositor, vault-share-accounting module. deposit() mints liquidity = tSupply * valueX8 / vaultValueX8 with no minimum-liquidity burn and no virtual offset. TVL is read from aToken balances of the ticks, which can be inflated by a direct donation (send token0/token1 to the vault and call the public rebalance(), or deposit TR tokens in the lending pool on behalf of the vault). On a fresh vault the first depositor can withdraw all but 1 wei of shares (withdraw accepts any liquidity amount), leaving totalSupply=1 and TVL~0, then donate X value. A later deposit of V (X < V < 2X) mints floor(V/X)=1 share, i.e. half of the pool for a deposit of V, while the attacker holds the other share.",
+  "root_cause": "Share minting rounds down against the depositor with a supply the first holder can reduce to 1 wei and a TVL that accepts donations; no dead shares or virtual assets.",
+  "vulnerable_code": "if (tSupply == 0 || vaultValueX8 == 0)\n  liquidity = valueX8 * 1e10;\nelse {\n  liquidity = tSupply * valueX8 / vaultValueX8;\n}\n\nrebalance();\nrequire(liquidity > 0, \"GEV: No Liquidity Added\");\n_mint(msg.sender, liquidity);",
+  "harm": {
+   "who": "the next depositor(s) into a vault whose supply is held by a single attacker",
+   "loses_what": "up to roughly a sixth to a quarter of the deposit through share rounding",
+   "magnitude": "bounded by tvlCap (default 1e12 = 10,000 USD) unless the owner raises it"
+  },
+  "exploit_trace": [
+   "1. Vault is freshly deployed (totalSupply 0). Attacker deposits a small amount and gets shares.",
+   "2. Attacker calls withdraw(totalSupply-1, token): supply is now 1 wei, TVL ~ 0.",
+   "3. Attacker sends X of token0 to the vault and calls rebalance(), so getTVL() ~ X.",
+   "4. Victim deposits V with X < V < 2X (attacker front-runs the victim's pending deposit sized from the mempool): liquidity = 1 * V / X = 1.",
+   "5. Both hold 1 share of a pool worth X+V; victim loses about (V-X)/2-ish of value, attacker withdraws the gain."
+  ],
+  "preconditions": [
+   {
+    "text": "attacker is sole shareholder / vault supply can be reduced to a few wei",
+    "type": "STATE"
+   },
+   {
+    "text": "victim deposit is below 2x the donated TVL",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim holds shares worth less than the deposit",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:withdraw(supply-1)->donate+rebalance->deposit mint=floor(V/X)=1]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "skewed share price"
+   ],
+   "who_benefits": "Attacker (first depositor)"
+  },
+  "verdict": {
+   "gate": null,
+   "reason": "Standard first-depositor/donation inflation: GeVault.sol:274-282 mints tSupply*valueX8/vaultValueX8 with no dead shares; attacker can reduce supply to 1 wei via withdraw and raise TVL by donation plus rebalance. Only applies while the attacker is the sole shareholder and victim deposit sits between X and 2X; loss bounded by tvlCap (default 1e12 = $10k).",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "code-trace",
+   "original_severity": null
+  },
+  "merged_from": [
+   "DB-2"
+  ],
+  "recommendation": "Add inflation resistance: on the first mint burn a minimum amount of shares to a dead address (e.g. 1e3), and/or use virtual shares/assets in the ratio, and forbid withdrawals that leave totalSupply in (0, MIN_SUPPLY)."
+ },
+ {
+  "id": "SOL-004",
+  "chain": "solidity",
+  "title": "GeVault.deployAssets indexes ticks[newTickIndex+3] out of bounds when the price is beyond the listed ticks, bricking deposit/withdraw/rebalance",
+  "severity": "Medium",
+  "category": "dos / array bounds",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 337,
+    "line_end": 363,
+    "unit": "GeVault",
+    "function": "deployAssets"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 428,
+    "line_end": 438,
+    "unit": "GeVault",
+    "function": "getActiveTickIndex"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: Q5.6 / Q9 boundary check. getActiveTickIndex loops up to ticks.length - 3 and, if no boundary is found (price past the last listed ticks), returns ticks.length - 3. deployAssets then touches ticks[tick0Index + 1] with tick0Index = newTickIndex + 2, i.e. ticks[ticks.length], which reverts with out-of-bounds when both token balances are non-zero (or for the corresponding side). With ticks.length < 4 it always reverts. withdraw() calls deployAssets when enabled, so withdrawals also revert until the owner pushes more ticks.",
+  "root_cause": "The active-index search does not leave room for the +3 offset used by deployAssets and has no guard for running out of ticks.",
+  "vulnerable_code": "uint tick0Index = newTickIndex;\nuint tick1Index = newTickIndex + 2;\n...\ndepositAndStash(ticks[tick0Index], availToken0 / 2, 0);\ndepositAndStash(ticks[tick0Index+1], availToken0 / 2, 0);",
+  "harm": {
+   "who": "all GeVault depositors",
+   "loses_what": "ability to withdraw (liveness) until the owner adds ticks",
+   "magnitude": "all vault funds frozen for the duration"
+  },
+  "exploit_trace": [
+   "1. Market price moves beyond the last configured tick (no boundary found in the loop).",
+   "2. getActiveTickIndex returns ticks.length - 3.",
+   "3. Any deposit, withdraw (when isEnabled) or rebalance reverts on ticks[ticks.length]."
+  ],
+  "preconditions": [
+   {
+    "text": "price moves outside the span of configured ticks",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "withdraw/rebalance revert until owner intervenes",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:newTickIndex=ticks.length-3 → ticks[length] OOB]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "withdraw/rebalance revert until owner intervenes"
+   ],
+   "who_benefits": "None (DoS)"
+  },
+  "verdict": {
+   "gate": null,
+   "reason": "getActiveTickIndex returns ticks.length-3 when no boundary is found (price outside all listed ticks); deployAssets then indexes ticks[tick+1] = ticks[length] for the far-side token (GeVault.sol:352-358) and reverts whenever that side's idle balance is non-zero, which pending TR fee payouts make likely. Deposit, withdraw and rebalance revert until price returns or the owner pushes/shifts ticks. Liveness only, owner-recoverable. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "code-trace",
+   "original_severity": null
+  },
+  "merged_from": [
+   "DP1-6"
+  ],
+  "recommendation": "Make getActiveTickIndex leave room for the +3 offset used by deployAssets (bound the loop so newTickIndex + 3 < ticks.length) and revert with a clear message, or skip deployment of the out-of-range side, when the price is beyond the listed ticks. Enforce a minimum ticks.length in the constructor/modifyTick."
+ },
+ {
+  "id": "SOL-005",
+  "chain": "solidity",
+  "title": "OPM.closeDebt swaps with no price bound (maxAmount = user's whole balance, amountsIn quoted from the same manipulable pool): every close/liquidate swap leg is sandwichable",
+  "severity": "Medium",
+  "category": "slippage / sandwich",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 293,
+    "line_end": 304,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 491,
+    "line_end": 504,
+    "unit": "OptionsPositionManager",
+    "function": "swapTokensForExactTokens"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 336,
+    "line_end": 349,
+    "unit": "OptionsPositionManager",
+    "function": "checkExpectedBalances"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "C",
+   "mindset": "attacker",
+   "consensus": "single",
+   "unit": null
+  },
+  "description": "Discovery: Q4.5 / Module amm-mev-deep section 7 (zero slippage) and EXT-03. In closeDebt, when one underlying is short, swapTokensForExactTokens(router, shortfall, maxAmount, path) is called with maxAmount = the user's entire balance of the other token (amtA / amtB) or, in the liquidation path, the whole OPM balance. Inside, the only bound is amountsIn[0] <= maxAmount, and amountsIn comes from V3Proxy.getAmountsIn, i.e. the Uniswap V3 Quoter at the current (manipulable) pool price. checkExpectedBalances only validates the underlying amounts that will be deposited into the TR against the oracle (98-102 percent of the debt value); it does not bound what the swap costs. The swap leg therefore has no oracle-based limit, unlike swapExactTokensForTokens which applies oracle * 99 percent.",
+  "root_cause": "The slippage guard of the exact-output swap is the caller's full balance, not an oracle-derived maximum input. The quote used to size the swap is read from the same pool the attacker can move in the same transaction.",
+  "vulnerable_code": "if ( amtA < token0Amount ){\n  path[0] = token1; path[1] = token0;\n  swapTokensForExactTokens(ammRouter, token0Amount - amtA, amtB, path);\n}\n...\nuint [] memory amountsIn = AmountsRouter(address(ammRouter)).getAmountsIn(recvAmount, path);\nrequire( amountsIn[0] <= maxAmount && amountsIn[0] > 0, \"OPM: Invalid Swap Amounts\" );\namountsIn = ammRouter.swapTokensForExactTokens(recvAmount, maxAmount, path, address(this), block.timestamp);",
+  "harm": {
+   "who": "borrowers whose TR debt is closed (self-close or by a third party) and liquidators",
+   "loses_what": "part of the collateral swapped at a manipulated price",
+   "magnitude": "price distortion times swap size, bounded by the user's balance of the sold token"
+  },
+  "exploit_trace": [
+   "1. Victim holds a TR debt and collateral mostly in one underlying (say token1); the debt's TR needs token0.",
+   "2. Attacker front-runs by buying token0 in the V3 pool, pushing the price against the victim's swap direction.",
+   "3. close() (called by the victim or by the attacker as soft-liquidator) PMWithdraws all aTokens and calls swapTokensForExactTokens; Quoter prices the exact-output swap at the manipulated price and it passes because maxAmount is the victim's whole token1 balance.",
+   "4. Attacker back-runs, restores the price and keeps the difference; the victim receives the leftover after overpaying."
+  ],
+  "preconditions": [
+   {
+    "text": "position needs a swap to rebuild the TR underlying mix",
+    "type": "STATE"
+   },
+   {
+    "text": "UniV3 pool price movable by the attacker",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim collateral reduced by the manipulation cost",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(worst case = whole token balance as max input)",
+    "R15:✓(price movable with flash-funded swaps)",
+    "R16:✗(oracle not involved in swap bound)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:maxAmount=user whole balance]",
+    "[TRACE:attacker swap -> close -> exact-output swap at distorted price -> back-run]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "swap executed at distorted price"
+   ],
+   "who_benefits": "Attacker (MEV)"
+  },
+  "verdict": {
+   "gate": null,
+   "reason": "closeDebt (OptionsPositionManager.sol:293-304) bounds the exact-output swap only by the caller's whole balance with quote from the same pool; checkExpectedBalances covers only the TR deposit amounts. Overlaps DA-2's swap component; applies to self-close and liquidation legs.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "hybrid",
+   "original_severity": null
+  },
+  "merged_from": [
+   "DC-1"
+  ],
+  "recommendation": "Bound the exact-output swap by an oracle-derived maximum input instead of the user's whole balance: compute `maxIn = oracle value of recvAmount (token-in terms) * 101 / 100` and pass min(maxIn, balance) as maxAmount, mirroring the 99 percent oracle bound already used by swapExactTokensForTokens."
+ },
+ {
+  "id": "SOL-006",
+  "chain": "solidity",
+  "title": "RangeManager.removeFromStep (and OPM.withdrawOptionAssets) withdraw TokenisableRange liquidity with amountMin = 0 and no oracle check, unlike OPM.withdrawOptions: LP unwinds are sandwichable",
+  "severity": "Medium",
+  "category": "slippage / sandwich (asymmetric guard)",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 107,
+    "line_end": 134,
+    "unit": "RangeManager",
+    "function": "removeFromStep"
+   },
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 151,
+    "line_end": 168,
+    "unit": "RangeManager",
+    "function": "transferAssetsIntoStep"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 123,
+    "line_end": 150,
+    "unit": "OptionsPositionManager",
+    "function": "withdrawOptionAssets"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 412,
+    "line_end": 429,
+    "unit": "OptionsPositionManager",
+    "function": "withdrawOptions"
+   }
+  ],
+  "discovery": {
+   "phase": "rescan",
+   "lens": null,
+   "mindset": "spec-auditor",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: rescan class 2 (asymmetric operations). OPM.withdrawOptions wraps TokenisableRange.withdraw(amount,0,0) in checkExpectedBalances ('Get output amounts from oracle to avoid sandwich'), and GeVault removes from ticks only behind poolMatchesOracle. RangeManager.removeFromStep calls tokenisedRanges[step].withdraw(trAmt,0,0) and tokenisedTicker[step].withdraw(ttAmt,0,0) with no min amounts, no oracle comparison and no spot guard, and it is reached by removeAssetsFromStep and by every transferAssetsInto*Step call. OPM.withdrawOptionAssets (flashloaned TR in buyOptions) likewise calls TokenisableRange(flashAsset).withdraw(flashAmount,0,0) with no check. TR.withdraw pays out at the Uniswap slot0 composition, so a caller whose pool price was moved in the same block receives an adverse token mix (value at the true price is lower by the position's convexity loss), and the attacker back-runs.",
+  "root_cause": "TR.withdraw settles at manipulable pool spot composition; the callers that unwind TR positions on a user's behalf in RangeManager and OPM.withdrawOptionAssets pass amount0Min = amount1Min = 0 and perform none of the oracle-value checks used in the sibling paths.",
+  "vulnerable_code": "trAmt = LENDING_POOL.withdraw(address(tokenisedRanges[step]), type(uint256).max, address(this));\ntokenisedRanges[step].withdraw(trAmt, 0, 0);",
+  "harm": {
+   "who": "RangeManager users unwinding or moving ranger/ticker positions (and buyOptions users)",
+   "loses_what": "part of the position value, realised as the adverse token mix at the manipulated price",
+   "magnitude": "the LVR/convexity loss of the position for the price displacement the attacker can fund; large for wide rangers, small for 10-tick tickers"
+  },
+  "exploit_trace": [
+   "1. Victim holds aTokens of a wide TokenisableRange (ranger) deposited via RangeManager.",
+   "2. Victim submits removeAssetsFromStep(step) (or transferAssetsIntoRangerStep, which calls removeFromStep first).",
+   "3. Attacker front-runs by swapping the Uniswap V3 pool so spot moves far inside the ranger's range.",
+   "4. removeFromStep PMTransfers the aTokens, withdraws the TR, and tr.withdraw(trAmt,0,0) returns the position's token mix at the manipulated price; cleanup() deposits it to the victim; hf check only looks at debt.",
+   "5. Attacker swaps back; the victim is left with tokens worth less than the position at the true price."
+  ],
+  "preconditions": [
+   {
+    "text": "victim unwinds a TR position through RangeManager (or buyOptions) in a block where the pool price can be moved",
+    "type": "EXTERNAL"
+   },
+   {
+    "text": "TR is a large share of the pool liquidity in its range or the range is wide",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim's withdrawn tokens are worth less than the position value",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R8:✗(no cached parameter)",
+    "R10:✓(assessed with wide ranger, large price displacement)",
+    "R11:✗",
+    "R12:✗(single enabler: no min-out)",
+    "R15:✓(price movable by flash capital)",
+    "R16:✓(oracle available but unused on these paths)"
+   ],
+   "depth_evidence": [
+    "[TRACE:removeAssetsFromStep->removeFromStep->tr.withdraw(trAmt,0,0) no check L119/L131]",
+    "[BOUNDARY:amount0Min=amount1Min=0]",
+    "[VARIATION:OPM.withdrawOptions L425 has checkExpectedBalances; withdrawOptionAssets L135 does not]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim's withdrawn tokens are worth less than the position value"
+   ],
+   "who_benefits": "Attacker (MEV sandwicher)"
+  },
+  "verdict": {
+   "gate": null,
+   "reason": "RangeManager.removeFromStep (RangeManager.sol:119,131) and OPM.withdrawOptionAssets (line 135) call TR.withdraw(x,0,0) with no min amounts or oracle check, while withdrawOptions (line 424-425) and GeVault guard against sandwiches; TR.withdraw pays at slot0 composition. Loss is the convexity loss for the price displacement, large for wide rangers. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "hybrid",
+   "original_severity": null
+  },
+  "merged_from": [
+   "RS-1"
+  ],
+  "recommendation": "Add the same oracle-value check used in OPM.withdrawOptions around the TokenisableRange.withdraw calls in RangeManager.removeFromStep and OPM.withdrawOptionAssets (compare received amounts to the oracle-derived expected balances, e.g. checkExpectedBalances), or pass non-zero amount0Min/amount1Min derived from the oracle."
+ },
+ {
+  "id": "SOL-007",
+  "chain": "solidity",
+  "title": "TokenisableRange.deposit splits the caller's tokens between fee pool and liquidity using slot0 spot, so a manipulated spot sends a two-sided depositor's tokens to the shared fee pool",
+  "severity": "Medium",
+  "category": "spot price dependence / value leakage",
+  "status": "verified-conditional",
+  "locations": [
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "line_start": 237,
+    "line_end": 247,
+    "unit": "TokenisableRange",
+    "function": "deposit"
+   },
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 151,
+    "line_end": 168,
+    "unit": "RangeManager",
+    "function": "transferAssetsIntoStep"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 384,
+    "line_end": 405,
+    "unit": "OptionsPositionManager",
+    "function": "sellOptions"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "B",
+   "mindset": "attacker",
+   "consensus": "moderate",
+   "unit": null
+  },
+  "description": "Discovery: Q1/amm-mev-deep (spot read in value split), Module D/I. When fee0+fee1>0 and the caller supplies both sides, deposit() computes newFee0 = n0*fee0/(token0Amount+fee0) and newFee1 = n1*fee1/(token1Amount+fee1) where token0Amount/token1Amount come from IUniswapV3Pool.slot0() (flash-manipulable). If spot is pushed so the position holds almost no token0 (token0Amount -> 0), newFee0 -> n0 for any fee0>0 (even 1 wei): the caller's entire n0 is credited to fee0, the shared uncompounded fee pool, and only n1 (minus its fee share) is added as liquidity. LP minted is supply*newLiquidity/liquidity, so the depositor is not credited for the n0 moved to the fee pool, which is split among all LP holders. RangeManager.transferAssetsIntoStep (user collateral) and OPM.sellOptions call deposit without any oracle or spot guard; GeVault's guard (poolMatchesOracle) is not present there.",
+  "root_cause": "Proportional fee/liquidity split is derived from spot slot0 instead of the oracle-derived price used elsewhere in the contract (returnExpectedBalanceWithoutFees), and there is no min-LP-out parameter.",
+  "vulnerable_code": "(uint160 sqrtPriceX96,,,,,,)  = IUniswapV3Pool(pool).slot0();\n(uint256 token0Amount, uint256 token1Amount) = LiquidityAmounts.getAmountsForLiquidity( sqrtPriceX96, TickMath.getSqrtRatioAtTick(lowerTick), TickMath.getSqrtRatioAtTick(upperTick), liquidity);\nif (token0Amount + fee0 > 0) newFee0 = n0 * fee0 / (token0Amount + fee0);\nif (token1Amount + fee1 > 0) newFee1 = n1 * fee1 / (token1Amount + fee1);\nfee0 += newFee0;\nfee1 += newFee1; \nn0   -= newFee0;\nn1   -= newFee1;",
+  "harm": {
+   "who": "users depositing both tokens into a TR through RangeManager or OPM.sellOptions",
+   "loses_what": "most of one token side of the deposit, redistributed to existing LP holders (including the attacker)",
+   "magnitude": "up to the full n0 (or n1) minus the depositor's own pro-rata share; attacker gain = loss x attacker's LP share"
+  },
+  "exploit_trace": [
+   "1. Attacker holds a large share of a TokenisableRange that has any pending fee0>0 and fee1>0.",
+   "2. Victim submits transferAssetsIntoTickerStep/RangerStep(step, amount0, amount1) with both amounts non-zero.",
+   "3. Attacker front-runs by swapping the Uniswap V3 pool so spot sits at the range edge where token0Amount ~ 0 (cheap for a 10-tick ticker, flash-loan funded for a wide ranger).",
+   "4. deposit(): newFee0 ~ n0 so n0 is added to fee0; n0 ~ 0 goes to Uniswap; victim receives LP only for the n1-derived liquidity.",
+   "5. Attacker swaps back and withdraws; the victim's n0 sits in fee0 and is paid out pro rata to LP holders."
+  ],
+  "preconditions": [
+   {
+    "text": "TR has pending fee0 and fee1 (not yet compounded)",
+    "type": "STATE"
+   },
+   {
+    "text": "depositor supplies both tokens and caller has no spot guard",
+    "type": "ACCESS"
+   },
+   {
+    "text": "attacker can move slot0 of the TR's Uniswap pool within the block",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "depositor's n0 credited to the shared fee pool",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓",
+    "R12:✓(spot manipulation + fee pool split)"
+   ],
+   "depth_evidence": [
+    "[TRACE:slot0 spot -> token0Amount~0 -> newFee0=n0*fee0/(0+fee0)=n0 -> n0 set to 0 -> LP minted from n1 only]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "fee0 inflated by victim funds"
+   ],
+   "who_benefits": "Existing LP holders, notably an attacker holding most TR supply"
+  },
+  "merged_from": [
+   "DB-3",
+   "DD-2"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "TokenisableRange.sol:237-247 uses slot0 for the fee/liquidity split; when spot is moved so the position holds none of token0, newFee0 = n0 and the depositor's token0 goes to the shared fee pool (no min-LP, amountMin is applied after the reduction). Requires pending fee0 and fee1 on the TR, a two-sided depositor via RangeManager/OPM.sellOptions and a flash-moveable pool; single-tick ranges make the move cheap. PoC recommended.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "hybrid",
+   "original_severity": null
+  },
+  "recommendation": "Compute the fee/liquidity split from the oracle-derived price (as returnExpectedBalanceWithoutFees does) instead of slot0, or require the pool price to be within a band of the oracle price before splitting; add a minimum-LP-out parameter to deposit()."
+ },
+ {
+  "id": "SOL-008",
+  "chain": "solidity",
+  "title": "V3Proxy: swapTokensForExactETH keeps the unspent amountInMax and swapTokensForExactTokens refunds the entire proxy balance, so stranded input is claimable by the next caller",
+  "severity": "Medium",
+  "category": "token-accounting / refund",
+  "status": "downgraded",
+  "locations": [
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 160,
+    "line_end": 176,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactETH"
+   },
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 124,
+    "line_end": 135,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": "strong",
+   "unit": null
+  },
+  "description": "Discovery: Q4.4 (amountIn < amountInMax boundary) and Module F. Both exact-output paths pull amountInMax from the caller, but the router only consumes amountIn <= amountInMax. swapTokensForExactETH never returns amountInMax-amountIn, so it stays in the proxy. swapTokensForExactTokens refunds ogInAsset.balanceOf(address(this)), which includes any previously stranded balance of that token, so the next caller of the exact-token path with the same path[0] (amountInMax can be small) receives the leftovers. The function is also payable but ETH sent is not used. Deepens DP1-4.",
+  "root_cause": "Refund logic is not tied to this call's delta (amountInMax - amountIn); one path omits the refund, the other refunds the full balance.",
+  "vulnerable_code": "amounts[0] = ROUTER.exactOutputSingle(...amountInMax...);\n...\nogInAsset.safeApprove(address(ROUTER), 0);   // swapTokensForExactETH: no refund\n...\nogInAsset.safeTransfer(msg.sender, ogInAsset.balanceOf(address(this)));   // swapTokensForExactTokens",
+  "harm": {
+   "who": "callers of swapTokensForExactETH (and contracts integrating it)",
+   "loses_what": "amountInMax - amountIn of the input token on every call",
+   "magnitude": "the slippage margin per call, taken by the next swapTokensForExactTokens caller or the owner via emergencyWithdraw"
+  },
+  "exploit_trace": [
+   "1. Victim calls swapTokensForExactETH(amountOut, amountInMax = 1.01*quote, [USDC, WETH]); router spends the quote, 1% of USDC stays in V3Proxy.",
+   "2. Attacker calls swapTokensForExactTokens(1 wei, 1, [USDC, X]) (any valid direct path with USDC as input).",
+   "3. The final safeTransfer sends ogInAsset.balanceOf(proxy), including the victim's stranded USDC, to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "a swapTokensForExactETH call with amountInMax above the real input",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "stranded token balance sits in the proxy",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Gates: A=✓ B=✓ C=✓ D=✓ E=✓ F=✓ G=✓ H=✓",
+   "rules_applied": [
+    "R10:✓(worst state: large amountInMax margins)",
+    "R11:✓(unsolicited balance claimed by balanceOf refund)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:amountIn<amountInMax→remainder stranded]",
+    "[TRACE:swapTokensForExactETH→no refund→swapTokensForExactTokens balanceOf refund→attacker]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "stranded token balance sits in the proxy"
+   ],
+   "who_benefits": "Attacker"
+  },
+  "merged_from": [
+   "DD-4",
+   "DP1-4",
+   "DA-5",
+   "DC-3"
+  ],
+  "verdict": {
+   "gate": null,
+   "reason": "V3Proxy.sol:160-176 swapTokensForExactETH never refunds amountInMax-amountIn; swapTokensForExactTokens (line 132) refunds the whole proxy balance of path[0], so stranded input is claimable by any later caller. Real but bounded by the slippage margin callers supply; no in-scope contract uses the ETH path. Downgraded from High.",
+   "evidence_tag": "[CODE-TRACE]",
+   "method": "code-trace",
+   "original_severity": "High"
+  },
+  "recommendation": "Refund only this call's unspent input: record the balance before pulling funds and send `amountInMax - amountIn` (or balanceAfter - balanceBefore) back in both exact-output paths, instead of omitting the refund in swapTokensForExactETH and sending the entire balanceOf(this) in swapTokensForExactTokens."
+ }
+]

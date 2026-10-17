@@ -1,6 +1,6 @@
 # ChainSec — Progress
 
-_Last updated: 2026-10-14_
+_Last updated: 2026-10-17_
 
 ChainSec is a set of smart-contract audit skills: one audit engine shared by every chain, plus a "pack" for each chain. It runs in Claude Code, OpenCode, Codex and Antigravity. The engine and the Solidity pack are derived from [Krait](https://github.com/zealynx/krait) by Zealynx Security (MIT).
 
@@ -14,12 +14,12 @@ ChainSec is a set of smart-contract audit skills: one audit engine shared by eve
 | Area | Status |
 |---|---|
 | Sub-project 1: engine + Solidity pack + support for other tools (v0.1) | Built, reviewed and merged to `main` |
-| Automated tests | 105 tests passing locally; structure lint clean; CI on GitHub Actions (with Foundry) |
+| Automated tests | 112 tests passing locally; structure lint clean; CI on GitHub Actions (with Foundry) |
 | Smoke test, Claude Code | Passed |
 | Smoke test, OpenCode | Passed |
 | Smoke test, Antigravity | Pending (run by the user) |
-| Smoke test, Codex | Not run (not installed locally) |
-| Benchmark against Krait (5 contests) | PoolTogether PASS: 11.11% recall, 0 FP; other four pending |
+| Smoke test, Codex | Plugin installation recorded; audit blocked by usage limit 2026-10-17 |
+| Benchmark against Krait (5 contests) | All five graded: 18.66% recall (baseline 17.16%) but 6 FP vs 0 allowed — acceptance FAIL |
 | Sub-project 2: Cairo pack | Planned |
 | Sub-project 3: Soroban pack | Planned |
 
@@ -108,14 +108,14 @@ The test project is `tests/fixtures/solidity-basic`, which contains a planted bu
 
 ### Smoke-test fixes — 2026-10-13
 
-Implemented at `bfd53d0` on `fix/smoke-test-scope-and-methodology` (not yet merged):
+Implemented at `bfd53d0` on `fix/smoke-test-scope-and-methodology` (merged via `0c8f92e`):
 - Reports now use `preflight.quick` to describe audit mode, explicitly mark per-unit and state
   phases skipped in quick runs, and preserve incomplete-phase notes in per-chain and combined reports.
 - Preflight uses `scripts/scope-files.py`, sharing scope selection with the Solidity extractor.
   Both apply pack includes/excludes and only use fallback includes when the primary scope is empty.
 - Five scope regression tests cover the smoke fixture (2 files), nested exclusions, fallback,
   excluded-only projects and invalid roots. All 105 tests passed, including compiler-mode tests;
-  structure lint passed. Full agent smoke tests have not been repeated after these fixes.
+  structure lint passed. Post-fix Claude Code and OpenCode runs passed on October 16; [recovered evidence](smoke-tests.md#post-fix-reruns--2026-10-16-recorded-2026-10-17) was recorded October 17.
 
 ### First benchmark — PoolTogether
 
@@ -141,24 +141,39 @@ Implemented at `bfd53d0` on `fix/smoke-test-scope-and-methodology` (not yet merg
 
    This also checks whether Antigravity reads skills from `.agents/skills`, a path still marked unverified in INSTALL.md.
 2. **Benchmark (Task 17).** PoolTogether is complete and passed its matched baseline comparison.
-   InitCapital, GoodEntry, Arcade and Frankencoin remain. Grade each against the official findings,
+   InitCapital, GoodEntry, Arcade and Frankencoin audit artifacts are now [recorded](benchmark-remaining-four.md). Review provenance and grade each against the official findings,
    then run `tools/score_benchmark.py compare` across all five.
    - **Pass bar:** aggregate recall of at least 11.5 / 67 (17.16% displayed) and zero false positives.
    - **Cost:** originally estimated at 1–3 hours per contest; PoolTogether (648 lines) took about
      7 min 23 sec with the current model. Larger targets may take longer.
-3. **Smoke-test fixes:** implemented on the feature branch above; a fresh agent smoke run remains
-   useful to confirm that the updated report instructions are followed.
-4. **Minor items from the final review**, deferred and fine to leave for now:
-   - a stale top-level report is left behind when no chain produces findings;
-   - the runtime detection row is ambiguous in Claude Code sessions without an Agent tool;
-   - the rescan prompt says "exactly one line" but then allows `REINFORCED:` lines after it;
-   - PoC test files are named inconsistently;
-   - an older `preflight.json` has no `quick` key, and nothing says how to treat it;
-   - stale analyzer output is left behind when recon re-runs;
-   - re-running rescan or per-unit appends duplicate warnings;
-   - `install.sh` only refuses an exact match between destination and source, not a destination inside the source;
-   - `--downgrade` can still rewrite a finding that also has schema errors.
-5. **Unverified paths:** the Codex runtime and the Codex plugin install command. Codex isn't installed locally.
+3. **Smoke-test fixes:** merged; fresh Claude Code and OpenCode runs confirm the updated scope count and report wording.
+4. **Final-review code fixes:** completed locally on 2026-10-17 (see below).
+5. **Unverified paths:** the Codex runtime remains unverified; plugin installation succeeded with CLI 0.162.1 (see INSTALL.md).
+
+### Final-review fixes — 2026-10-17
+
+All nine deferred implementation items are addressed in the working tree:
+
+- The pipeline clears stale aggregate reports/findings before detection and merges only
+  qualifying selected chains, so failed or filtered-out chains cannot leak old results.
+- Runtime selection requires delegation-tool evidence; Claude Code without Agent/Task
+  falls back to sequential execution instead of being mistaken for OpenCode.
+- Rescan and per-unit reply contracts allow their required records after the DONE line.
+- Solidity PoC examples consistently use `.t.sol` filenames matching the runner glob.
+- Missing/non-boolean legacy `preflight.quick` invalidates deep-phase outputs and reviews
+  before recording the current mode.
+- Recon removes old analyzer output and discards partial output after failures.
+- Rescan/per-unit warning instructions replace old phase-owned warnings and deduplicate
+  new entries while preserving other phases' warnings.
+- The installer rejects source descendants (including symlink aliases) before creating
+  directories, and rejects ancestor destinations that would overwrite the source.
+- The validator leaves schema-invalid findings unchanged, avoids hard-rule crashes on
+  malformed fields, and revalidates after downgrading schema-valid findings.
+
+Validation: `bash tests/run.sh` passed **112 tests**, including new installer path and
+malformed-finding regression cases; structure lint passed. Pipeline behavior is expressed
+in agent instructions, so these automated checks do not establish fresh runtime smoke-test
+passes for the October 17 changes. The October 16 artifacts remain historical evidence.
 
 ### Design questions to settle before the second pack
 

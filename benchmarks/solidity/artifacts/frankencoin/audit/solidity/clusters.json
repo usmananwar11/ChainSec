@@ -1,0 +1,156 @@
+[
+ {
+  "n": 1,
+  "units": [
+   "MintingHub"
+  ],
+  "files": [
+   "contracts/MintingHub.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/MintingHub.sol",
+    "loc": 315,
+    "opened": true,
+    "functions": 13
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 2,
+  "units": [
+   "Position",
+   "Ownable",
+   "MathUtil"
+  ],
+  "files": [
+   "contracts/Position.sol",
+   "contracts/Ownable.sol",
+   "contracts/MathUtil.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/Position.sol",
+    "loc": 391,
+    "opened": true,
+    "functions": 28
+   },
+   {
+    "file": "contracts/Ownable.sol",
+    "loc": 53,
+    "opened": true,
+    "functions": 4
+   },
+   {
+    "file": "contracts/MathUtil.sol",
+    "loc": 43,
+    "opened": true,
+    "functions": 4
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 3,
+  "units": [
+   "Frankencoin",
+   "ERC20PermitLight",
+   "ERC20"
+  ],
+  "files": [
+   "contracts/Frankencoin.sol",
+   "contracts/ERC20PermitLight.sol",
+   "contracts/ERC20.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/Frankencoin.sol",
+    "loc": 305,
+    "opened": true,
+    "functions": 20
+   },
+   {
+    "file": "contracts/ERC20PermitLight.sol",
+    "loc": 73,
+    "opened": true,
+    "functions": 2
+   },
+   {
+    "file": "contracts/ERC20.sol",
+    "loc": 242,
+    "opened": true,
+    "functions": 15
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 4,
+  "units": [
+   "Equity",
+   "ERC20PermitLight",
+   "ERC20",
+   "MathUtil"
+  ],
+  "files": [
+   "contracts/Equity.sol",
+   "contracts/ERC20PermitLight.sol",
+   "contracts/ERC20.sol",
+   "contracts/MathUtil.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/Equity.sol",
+    "loc": 318,
+    "opened": true,
+    "functions": 22
+   },
+   {
+    "file": "contracts/ERC20PermitLight.sol",
+    "loc": 73,
+    "opened": true,
+    "functions": 2
+   },
+   {
+    "file": "contracts/ERC20.sol",
+    "loc": 242,
+    "opened": true,
+    "functions": 16
+   },
+   {
+    "file": "contracts/MathUtil.sol",
+    "loc": 43,
+    "opened": true,
+    "functions": 4
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 5,
+  "units": [
+   "StablecoinBridge",
+   "PositionFactory"
+  ],
+  "files": [
+   "contracts/StablecoinBridge.sol",
+   "contracts/PositionFactory.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/StablecoinBridge.sol",
+    "loc": 85,
+    "opened": true,
+    "functions": 6
+   },
+   {
+    "file": "contracts/PositionFactory.sol",
+    "loc": 47,
+    "opened": true,
+    "functions": 3
+   }
+  ],
+  "excluded": []
+ }
+]

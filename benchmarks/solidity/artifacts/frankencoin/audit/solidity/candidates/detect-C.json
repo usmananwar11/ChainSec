@@ -1,0 +1,194 @@
+[
+  {
+    "id": "DC-1",
+    "chain": "solidity",
+    "title": "Zero/dust bids are always accepted and extend the challenge by 30 minutes, letting anyone stall a liquidation indefinitely at gas cost",
+    "severity": "High",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 188, "line_end": 190, "unit": "MintingHub", "function": "minBid"},
+      {"file": "contracts/MintingHub.sol", "line_start": 199, "line_end": 229, "unit": "MintingHub", "function": "bid"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Q-attacker on bid() / lending-liquidation-deep (auction gaming), deepening DP1-3. With no prior bid, minBid() = 0*1005/1000 = 0, so bid(n, 0, size) passes the BidTooLow check, sets bidder = msg.sender, transfers 0 ZCHF and, when called inside the last 30 minutes, bumps challenge.end to now + 30 minutes. Because challenge.bid stays 0 the minimum never grows, so the same call can be repeated every <30 minutes forever. Below 200 wei, floor(bid*1.005) == bid, so a 1 wei bid has the same property. end() requires block.timestamp >= challenge.end, so the challenge can never be settled, the position stays under challengedAmount > 0 (mint, withdraw and adjustPrice all revert), and the challenger's collateral is locked in the hub. The 0-bidder is additionally set as recipient of the position collateral in end(), displacing the end() caller.",
+    "root_cause": "bid() does not require a strictly positive, strictly increasing bid when challenge.bid == 0 and applies the ebay-style time extension to such bids; the anti-stall argument in the code comment (0.5% per 30 minutes) only holds for bid > 200 wei.",
+    "vulnerable_code": "function minBid(Challenge storage challenge) internal view returns (uint256) {\n    return (challenge.bid * 1005) / 1000;\n}\n...\nif (_bidAmountZCHF < minBid(challenge)) revert BidTooLow(_bidAmountZCHF, minBid(challenge));\nuint256 earliestEnd = block.timestamp + 30 minutes;\nif (earliestEnd >= challenge.end) {\n    challenge.end = earliestEnd;\n}\nzchf.transferFrom(msg.sender, address(this), _bidAmountZCHF);\nchallenge.bid = _bidAmountZCHF;\nchallenge.bidder = msg.sender;",
+    "harm": {"who": "challengers (locked collateral, no reward) and the protocol (undercollateralised position cannot be liquidated)", "loses_what": "liveness of liquidation; challenger collateral locked for as long as the attacker keeps bidding; bad debt accrues against the reserve", "magnitude": "the whole challenge size plus the position's debt, for the price of about 48 cheap txs per day"},
+    "exploit_trace": [
+      "1. Challenger calls launchChallenge(pos, size); the position is overpriced or undercollateralised so nobody would pay price*size.",
+      "2. The position owner (or any griefer) calls bid(n, 0, size) when 29 minutes remain: tryAvertChallenge(size, 0) returns false, minBid == 0 so no revert, challenge.end = now + 30 minutes, bidder = attacker, bid = 0.",
+      "3. 29 minutes later the attacker calls bid(n, 0, size) again; minBid is still 0, end is pushed again.",
+      "4. end(n) always reverts with 'period has not ended'; the challenger cannot recover collateral or settle, the position stays locked and the bad debt is never liquidated."
+    ],
+    "preconditions": [
+      {"text": "no honest bidder has placed a bid above ~200 wei (a real bid raises minBid by 0.5% per round and costs the staller real funds)", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "challenge never settles; position permanently under challengedAmount > 0", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=✓ C=✓ D=?",
+      "rules_applied": ["R8:✗(single call)", "R10:✓(assessed with large position and no honest bid)", "R11:✗(no foreign tokens)", "R12:✓(enumerated: zero bid, sub-200 wei bid)", "R15:✗(no flash loan involved)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:challenge.bid=0 -> minBid=0 -> bid of 0 accepted]", "[BOUNDARY:bid=199 -> minBid=floor(199.995)=199 -> equal bid accepted]", "[TRACE:bid(n,0,size) near end -> end=now+30min -> end() reverts 'period has not ended']"],
+      "missing_precondition": "",
+      "postconditions_created": ["challenge never settles; position permanently under challengedAmount > 0"],
+      "who_benefits": "Position owner of the challenged position (or any griefer)"
+    }
+  },
+  {
+    "id": "DC-2",
+    "chain": "solidity",
+    "title": "Owner-chosen challengePeriod (can be 0) makes a self-challenge unaverrtable and settles the owner's debt out of the reserve via notifyLoss",
+    "severity": "High",
+    "category": "economic-design",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 140, "line_end": 148, "unit": "MintingHub", "function": "launchChallenge"},
+      {"file": "contracts/MintingHub.sol", "line_start": 252, "line_end": 276, "unit": "MintingHub", "function": "end"},
+      {"file": "contracts/Position.sol", "line_start": 329, "line_end": 354, "unit": "Position", "function": "notifyChallengeSucceeded"},
+      {"file": "contracts/Frankencoin.sol", "line_start": 280, "line_end": 288, "unit": "Frankencoin", "function": "notifyLoss"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: cross-contract read of Hub -> Position -> Frankencoin (lending-liquidation-deep sec. 4 self-liquidation profit), deepening DP1-1. challengePeriod, price, limit and minimumCollateral are all chosen by the position opener and are not validated in openPosition. With _challengeSeconds = 0 a challenge has end == block.timestamp, so bid() reverts TooLate immediately and no one can avert; the owner (or an accomplice) calls launchChallenge and end() in the same block. end() returns the challenger collateral, sends the position collateral to msg.sender (no bidder), and because effectiveBid is 0 calls notifyLoss(reward + repayment), which transfers from the equity reserve and then mints fresh ZCHF to the hub. The owner keeps the ZCHF previously minted, plus the collateral, plus a 2% reward computed on the owner's own price.",
+    "root_cause": "The auction window that defends the reserve is an owner-controlled parameter, and the hub settles shortfalls (including the challenger reward) from the reserve/mint through notifyLoss without bounding them by any market-derived value.",
+    "vulnerable_code": "challenges.push(Challenge(msg.sender, position, _collateralAmount, block.timestamp + position.challengePeriod(), address(0x0), 0));\n...\naddress recipient = challenge.bidder == address(0x0) ? msg.sender : challenge.bidder;\n...\nzchf.notifyLoss(fundsNeeded - effectiveBid);\nzchf.transfer(challenge.challenger, reward);",
+    "harm": {"who": "FPS holders and all ZCHF holders", "loses_what": "equity reserve equal to the owner's minted debt plus 2% of price*size, then newly minted unbacked ZCHF", "magnitude": "up to the position's limit/minted per position, bounded only by the 3-day veto window"},
+    "exploit_trace": [
+      "1. Attacker calls openPosition(token, min, coll, limit=large, initPeriod=3 days, expiration, challengeSeconds=0, fee, price=high, reserve) and deposits collateral C; no veto arrives within 3 days.",
+      "2. After the init period the attacker mints M ZCHF against C at the inflated price.",
+      "3. In one tx the attacker (using a second address and its own collateral for the challenge) calls launchChallenge(pos, size) then end(n): block.timestamp >= end holds immediately, no bid is possible.",
+      "4. end() returns the challenge collateral, sends position collateral to the caller, calls zchf.notifyLoss(2%*price*size + min(minted, price*size)), draining equity then minting.",
+      "5. Attacker keeps M ZCHF, all collateral and the reward; the reserve absorbs the debt."
+    ],
+    "preconditions": [
+      {"text": "governance does not veto the position within the init period", "type": "TIMING"},
+      {"text": "attacker can post challenge collateral (recovered in the same tx)", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "equity reserve depleted or ZCHF inflated by notifyLoss mint", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=✓ C=✓ D=?",
+      "rules_applied": ["R8:✗(single tx)", "R10:✓(assessed at max limit)", "R11:✗(none)", "R12:✓(enablers: zero challenge period, high price, no veto)", "R15:✓(challenge collateral can be flash-borrowed since it is returned in the same tx)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:challengePeriod=0 -> challenge.end=block.timestamp -> bid() TooLate]", "[TRACE:launchChallenge->end same block->notifyChallengeSucceeded(msg.sender,0,size)->notifyLoss(fundsNeeded)]"],
+      "missing_precondition": "veto within the init period would block it",
+      "postconditions_created": ["equity reserve depleted or ZCHF inflated by notifyLoss mint"],
+      "who_benefits": "Position owner / challenger"
+    }
+  },
+  {
+    "id": "DC-3",
+    "chain": "solidity",
+    "title": "bid() and end() make collateral transfers to the caller/challenger before the challenge is deleted (CEI violation), enabling double refund / double return with a callback collateral token",
+    "severity": "Medium",
+    "category": "reentrancy",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 203, "line_end": 213, "unit": "MintingHub", "function": "bid"},
+      {"file": "contracts/MintingHub.sol", "line_start": 252, "line_end": 276, "unit": "MintingHub", "function": "end"},
+      {"file": "contracts/MintingHub.sol", "line_start": 287, "line_end": 296, "unit": "MintingHub", "function": "returnCollateral"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: RE-01 / CALLBACK-01 / HOOK-01, Module A (untrusted recipient) and Module C (transfer order). Positions accept any ERC20 as collateral and the hub does not restrict token behaviour. In end(), returnCollateral() transfers the challenger's collateral to the challenger (an arbitrary address) before notifyChallengeSucceeded() and before `delete challenges[...]`. A recipient reachable by a transfer hook (ERC777-style tokensReceived, ERC1363) can re-enter end() for the same challenge: the challenge is still stored, so the collateral is returned a second time out of the hub's pooled balance for that token (other challengers' deposits) and the settlement runs twice. In bid(), the averted branch calls collateral.transfer(msg.sender, size) before `delete challenges[...]` while challenge.bid and challenge.bidder still hold the previous bid, so a re-entrant bid() refunds the old bid a second time from the hub's pooled ZCHF.",
+    "root_cause": "State (challenge struct, challengedAmount, bid) is cleared only after external token transfers; there is no reentrancy guard, and the hub holds collateral and ZCHF for many challenges in one pooled balance.",
+    "vulnerable_code": "challenge.position.collateral().transfer(msg.sender, challenge.size);\nemit ChallengeAverted(address(challenge.position), _challengeNumber);\ndelete challenges[_challengeNumber];\n---\nreturnCollateral(challenge, postponeCollateralReturn);\n...\ndelete challenges[_challengeNumber];",
+    "harm": {"who": "other challengers and bidders whose collateral/bids sit in the hub", "loses_what": "pooled collateral of the hook token and pooled ZCHF bids", "magnitude": "one extra challenge.size of collateral or one extra old bid per re-entry"},
+    "exploit_trace": [
+      "1. Attacker opens a position whose collateral is a callback-capable token; other users have open challenges holding the same token (or ZCHF bids) in the hub.",
+      "2. Attacker contract launches a challenge; after the period, anyone calls end(n).",
+      "3. returnCollateral transfers size to the attacker contract; its hook calls hub.end(n) again before delete.",
+      "4. The nested call returns size again from the pooled balance and runs notifyChallengeSucceeded; the outer call then continues, double-spending hub-held assets of other challenges (the second settlement only reverts if no other challenge exists on the position)."
+    ],
+    "preconditions": [
+      {"text": "collateral token invokes a recipient callback on transfer (e.g. ERC777/ERC1363 style); positions accept arbitrary tokens, subject only to the 3-day veto", "type": "EXTERNAL"},
+      {"text": "other challenges of the same token (or ZCHF bids) are pooled in the hub", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "hub balance of the token / ZCHF below the sum of recorded challenge claims", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✗(single call)", "R10:✓(assessed with pooled balances)", "R11:✓(collateral arbitrary)", "R12:✓(two reentry points enumerated: bid averted branch, end returnCollateral)", "R15:✗(none)", "R16:✗(none)"],
+      "depth_evidence": ["[TRACE:end->returnCollateral->token hook->end(same n)->second returnCollateral]", "[TRACE:bid averted->collateral.transfer hook->bid again->challenge.bid>0 -> second refund]"],
+      "missing_precondition": "a callback-capable collateral token must be accepted by governance (veto) and used",
+      "postconditions_created": ["hub balance of the token / ZCHF below the sum of recorded challenge claims"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DC-4",
+    "chain": "solidity",
+    "title": "Permissionless splitChallenge front-runs bids and invalidates expectedSize, letting a griefer stall bidders on a challenge it wants to succeed",
+    "severity": "Medium",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 156, "line_end": 179, "unit": "MintingHub", "function": "splitChallenge"},
+      {"file": "contracts/MintingHub.sol", "line_start": 199, "line_end": 202, "unit": "MintingHub", "function": "bid"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Module N (DoS-to-exploit escalation) / Module T shared-state mutation order. splitChallenge has no access control and no time limit: any address can split any open challenge, and each split changes challenge.size. bid() reverts with UnexpectedSize whenever expectedSize != challenge.size. An attacker that benefits from a challenge succeeding unaverted (the owner/challenger pair of DC-2/DP1-1) watches the mempool and front-runs every bid(n, x, size) with splitChallenge(n, minimumCollateral), so the bid reverts; the bidder must re-read and resend, and the attacker repeats while size >= 2*minimumCollateral (position owners choose minimumCollateral, which can be 1 wei). Splitting also pro-rates bids, fragmenting a prior bid.",
+    "root_cause": "splitChallenge is callable by anyone, at any time, with no cost, and bid() binds to the exact current size.",
+    "vulnerable_code": "function splitChallenge(uint256 _challengeNumber, uint256 splitOffAmount) external returns (uint256) {\n    Challenge storage challenge = challenges[_challengeNumber];\n    require(challenge.challenger != address(0x0));\n    ...\n    challenge.bid -= copy.bid;\n    challenge.size -= copy.size;\n---\nif (expectedSize != challenge.size) revert UnexpectedSize();",
+    "harm": {"who": "bidders attempting to avert a challenge, and the position owner if third parties are blocked", "loses_what": "ability to avert a challenge before it ends; the collateral of the challenged position", "magnitude": "the challenged collateral, if the attacker can out-race bidders until the period ends"},
+    "exploit_trace": [
+      "1. Attacker (challenger) launches a challenge of size S on a position whose minimumCollateral is small.",
+      "2. A bidder broadcasts bid(n, price*S, S).",
+      "3. Attacker front-runs with splitChallenge(n, min): challenge.size becomes S-min.",
+      "4. The bid reverts with UnexpectedSize. Attacker repeats for each resubmission until the challenge ends, then calls end()."
+    ],
+    "preconditions": [
+      {"text": "bidders use the public mempool; minimumCollateral much smaller than the challenge size", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "challenge fragmented into many pieces that each need a separate bid and end()", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✗(none)", "R10:✓(assessed at small min collateral)", "R11:✗(none)", "R12:✓(enabler: min collateral tiny)", "R15:✗(none)", "R16:✗(none)"],
+      "depth_evidence": ["[TRACE:bid(n,x,S) vs splitChallenge(n,min) ordering -> UnexpectedSize]", "[BOUNDARY:splitOffAmount=minimumCollateral -> both halves pass the min checks]"],
+      "missing_precondition": "bidders using private relays are not affected",
+      "postconditions_created": ["challenge fragmented into many pieces that each need a separate bid and end()"],
+      "who_benefits": "Challenger / owner colluding"
+    }
+  },
+  {
+    "id": "DC-5",
+    "chain": "solidity",
+    "title": "Any address can keep a position perpetually locked with repeated minimum-size challenges (avert triggers a 1-day mint cooldown, challengedAmount blocks withdraw/mint/adjustPrice)",
+    "severity": "Medium",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 140, "line_end": 148, "unit": "MintingHub", "function": "launchChallenge"},
+      {"file": "contracts/Position.sol", "line_start": 292, "line_end": 317, "unit": "Position", "function": "notifyChallengeStarted"},
+      {"file": "contracts/Position.sol", "line_start": 380, "line_end": 383, "unit": "Position", "function": "noChallenge"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Module N (DoS-to-exploit escalation), lending-liquidation-deep sec. 1 (dust positions) . launchChallenge is permissionless and only requires size >= minimumCollateral. While challengedAmount > 0, mint, withdrawCollateral and adjustPrice revert for the owner. If the owner (or anybody) averts by bidding price*size, tryAvertChallenge calls restrictMinting(1 days), so the position stays in cooldown (mint and withdraw revert via noCooldown) for another day; the griefer simply launches the next dust challenge. If nobody averts, the challenge lasts challengePeriod and is followed by a new one. The attacker's per-round cost is the spread between market value and position price on minimumCollateral worth of tokens.",
+    "root_cause": "No rate limit, fee or minimum meaningful size on challenges, while an open or just-averted challenge freezes all owner operations that move collateral or mint.",
+    "vulnerable_code": "function launchChallenge(address _positionAddr, uint256 _collateralAmount) external validPos(_positionAddr) returns (uint256) {\n    ...\n    position.notifyChallengeStarted(_collateralAmount);\n---\nchallengedAmount -= _collateralAmount;\nrestrictMinting(1 days);\nreturn true;",
+    "harm": {"who": "position owner", "loses_what": "access to deposited collateral (cannot withdraw) and ability to mint or adjust price while the grief continues", "magnitude": "the position's whole collateral locked for as long as the attacker pays the per-round dust cost"},
+    "exploit_trace": [
+      "1. Position owner has repaid and wants to withdraw collateral, or wants to add liquidity by minting.",
+      "2. Griefer calls launchChallenge(pos, minimumCollateral); challengedAmount > 0 so withdrawCollateral and mint revert with Challenged.",
+      "3. Owner avert-bids price*size (cooldown +1 day) or waits out challengePeriod; griefer immediately launches another dust challenge.",
+      "4. Repeat; withdrawCollateral stays reverting with Challenged or Hot."
+    ],
+    "preconditions": [
+      {"text": "minimumCollateral small relative to the value of the locked collateral", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "owner collateral withdrawal blocked while the griefing continues", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✗(none)", "R10:✓(assessed at full collateral lock)", "R11:✗(none)", "R12:✓(enablers: dust size, cooldown on avert)", "R15:✗(none)", "R16:✗(none)"],
+      "depth_evidence": ["[TRACE:launchChallenge(min)->challengedAmount>0->withdrawCollateral reverts Challenged]", "[TRACE:bid>=price*size->tryAvertChallenge->restrictMinting(1 days)->Hot]"],
+      "missing_precondition": "attacker must absorb the spread loss on each dust challenge",
+      "postconditions_created": ["owner collateral withdrawal blocked while the griefing continues"],
+      "who_benefits": "Griefer"
+    }
+  }
+]

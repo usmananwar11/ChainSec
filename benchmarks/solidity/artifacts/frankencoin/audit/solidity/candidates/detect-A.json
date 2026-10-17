@@ -1,0 +1,271 @@
+[
+  {
+    "id": "DA-1",
+    "chain": "solidity",
+    "title": "Costless launchChallenge + self-avert bid re-arms the 1-day mint/withdraw cooldown on any position, locking the owner's collateral and blocking cloning indefinitely",
+    "severity": "High",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Position.sol", "line_start": 304, "line_end": 317, "unit": "Position", "function": "tryAvertChallenge"},
+      {"file": "contracts/Position.sol", "line_start": 263, "line_end": 266, "unit": "Position", "function": "withdrawCollateral"},
+      {"file": "contracts/MintingHub.sol", "line_start": 140, "line_end": 148, "unit": "MintingHub", "function": "launchChallenge"},
+      {"file": "contracts/MintingHub.sol", "line_start": 199, "line_end": 213, "unit": "MintingHub", "function": "bid"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: MODIFIER-01 / state-transition check (who may trigger restrictMinting). launchChallenge is permissionless, and bid() lets the challenger himself be the averting bidder: tryAvertChallenge only checks bid*1e18 >= price*size and then calls restrictMinting(1 days) on the position. In the averted path bid() pays the bid to challenge.challenger and returns the collateral to msg.sender, so when challenger == bidder both legs net to zero. The attacker pays only gas (and needs price*size ZCHF / size collateral for the duration of the two calls). Each round sets cooldown = now + 1 day on the position, and while the challenge is open challengedAmount > 0 as well. withdrawCollateral, mint and reduceLimitForClone (hence clonePosition) all require noCooldown (and noChallenge), so repeating once per day keeps the owner from withdrawing collateral or minting and prevents anybody from cloning the position, until the position expires (tryAvertChallenge returns false after expiration).",
+    "root_cause": "A costless, permissionless action (challenge then self-avert) is allowed to extend a cooldown that guards the owner's core operations. Nothing prevents the challenger from being the averting bidder and the cooldown extension is not conditional on the bid being paid by a third party or costing the averting party anything.",
+    "vulnerable_code": "} else if (_bidAmountZCHF * ONE_DEC18 >= price * _collateralAmount){\n    // challenge averted, bid is high enough\n    challengedAmount -= _collateralAmount;\n    restrictMinting(1 days);\n    return true;\n}\n---\nzchf.transferFrom(msg.sender, challenge.challenger, _bidAmountZCHF);\nchallenge.position.collateral().transfer(msg.sender, challenge.size);",
+    "harm": {"who": "position owners (borrowers) and would-be cloners", "loses_what": "access to their collateral (withdraw/repay-then-withdraw) and minting capacity for as long as the attack is sustained", "magnitude": "whole collateral of any non-expired position can be frozen until expiration at gas cost only"},
+    "exploit_trace": [
+      "1. Attacker holds minimumCollateral of the position's collateral token and price*minimumCollateral ZCHF (both recovered at the end).",
+      "2. Attacker calls MintingHub.launchChallenge(pos, minimumCollateral): challengedAmount > 0, owner cannot mint, adjustPrice or withdrawCollateral for the challenge duration.",
+      "3. Just before challenge.end attacker calls bid(n, price*size/1e18 rounded up, size): tryAvertChallenge returns true, restrictMinting(1 days) sets cooldown = now + 1 day; ZCHF goes to himself, collateral returns to himself.",
+      "4. Attacker immediately repeats from step 2; the owner is never outside challenge or cooldown, cannot withdraw collateral or mint, and clonePosition reverts with Hot().",
+      "5. Result: owner's collateral frozen until expiration at attacker cost of gas only."
+    ],
+    "preconditions": [
+      {"text": "position not yet expired", "type": "STATE"},
+      {"text": "attacker can temporarily hold price*size ZCHF and size collateral (size >= minimumCollateral)", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "owner and cloners locked out of withdraw/mint/clone for the lifetime of the position", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=? D=?",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(worst state: large collateral, long expiration)", "R11:✗(n/a)", "R12:✓(enablers: permissionless challenge, challenger may bid, cooldown shared by withdraw/mint/clone)", "R15:✓(capital needed only transiently, can be flash-sourced)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[TRACE:launchChallenge->bid(averting, self)->restrictMinting(1 days)->withdrawCollateral reverts Hot()]", "[BOUNDARY:size=minimumCollateral -> smallest capital needed]"],
+      "missing_precondition": "",
+      "postconditions_created": ["owner and cloners locked out of withdraw/mint/clone for the lifetime of the position"],
+      "who_benefits": "Griefer / competitor of the position owner"
+    }
+  },
+  {
+    "id": "DA-2",
+    "chain": "solidity",
+    "title": "While ZCHF totalSupply is 0, anyone can register themselves as an immediately active minter (no fee, no application period) and mint unlimited ZCHF",
+    "severity": "Medium",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Frankencoin.sol", "line_start": 83, "line_end": 90, "unit": "Frankencoin", "function": "suggestMinter"},
+      {"file": "contracts/Frankencoin.sol", "line_start": 293, "line_end": 295, "unit": "Frankencoin", "function": "isMinter"},
+      {"file": "contracts/Frankencoin.sol", "line_start": 172, "line_end": 174, "unit": "Frankencoin", "function": "mint"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: AC-01 / bootstrap edge case (what if totalSupply == 0). The minimum application period and minimum fee are only enforced when totalSupply() > 0 (to let the deployer register the first minter). suggestMinter is permissionless, so before the first ZCHF exists any address can call suggestMinter(attacker, 0, 0, \"\"): minters[attacker] = block.timestamp, and isMinter is true when block.timestamp >= minters[_minter], i.e. immediately. denyMinter reverts TooLate as soon as block.timestamp > minters[_minter] and in any case Equity has no votes yet. The attacker then calls mint(attacker, type(uint128).max) via the minterOnly path.",
+    "root_cause": "The bootstrap exception for the first minter is available to every caller, not only the deployer, and the minter set is irrevocable once the application period (here 0) has elapsed.",
+    "vulnerable_code": "if (_applicationPeriod < MIN_APPLICATION_PERIOD && totalSupply() > 0) revert PeriodTooShort();\nif (_applicationFee < MIN_FEE  && totalSupply() > 0) revert FeeTooLow();\nif (minters[_minter] != 0) revert AlreadyRegistered();\n_transfer(msg.sender, address(reserve), _applicationFee);\nminters[_minter] = block.timestamp + _applicationPeriod;",
+    "harm": {"who": "the protocol deployer and every later ZCHF user", "loses_what": "the deployment is compromised from block one: attacker holds unlimited mint power over ZCHF (also able to squat the bridge/hub addresses first)", "magnitude": "unbounded ZCHF mint; requires redeploy"},
+    "exploit_trace": [
+      "1. Frankencoin is deployed; totalSupply() == 0 until the deployer registers and uses the first minter.",
+      "2. Attacker front-runs or simply acts in the gap and calls suggestMinter(attacker, 0, 0, \"x\").",
+      "3. minters[attacker] = block.timestamp, so isMinter(attacker) is true in the same or next block; nobody can deny it (TooLate; Equity has no FPS).",
+      "4. Attacker calls mint(attacker, hugeAmount) and registerPosition for arbitrary addresses; the deployer's later suggestMinter for the hub reverts only if the attacker took that address (AlreadyRegistered).",
+      "5. Deployer must redeploy; if value was already bridged in, the ZCHF is worthless."
+    ],
+    "preconditions": [
+      {"text": "ZCHF totalSupply() == 0 (between deployment and first mint)", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "attacker is a permanent minter; minters cannot be removed after the application window", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=✗(not value-flow) C=✗ D=?",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(worst state: value already deposited before attack)", "R11:✗(n/a)", "R12:✓(enumerated: supply==0, fee 0, period 0, no deny possible)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:totalSupply=0 -> both checks skipped]", "[BOUNDARY:applicationPeriod=0 -> minters[x]=now -> isMinter true]"],
+      "missing_precondition": "deployer registers the first minter atomically (or supply > 0) before an attacker acts",
+      "postconditions_created": ["attacker is a permanent minter"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DA-3",
+    "chain": "solidity",
+    "title": "checkQualified passes for any caller when totalVotes() is 0 (no FPS yet, or same block as first mint), letting anyone veto minters and positions",
+    "severity": "Medium",
+    "category": "governance",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Equity.sol", "line_start": 209, "line_end": 212, "unit": "Equity", "function": "checkQualified"},
+      {"file": "contracts/Frankencoin.sol", "line_start": 152, "line_end": 157, "unit": "Frankencoin", "function": "denyMinter"},
+      {"file": "contracts/Position.sol", "line_start": 109, "line_end": 114, "unit": "Position", "function": "deny"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "Discovery: GOV-01 zero-supply variant. The quorum test is _votes * 10000 < QUORUM * totalVotes(). When totalVotes() == 0 the right side is 0 and the test never reverts, even for a caller with zero votes and no helpers. totalVotes() is 0 while no FPS exist (FPS can only be minted once equity >= 1000 ZCHF) and in the block in which the first FPS is minted (votes accrue per block). During that window anyone can call Frankencoin.denyMinter(_minter, [], msg) on every pending minter application and Position.deny([], msg) on every position still in its init period, cancelling them at zero cost. The same hole lets anyone call Equity.restructureCapTable with zero votes whenever equity < 1000 and supply is 0 (also after every FPS was wiped).",
+    "root_cause": "Quorum is a percentage of a live total that is allowed to be zero, with no minimum absolute vote requirement or non-zero check.",
+    "vulnerable_code": "uint256 _votes = votes(sender, helpers);\nif (_votes * 10000 < QUORUM * totalVotes()) revert NotQualified();",
+    "harm": {"who": "applicants for new minters and positions during the bootstrap of the system", "loses_what": "applications and the fees paid (application fee and opening fee are irrevocable) and the time of the application window", "magnitude": "every minter proposal and every position opened before the first FPS holder with votes exists can be vetoed by anybody"},
+    "exploit_trace": [
+      "1. System is bootstrapping: ZCHF exists but no FPS has been minted (equity < 1000) so totalVotes() == 0.",
+      "2. A user calls suggestMinter or openPosition, paying the irrevocable fee.",
+      "3. Attacker (no FPS) calls denyMinter(minter, [], \"no\") or position.deny([], \"no\"); checkQualified computes 0 < 0 == false and does not revert.",
+      "4. Application is deleted / position put on cooldown = expiration."
+    ],
+    "preconditions": [
+      {"text": "totalVotes() == 0", "type": "STATE"},
+      {"text": "application or init period still running", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "proposals cancelled; fees lost", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=✗ C=✗ D=?",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(worst state: supply 0)", "R11:✗(n/a)", "R12:✓(enablers: supply 0, same-block first mint, all FPS wiped)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:totalVotes=0 -> 0 < 0 false -> qualified]", "[BOUNDARY:votes(sender)=0, helpers=[] -> still qualified]"],
+      "missing_precondition": "FPS supply with accrued votes",
+      "postconditions_created": ["proposals cancelled; fees lost"],
+      "who_benefits": "Griefer"
+    }
+  },
+  {
+    "id": "DA-4",
+    "chain": "solidity",
+    "title": "Clones start with cooldown 0 and no veto window; governance's only control over a clone's price is gone, so a cloner can later raise the price and mint up to the clone limit",
+    "severity": "High",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Position.sol", "line_start": 76, "line_end": 86, "unit": "Position", "function": "initializeClone"},
+      {"file": "contracts/Position.sol", "line_start": 109, "line_end": 114, "unit": "Position", "function": "deny"},
+      {"file": "contracts/Position.sol", "line_start": 159, "line_end": 167, "unit": "Position", "function": "adjustPrice"},
+      {"file": "contracts/MintingHub.sol", "line_start": 124, "line_end": 132, "unit": "MintingHub", "function": "clonePosition"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "spec-auditor", "consensus": null, "unit": null},
+    "description": "Discovery: Module L (invariant inheritance in the clone) + Q1.4. The original's guarantees are time-bounded: cooldown starts at start (3+ days after creation) and deny() only works before start. A clone shares the immutable start/expiration but its own storage cooldown is 0, deny() is already TooLate for it, and it pays no opening fee. initializeClone sets price = _mint*1e18/_coll (0 for _mint = 0), then the clone owner calls adjustPrice(anything): raising the price needs no collateral check and only sets restrictMinting(3 days). After 3 days mint(owner, limit) passes checkCollateral because collateral*price >= minted*1e18 holds for an arbitrary price. The governance veto that vetted the original's parameters therefore never applies to the price that actually secures the clone's loan. Confirms and deepens DP1-2.",
+    "root_cause": "The invariant 'a position's price was vetted by qualified FPS holders' is enforced only for the original at creation; clones inherit its limit and trust (infinite ZCHF allowance, minter status) but can set their own unvetted price afterwards.",
+    "vulnerable_code": "price = _mint * ONE_DEC18 / _coll;\nif (price > _price) revert InsufficientCollateral();\nlimit = _limit;\nmintInternal(owner, _mint, _coll);\n---\nfunction adjustPrice(uint256 newPrice) public onlyOwner noChallenge {\n    if (newPrice > price) {\n        restrictMinting(3 days);\n    } else {\n        checkCollateral(collateralBalance(), newPrice);\n    }\n    price = newPrice;",
+    "harm": {"who": "FPS holders (equity reserve) and ZCHF holders", "loses_what": "ZCHF minted against collateral that is worth far less than the self-set price", "magnitude": "up to the limit passed to the clone (half of the original's remaining limit per clone, repeatable)"},
+    "exploit_trace": [
+      "1. Original position P (vetted, no veto) has remaining limit L and is out of cooldown.",
+      "2. Attacker calls clonePosition(P, minimumCollateral, 0): receives about L/2 of limit, no veto window, price 0.",
+      "3. Attacker calls clone.adjustPrice(hugePrice); cooldown = now + 3 days.",
+      "4. After 3 days, attacker calls clone.mint(attacker, limit): checkCollateral passes; attacker keeps the ZCHF and abandons dust collateral.",
+      "5. Attacker repeats with more clones; only a challenger bidding price*size can avert, which nobody does at a hugePrice."
+    ],
+    "preconditions": [
+      {"text": "no challenge launched on the clone during the 3-day cooldown (a challenge is still possible but only yields a reserve-funded loss, see DP1-1)", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "unbacked ZCHF in circulation, loss socialised by notifyLoss", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=? D=?",
+      "rules_applied": ["R8:✓(price is cached state read later by mint)", "R10:✓(worst state: max limit)", "R11:✗(n/a)", "R12:✓(enablers: clone has cooldown 0, no veto, price raise unchecked)", "R15:✗(n/a)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:_mint=0 -> price=0]", "[TRACE:clonePosition->adjustPrice(huge)->3d->mint(limit) passes checkCollateral]"],
+      "missing_precondition": "a veto/check on price increases after start",
+      "postconditions_created": ["unbacked ZCHF in circulation"],
+      "who_benefits": "Clone owner"
+    }
+  },
+  {
+    "id": "DA-5",
+    "chain": "solidity",
+    "title": "restructureCapTable uses addressesToWipe[0] in every iteration, so only the first address is wiped",
+    "severity": "Medium",
+    "category": "logic-error",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Equity.sol", "line_start": 309, "line_end": 316, "unit": "Equity", "function": "restructureCapTable"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "spec-auditor", "consensus": null, "unit": null},
+    "description": "Discovery: CONST-01 (wrong index) / NatSpec vs code. The NatSpec says qualified holders can bootstrap the system 'owning 100% of all FPS shares'. The loop reads addressesToWipe[0] each time, so all later entries are ignored and the wipe is limited to one address per call; the extra calls each repeat the qualification check. Confirms DP1-4.",
+    "root_cause": "Typo: addressesToWipe[0] instead of addressesToWipe[i].",
+    "vulnerable_code": "for (uint256 i = 0; i<addressesToWipe.length; i++){\n    address current = addressesToWipe[0];\n    _burn(current, balanceOf(current));\n}",
+    "harm": {"who": "recapitalising FPS holders", "loses_what": "the ability to wipe multiple passive holders atomically before new capital arrives", "magnitude": "recovery path works for one address per transaction only"},
+    "exploit_trace": [
+      "1. equity < 1000 ZCHF; qualified holder calls restructureCapTable(helpers, [A, B, C]).",
+      "2. Iteration 0 burns A; iterations 1 and 2 burn balanceOf(A) = 0 again.",
+      "3. B and C keep their shares and dilute the new capital providers."
+    ],
+    "preconditions": [
+      {"text": "zchf.equity() < 1000 ZCHF and caller qualified", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "B and C retain FPS", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=✗ C=✗ D=✓",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(multi-address list)", "R11:✗(n/a)", "R12:✗(n/a)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[TRACE:addressesToWipe=[A,B,C]->burn(A) x3]"],
+      "missing_precondition": "",
+      "postconditions_created": ["B and C retain FPS"],
+      "who_benefits": "Passive FPS holders"
+    }
+  },
+  {
+    "id": "DA-6",
+    "chain": "solidity",
+    "title": "A zero-ZCHF bid (bid == 0) is accepted, makes the bidder the end() collateral recipient and extends the challenge for free",
+    "severity": "Medium",
+    "category": "dos",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 181, "line_end": 190, "unit": "MintingHub", "function": "minBid"},
+      {"file": "contracts/MintingHub.sol", "line_start": 214, "line_end": 228, "unit": "MintingHub", "function": "bid"},
+      {"file": "contracts/MintingHub.sol", "line_start": 258, "line_end": 260, "unit": "MintingHub", "function": "end"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "Discovery: Q5.6 (state transition with bid = 0). With challenge.bid == 0, minBid is 0, so bid(n, 0, size) passes, writes challenge.bidder = msg.sender and challenge.end = now + 30 minutes if end is closer, pulling 0 ZCHF. Two effects beyond DP1-3: (a) end() sends the position's collateral to challenge.bidder whenever it is non-zero, so the zero-bidder, not the end() caller, receives the collateral and has paid nothing, while repayment and the 2% reward are funded by notifyLoss; (b) the challenge can be kept open indefinitely by repeating before end, delaying a liquidation. Any later honest bid must exceed 0 and then displaces the attacker, so the effect is strongest when nobody bids. Confirms DP1-3.",
+    "root_cause": "The 0.5% minimum increment is multiplicative and rounds to 0 for an empty (or tiny) previous bid, and the existence of a bidder is tested by address rather than by a positive bid.",
+    "vulnerable_code": "address recipient = challenge.bidder == address(0x0) ? msg.sender : challenge.bidder;\n---\nif (_bidAmountZCHF < minBid(challenge)) revert BidTooLow(_bidAmountZCHF, minBid(challenge));\nuint256 earliestEnd = block.timestamp + 30 minutes;\nif (earliestEnd >= challenge.end) { challenge.end = earliestEnd; }\nzchf.transferFrom(msg.sender, address(this), _bidAmountZCHF);\nchallenge.bid = _bidAmountZCHF;\nchallenge.bidder = msg.sender;",
+    "harm": {"who": "challenger, caller of end(), and the reserve", "loses_what": "the collateral that a diligent end() caller would receive, and the timely liquidation of an undercollateralised position", "magnitude": "position collateral of the challenged size plus reserve-funded repayment"},
+    "exploit_trace": [
+      "1. Challenge on a position; no one has bid (challenge.bid == 0).",
+      "2. Attacker calls bid(n, 0, size): tryAvertChallenge false, minBid == 0, so bidder = attacker and bid = 0; end possibly extended by 30 minutes.",
+      "3. Attacker repeats every <30 minutes to delay, or waits for the end.",
+      "4. After challenge.end any caller invokes end(n): recipient = challenge.bidder = attacker, who receives the collateral for 0 ZCHF; notifyLoss covers repayment and reward."
+    ],
+    "preconditions": [
+      {"text": "no non-zero bid placed on the challenge", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "attacker owns the liquidated collateral at no cost; or the liquidation is postponed", "type": "STATE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=? C=? D=✓",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(worst state: no bids)", "R11:✗(n/a)", "R12:✓(enumerated bid=0 and dust bids)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[BOUNDARY:bid=0 -> minBid=0 -> accepted, bidder set]", "[TRACE:end()->recipient=challenge.bidder (attacker)]"],
+      "missing_precondition": "",
+      "postconditions_created": ["attacker owns the liquidated collateral at no cost; or the liquidation is postponed"],
+      "who_benefits": "Zero-bidder"
+    }
+  },
+  {
+    "id": "DA-7",
+    "chain": "solidity",
+    "title": "Any caller of end() can force postponeCollateralReturn=true, parking the challenger's collateral in pendingReturns",
+    "severity": "Low",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 252, "line_end": 260, "unit": "MintingHub", "function": "end"},
+      {"file": "contracts/MintingHub.sol", "line_start": 281, "line_end": 296, "unit": "MintingHub", "function": "returnPostponedCollateral"}
+    ],
+    "discovery": {"phase": "detect", "lens": "A", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: MODIFIER-01 (parameter meant for the challenger is controlled by an arbitrary caller). end(n, postpone) is permissionless and the documented purpose of postpone is a blacklisted challenger, but the flag is chosen by whoever calls end. A third party (who also receives the position collateral when there is no bidder) can set postpone = true, so the challenger's own collateral is credited to pendingReturns[collateral][challenger] instead of being sent. A challenger that is a smart contract or integration without a call to returnPostponedCollateral cannot recover it; returnPostponedCollateral also ignores the transfer result.",
+    "root_cause": "The postponement option is not restricted to the challenger.",
+    "vulnerable_code": "function end(uint256 _challengeNumber, bool postponeCollateralReturn) public {\n    ...\n    returnCollateral(challenge, postponeCollateralReturn);",
+    "harm": {"who": "challengers that are contracts or automation", "loses_what": "their challenge collateral (stuck, or at least delayed and needs an extra call)", "magnitude": "size of the challenge collateral"},
+    "exploit_trace": [
+      "1. Contract-based challenger launches a challenge of size S.",
+      "2. After the period a third party calls end(n, true).",
+      "3. S is credited to pendingReturns[collateral][challenger]; nothing is transferred.",
+      "4. Challenger contract has no code path calling returnPostponedCollateral, so S is locked."
+    ],
+    "preconditions": [
+      {"text": "challenger is a contract without a returnPostponedCollateral path", "type": "EXTERNAL"}
+    ],
+    "postconditions": [
+      {"text": "challenger collateral locked in MintingHub", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✓ B=✗ C=? D=✗",
+      "rules_applied": ["R8:✗(n/a)", "R10:✓(assessed at full-size challenge)", "R11:✗(n/a)", "R12:✗(n/a)", "R15:✗(n/a)", "R16:✗(n/a)"],
+      "depth_evidence": ["[TRACE:end(n,true)->pendingReturns[col][challenger]+=size]"],
+      "missing_precondition": "",
+      "postconditions_created": ["challenger collateral locked in MintingHub"],
+      "who_benefits": "End() caller / griefer"
+    }
+  }
+]

@@ -1,0 +1,578 @@
+{
+  "chain": "solidity",
+  "mode": "regex",
+  "size": "MEDIUM",
+  "files": [
+    {
+      "file": "contracts/helper/V3Proxy.sol",
+      "score": 159.8,
+      "breakdown": {
+        "external_calls": 45,
+        "state_writers": 44,
+        "payable": 36,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 9.8,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/GeVault.sol",
+      "score": 125.25,
+      "breakdown": {
+        "external_calls": 25,
+        "state_writers": 44,
+        "payable": 8,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 23.25,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/TokenisableRange.sol",
+      "score": 124.1,
+      "breakdown": {
+        "external_calls": 60,
+        "state_writers": 20,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 19.1,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "score": 91.6,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 28,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 6,
+        "loc": 27.6,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/RangeManager.sol",
+      "score": 70.75,
+      "breakdown": {
+        "external_calls": 15,
+        "state_writers": 20,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 10.75,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "score": 45.4,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 8,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 7.4,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/INonfungiblePositionManager.sol",
+      "score": 44.0,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 20,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 9.0,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/IAaveLendingPoolV2.sol",
+      "score": 37.4,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 22.4,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/IUniswapV2Router01.sol",
+      "score": 35.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 12,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 8.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/ISwapRouter.sol",
+      "score": 34.35,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 16,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 3.35,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/RoeRouter.sol",
+      "score": 31.35,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 12,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.35,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/IPeripheryPayments.sol",
+      "score": 28.4,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 12,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.4,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/ILendingPoolConfigurator.sol",
+      "score": 24.65,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 9.65,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/IAaveIncentivesController.sol",
+      "score": 22.4,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 7.4,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "contracts/helper/FixedOracle.sol",
+      "score": 21.3,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.3,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD"
+    },
+    {
+      "file": "interfaces/IAToken.sol",
+      "score": 20.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 5.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IERC721Permit.sol",
+      "score": 20.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "contracts/helper/LPOracle.sol",
+      "score": 20.25,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 5.25,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IPoolInitializer.sol",
+      "score": 20.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IWETH.sol",
+      "score": 19.5,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.5,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "contracts/helper/OracleConvert.sol",
+      "score": 19.05,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.05,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IUniswapV3Factory.sol",
+      "score": 18.9,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 3.9,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IERC20.sol",
+      "score": 18.85,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 3.85,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "STANDARD",
+      "promoted": true
+    },
+    {
+      "file": "interfaces/IInitializableAToken.sol",
+      "score": 17.75,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.75,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IUniswapV2Pair.sol",
+      "score": 17.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/PoolAddress.sol",
+      "score": 17.5,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.5,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/DataTypes.sol",
+      "score": 17.45,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.45,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/ILendingPoolAddressesProvider.sol",
+      "score": 17.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/AggregatorV3Interface.sol",
+      "score": 16.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/ICreditDelegationToken.sol",
+      "score": 16.4,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.4,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IUniswapV3Pool.sol",
+      "score": 16.4,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.4,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IScaledBalanceToken.sol",
+      "score": 16.3,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.3,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IFlashLoanReceiver.sol",
+      "score": 16.25,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.25,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IUniswapV3SwapCallback.sol",
+      "score": 16.05,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.05,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IPriceOracle.sol",
+      "score": 15.85,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.85,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IUniswapV2Factory.sol",
+      "score": 15.85,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.85,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IPeripheryImmutableState.sol",
+      "score": 15.6,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.6,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    },
+    {
+      "file": "interfaces/IAaveOracle.sol",
+      "score": 15.45,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.45,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "SCAN"
+    }
+  ]
+}

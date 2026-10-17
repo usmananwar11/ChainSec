@@ -1,0 +1,74 @@
+[
+  {
+    "id": "D-1",
+    "chain": "solidity",
+    "title": "Treasury per-block spend/approve counter mixes units across tokens, so multi-token spends in one block revert",
+    "severity": "Low",
+    "category": "math-units / edge-case",
+    "status": "candidate",
+    "locations": [
+      { "file": "contracts/ArcadeTreasury.sol", "line_start": 358, "line_end": 394, "function": "_spend/_approve" },
+      { "file": "contracts/ArcadeTreasury.sol", "line_start": 68, "line_end": 68, "function": "blockExpenditure" }
+    ],
+    "discovery": { "phase": "detect", "lens": "D", "mindset": "accountant", "consensus": null, "unit": null },
+    "description": "_spend and _approve keep one counter, blockExpenditure[block.number], that is shared by every token and by GSC and CORE_VOTING spends. Each call checks amount + spentThisBlock > limit, where limit is the per-token threshold for that call. Raw amounts in different token units (6-decimal USDC, 18-decimal DAI, 8-decimal WBTC) are added together and compared with one token's limit. The check can only get stricter, never looser. A large-unit spend earlier in the block can therefore exhaust the limit of a small-unit token, and any later spend or approve of another token in the same block reverts with T_BlockSpendLimit.",
+    "root_cause": "The per-block expenditure mapping is keyed only by block number, not by (token, block), and values in different units are summed.",
+    "recommendation": "Key the counter by token and block (mapping(address => mapping(uint256 => uint256))), or normalise amounts before adding them.",
+    "vulnerable_code": "uint256 spentThisBlock = blockExpenditure[block.number];\nif (amount + spentThisBlock > limit) revert T_BlockSpendLimit();\nblockExpenditure[block.number] = amount + spentThisBlock;",
+    "harm": {
+      "who": "DAO governance and the GSC (spend executors)",
+      "loses_what": "The ability to execute multi-token spend or approve actions in one proposal or one block. This is a revert, not a loss of funds.",
+      "magnitude": "Only roles CORE_VOTING and GSC_CORE_VOTING can touch the counter, so an outside attacker cannot cause it. The effect is a governance execution DoS that is fixed by separating the actions into different blocks."
+    },
+    "exploit_trace": [
+      "USDC small threshold = 1000e6 and DAI small threshold = 1000e18.",
+      "Governance executes smallSpend(DAI, 10e18, X) in block N, so blockExpenditure[N] = 10e18.",
+      "In the same block N, smallSpend(USDC, 500e6, Y) is called: 500e6 + 10e18 > 1000e6, so it reverts with T_BlockSpendLimit.",
+      "A single proposal with both calls reverts in full and cannot be executed as bundled."
+    ],
+    "preconditions": [
+      { "text": "Two spends or approves of different tokens whose decimals differ occur in the same block", "type": "TIMING" },
+      { "text": "The caller holds CORE_VOTING_ROLE or GSC_CORE_VOTING_ROLE", "type": "ACCESS" }
+    ],
+    "audit_trail": {
+      "step_execution": "Traced concrete values through the _spend arithmetic with tokens of 6 and 18 decimals.",
+      "rules_applied": ["Module M", "Mechanical arithmetic verification"],
+      "who_benefits": "Nobody. This is a self-inflicted governance DoS."
+    }
+  },
+  {
+    "id": "D-2",
+    "chain": "solidity",
+    "title": "ARCDVestingVault NatSpec specifies timestamps but the schedule uses block.number, so timestamp inputs lock grants almost indefinitely",
+    "severity": "Low",
+    "category": "spec-mismatch / units",
+    "status": "candidate",
+    "locations": [
+      { "file": "contracts/ARCDVestingVault.sol", "line_start": 91, "line_end": 112, "function": "addGrantAndDelegate" },
+      { "file": "contracts/ARCDVestingVault.sol", "line_start": 317, "line_end": 333, "function": "_getWithdrawableAmount" }
+    ],
+    "discovery": { "phase": "detect", "lens": "D", "mindset": "spec-auditor", "consensus": null, "unit": null },
+    "description": "The addGrantAndDelegate NatSpec says expiration and cliff are timestamps. The code compares them with block.number in _getWithdrawableAmount and claim, and defaults startTime to block.number. A manager who follows the NatSpec and passes Unix timestamps (about 1.7e9) creates a grant whose cliff and expiration are about 1.7e9 blocks away, so it effectively never vests. The only schedule checks are cliff >= expiration and cliff < startTime, and a timestamp is far larger than any block number, so the bad input passes both. The manager can only recover the tokens by calling revokeGrant, which sends the unvested part to the manager. ImmutableVestingVault disables revokeGrant, so a mis-scaled grant there is permanent.",
+    "root_cause": "The unit of the schedule parameters (blocks) does not match the documented unit (timestamps), and there is no sanity bound on the schedule.",
+    "recommendation": "Fix the NatSpec to say block numbers, or switch the schedule to block.timestamp. Consider bounding cliff and expiration against the current block.",
+    "vulnerable_code": "if (block.number < grant.cliff) { return 0; }\nif (block.number >= grant.expiration) { return grant.allocation - grant.withdrawn; }",
+    "harm": {
+      "who": "Grant recipients (team and partners) of the ImmutableVestingVault",
+      "loses_what": "Access to vested tokens for an effectively unlimited time",
+      "magnitude": "Requires a manager misconfiguration. It is irreversible in ImmutableVestingVault."
+    },
+    "exploit_trace": [
+      "Manager calls addGrantAndDelegate(who, amount, c, 0, expirationTs, cliffTs, d) with Unix timestamps, following the NatSpec.",
+      "startTime becomes block.number (about 2e7). cliffTs (about 1.7e9) passes the check cliff >= startTime.",
+      "claim() reverts with AVV_CliffNotReached for about 1.7e9 blocks."
+    ],
+    "preconditions": [
+      { "text": "The manager supplies timestamp-valued schedule parameters", "type": "ACCESS" }
+    ],
+    "audit_trail": {
+      "step_execution": "Compared the NatSpec of every schedule parameter with the units used in _getWithdrawableAmount and claim.",
+      "rules_applied": ["Module B", "Spec Auditor"],
+      "who_benefits": "Nobody"
+    }
+  }
+]

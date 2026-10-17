@@ -1,0 +1,37 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "size": "SMALL",
+  "files": [
+    {
+      "file": "src/Vault.sol",
+      "score": 75.75,
+      "breakdown": {
+        "external_calls": 15,
+        "state_writers": 20,
+        "payable": 4,
+        "assembly_blocks": 6,
+        "unchecked_blocks": 3,
+        "loc": 2.75,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "src/Base.sol",
+      "score": 19.95,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 0.95,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    }
+  ]
+}

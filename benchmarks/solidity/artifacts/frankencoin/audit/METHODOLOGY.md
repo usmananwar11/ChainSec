@@ -1,0 +1,11 @@
+# Run notes (honest record)
+- Pipeline: ChainSec frozen snapshot in .claude/skills, full run (no --quick). One chain: solidity, root ".".
+- Scope: 10 README contracts (Position, MintingHub, Equity, Frankencoin, ERC20, ERC20PermitLight, StablecoinBridge, PositionFactory, MathUtil, Ownable).
+- Facts: compiler mode. Plain `forge build` failed (stack too deep), so extraction was rerun with env FOUNDRY_VIA_IR=true FOUNDRY_OPTIMIZER=true (no file changes; a stray foundry.lock was deleted).
+- Preflight mode: degraded (slither not installed; analyzer pre-scan skipped).
+- Phases run: preflight, extract, score, recon (orchestrator), detect (Pass1 + lenses A-D, consensus merge, Pass 3 sweep done by orchestrator, no new candidates), rescan (0 new, 2 reinforced), per-unit (5 clusters), state, verify, validate (passed first try, no repair), report. incomplete_phases: none.
+- Deviation: the state auditor was dispatched in parallel with per-unit (it only reads detect.json).
+- Executable PoCs: NONE were run. The critic used code-trace verification only; no PoC tests were written or executed, so no finding is mechanically confirmed.
+- README automated-findings gist not fetched (no web); known-issues come from README + audits/readme.md.
+- Not run: chainsec-review (second opinion on killed findings), chainsec-poc, chainsec-fuzz. Critic killed 13 of 20 candidates (e.g. DC-4 splitChallenge griefing, DA-2/DA-3 zero-supply minter/quorum); these are unreviewed.
+- Source/tests/skill files untouched; outputs only under .audit/.

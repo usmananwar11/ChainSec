@@ -1,0 +1,227 @@
+[
+  {
+    "id": "DP1-1",
+    "chain": "solidity",
+    "title": "sweep() has no access control and drains the entire native balance to an arbitrary attacker-chosen address",
+    "severity": "High",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "src/Vault.sol",
+        "line_start": 32,
+        "line_end": 34,
+        "unit": "Vault",
+        "function": "sweep"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "P1",
+      "mindset": null,
+      "consensus": null,
+      "unit": "Vault"
+    },
+    "description": "Discovery: Q3.7 (access-control exhaustive check) / MODIFIER-01 (sibling modifier diff) / AC-03. sweep(address payable to) is external with NO guards and sends the full address(this).balance via to.transfer to an arbitrary recipient. Every state-moving sibling that should be privileged is gated only where appropriate (setFee/transferOwnership have onlyOwner), but sweep — the only function that moves native value out — has none. It is also the only exit path for native ETH (withdraw pays ERC20 tokens only, never ETH), so any address can permanently steal all ETH credited via depositEth by other users in a single transaction.",
+    "root_cause": "The function moves the entire native balance to an arbitrary recipient but was never gated with onlyOwner (or any caller restriction) and is not connected to the balances ledger, so the vault's ETH is fully permissionlessly extractable.",
+    "vulnerable_code": "// BUG (planted for smoke tests): no access control, anyone can drain the native balance.\nfunction sweep(address payable to) external {\n    to.transfer(address(this).balance);\n}",
+    "harm": {
+      "who": "all users who deposited native ETH via depositEth (and any force-sent ETH providers)",
+      "loses_what": "their entire ETH balance held in the vault",
+      "magnitude": "the full address(this).balance at call time, unbounded — e.g. 10 ETH deposited by a victim is taken whole by the first sweeper"
+    },
+    "exploit_trace": [
+      "1. Victim calls depositEth{value: 10 ether}() → balances[victim] += 10e18; vault holds 10 ETH.",
+      "2. Attacker calls sweep(attacker) — the function has no onlyOwner or any other guard.",
+      "3. to.transfer(address(this).balance) sends the entire 10 ETH to the attacker.",
+      "4. Victim's balances[victim] entry still reads 10e18, but withdraw() pays ERC20 tokens (not ETH) and the vault holds no ETH; the victim's native deposit is irrecoverable."
+    ],
+    "preconditions": [
+      {
+        "text": "the vault holds any native ETH (any prior depositEth call or force-send)",
+        "type": "BALANCE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "all native ETH held by the vault is owned by the attacker; honest ETH depositors' balances entries are unbacked",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ (Q3.7, Q2.6 N/A — sweep writes no storage) Step 4=✓ (MODIFIER-01, AC-03, MISSING-02)",
+      "rules_applied": [
+        "R8:✗(no cached/stored external params)",
+        "R10:✓(assessed at full-balance state: entire address(this).balance lost)",
+        "R11:✗(native asset, not external token)",
+        "R12:✓(sole enabler = any ETH present from any depositEth; enumerated)",
+        "R15:✗(no balance/threshold gate to flash-manipulate)",
+        "R16:✗(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[TRACE:sweep(attacker)→to.transfer(address(this).balance)→attacker +10 ETH, vault 0]",
+        "[BOUNDARY:address(this).balance=0 → no-op; balance=X wei → X stolen in one tx with no cap]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "all native ETH owned by attacker",
+        "victim balances entries unbacked by ETH"
+      ],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DP1-2",
+    "chain": "solidity",
+    "title": "depositEth credits the unified balances ledger with no ERC20 backing, so ETH credits are redeemable against other users' token deposits via withdraw()",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "src/Vault.sol",
+        "line_start": 27,
+        "line_end": 29,
+        "unit": "Vault",
+        "function": "depositEth"
+      },
+      {
+        "file": "src/Vault.sol",
+        "line_start": 36,
+        "line_end": 42,
+        "unit": "Vault",
+        "function": "withdraw"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "P1",
+      "mindset": null,
+      "consensus": null,
+      "unit": "Vault"
+    },
+    "description": "Discovery: Q3.2 (paired-operation symmetry) / Q5.4 (cross-function invariant) / BL-03 (dual accounting divergence). depositEth() adds msg.value to the same balances mapping that deposit() funds with ERC20 tokens, but never increments totalDeposits and never takes custody of tokens. withdraw() debits balances and pays ERC20 tokens regardless of how the credit was created. An attacker therefore converts a native-ETH credit into an equal amount of other users' ERC20 tokens: dust-sized depositEth is enough to withdraw any amount up to the credit, draining the token pool. Conversely, honest ETH depositors have no function that ever pays ETH back against their balances entries — their only exit is the permissionless sweep() (see DP1-1).",
+    "root_cause": "A single balances ledger backs two unlinked asset pools (ERC20 tokens and native ETH); withdraw always pays ERC20, so native credits are redeemable against the token pool, and ETH credits desync totalDeposits from real token custody.",
+    "vulnerable_code": "function depositEth() external payable {\n    balances[msg.sender] += msg.value;\n}\n\nfunction withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked {\n        totalDeposits -= amount;\n    }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {
+      "who": "ERC20 depositors (users who called deposit())",
+      "loses_what": "their deposited tokens, paid out to whoever holds native-ETH credits",
+      "magnitude": "up to the attacker's depositEth amount per attack, bounded only by the vault's token balance — e.g. 1000 wei of ETH converts into 1000 token units deposited by a victim"
+    },
+    "exploit_trace": [
+      "1. Victim calls deposit(1000e6) → balances[victim]=1000e6, totalDeposits=1000e6, vault holds 1000e6 tokens.",
+      "2. Attacker calls depositEth{value: 1000 wei}() → balances[attacker]=1000; no tokens enter; totalDeposits unchanged.",
+      "3. Attacker calls withdraw(1000) → balances[attacker] debited (passes check), unchecked totalDeposits decremented, token.transfer(attacker, 1000) pays 1000 token units taken from the victim's deposit.",
+      "4. Attacker holds 1000 stolen token units; vault token balance is now 0; the victim's later withdraw reverts on token.transfer."
+    ],
+    "preconditions": [
+      {
+        "text": "the vault holds ERC20 tokens deposited by other users",
+        "type": "BALANCE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "vault token balance falls below the sum of balances entries; victim withdrawals may revert",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ (Q3.2, Q5.4, Q3.7) Step 4=✓ (BL-03, MISSING-02)",
+      "rules_applied": [
+        "R8:✗(no cached external params)",
+        "R10:✓(assessed at full-drain state: entire token pool extractable by ETH-credit holders)",
+        "R11:✗(standard ERC20 behavior assumed; no exotic token required)",
+        "R12:✓(enabler = permissionless depositEth credit; enumerated)",
+        "R15:✗(no flash-loan threshold; attack needs only victim tokens present)",
+        "R16:✗(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[TRACE:depositEth(1000 wei)→withdraw(1000)→1000 token units to attacker, vault token balance 0]",
+        "[BOUNDARY:depositEth(0)→no credit; withdraw(amount>balances[msg.sender])→revert at checked balances -= ; withdraw(amount==totalDeposits)→totalDeposits=0 with no wrap]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "vault token balance < sum of balances (unbacked ledger entries)",
+        "totalDeposits desynced from depositEth credits"
+      ],
+      "who_benefits": "Attacker (any address holding native-ETH credits)"
+    }
+  },
+  {
+    "id": "DP1-3",
+    "chain": "solidity",
+    "title": "unchecked totalDeposits subtraction in withdraw() underflows and wraps the counter, progressively DoS-ing deposit() via checked overflow",
+    "severity": "Medium",
+    "category": "arithmetic",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "src/Vault.sol",
+        "line_start": 36,
+        "line_end": 42,
+        "unit": "Vault",
+        "function": "withdraw"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "P1",
+      "mindset": null,
+      "consensus": null,
+      "unit": "Vault"
+    },
+    "description": "Discovery: Q3.5 (inconsistent overflow protection) / Q5.6 (math boundary). withdraw() applies totalDeposits -= amount inside unchecked while balances[msg.sender] -= amount is checked. Because depositEth credits balances without incrementing totalDeposits, balances can exceed totalDeposits, making amount > totalDeposits reachable: the unchecked subtraction wraps totalDeposits to 2^256 - (amount - totalDeposits). After the wrap, deposit()'s checked totalDeposits += amount overflows and reverts for any amount above the tiny remaining headroom, so the core deposit function is DoS'd for normal deposit sizes and the totalDeposits invariant (sum of credits) is permanently destroyed. The wrap also requires the token.transfer to succeed, which it does whenever other users' tokens sit in the vault (see DP1-2 for how those tokens are obtained).",
+    "root_cause": "unchecked subtraction applied to a counter that is not bounded by its paired credits — depositEth bypasses totalDeposits entirely, so the invariant totalDeposits <= sum(balances) does not hold when withdraw decrements it.",
+    "vulnerable_code": "function withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked {\n        totalDeposits -= amount;\n    }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {
+      "who": "all users of the vault",
+      "loses_what": "access to deposit() for any amount above the post-wrap overflow headroom; the totalDeposits accounting invariant",
+      "magnitude": "after wrap with extra = amount - totalDeposits, every deposit(x) with x > extra reverts; smaller deposits shrink headroom; totalDeposits reads ~2^256 and no longer tracks anything"
+    },
+    "exploit_trace": [
+      "1. Victim calls deposit(100) → totalDeposits = 100, vault holds 100 tokens.",
+      "2. Attacker calls depositEth{value: 200 wei}() → balances[attacker] = 200; totalDeposits still 100.",
+      "3. Attacker calls withdraw(200): balances check passes; unchecked totalDeposits = 100 - 200 wraps to 2^256 - 100; token.transfer pays 200 tokens (100 victim's + any excess) to the attacker.",
+      "4. totalDeposits now reads 2^256 - 100. Any subsequent deposit(x) with x > 100 reverts on the checked totalDeposits += x; deposits <= 100 succeed and shrink headroom to 100 - x.",
+      "5. No code path ever resets totalDeposits; the counter stays wrapped and the invariant is unrecoverable."
+    ],
+    "preconditions": [
+      {
+        "text": "permissionless depositEth creates balances credits that bypass totalDeposits",
+        "type": "STATE"
+      },
+      {
+        "text": "vault holds enough ERC20 tokens for token.transfer to succeed so the wrapped state persists",
+        "type": "BALANCE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "totalDeposits wrapped to ~2^256; deposit() reverts for amounts above remaining headroom",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ (Q3.5, Q5.1, Q5.6) Step 4=✓",
+      "rules_applied": [
+        "R8:✗(no cached external params)",
+        "R10:✓(assessed at wrapped-counter state: deposit DoS + invariant destroyed)",
+        "R11:✗(no exotic token behavior needed)",
+        "R12:✓(enabler = permissionless depositEth credit; enumerated)",
+        "R15:✗(no flash-loan threshold)",
+        "R16:✗(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[TRACE:totalDeposits=100; withdraw(200)→unchecked 100-200 wraps to 2^256-100; deposit(101)→checked add reverts]",
+        "[BOUNDARY:amount==totalDeposits → 0, no wrap; amount==totalDeposits+1 → 2^256-1, headroom 1; extra bounded by attacker's depositEth wei so economic cost bounds wrap size]"
+      ],
+      "missing_precondition": "token.transfer must succeed for the wrapped totalDeposits to persist (else whole tx reverts)",
+      "postconditions_created": [
+        "totalDeposits wrapped and permanently desynced",
+        "deposit() overflow-DoS for amounts above remaining headroom"
+      ],
+      "who_benefits": "Attacker (DoS / permanent accounting corruption)"
+    }
+  }
+]

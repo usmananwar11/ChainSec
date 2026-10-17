@@ -1,0 +1,85 @@
+[
+  {
+    "id": "DD-1",
+    "chain": "solidity",
+    "title": "unchecked totalDeposits subtraction in withdraw() underflows and wraps the counter when amount > totalDeposits, DoS-ing deposit() until headroom is restored",
+    "severity": "Medium",
+    "category": "arithmetic",
+    "status": "candidate",
+    "boundary": true,
+    "locations": [
+      {
+        "file": "src/Vault.sol",
+        "line_start": 36,
+        "line_end": 42,
+        "unit": "Vault",
+        "function": "withdraw"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": "Vault"
+    },
+    "description": "Discovery: Q5.6 (math boundary) + Lens D mechanical arithmetic verification (3 concrete value sets traced through the only non-trivial arithmetic in the codebase) + Module M counter-consistency. Deepens Pass 1 candidate DP1-3 and CORRECTS its exploit trace and preconditions. withdraw() applies totalDeposits -= amount inside unchecked while balances[msg.sender] -= amount is checked. amount is bounded only by balances[msg.sender], never by totalDeposits. Under ERC20-only usage the invariant vault_token_balance == totalDeposits holds by induction over deposit/withdraw, so amount > totalDeposits AND a successful token.transfer(amount) are jointly unreachable — Pass 1's trace (withdraw(200) against a vault holding only 100 tokens) would revert at token.transfer and the wrap would NOT persist. The underflow becomes reachable once the vault holds even 1 wei of unaccounted ERC20 tokens (a direct donation, which this codebase has no way to credit or account for): choose amount == totalDeposits + 1, which fits inside vault_token_balance and inside the attacker's depositEth-funded balances. The wrap sets totalDeposits to 2^256 - E with E = amount - totalDeposits; deposit(x) then overflows (checked add) for every x >= E, so E == 1 (the minimal attack, costing totalDeposits+1 wei of ETH plus gas) bricks ALL non-zero deposits. The DoS is partially reversible — any later withdraw(w) computes totalDeposits = 2^256 - E - w, restoring headroom to E + w - 1 — but the counter itself is permanently corrupted at ~2^256 magnitude and no code path ever resets it, and deposits that shrink headroom back to 0 re-trigger the full DoS. Severity kept at Medium (Pass 1's rating): the DoS is conditional on unaccounted tokens being present and is reversible by withdrawals, so it does not meet the permanent-DoS-on-core-function High bar.",
+    "root_cause": "unchecked subtraction applied to a counter whose bounding invariant (totalDeposits <= vault token balance, equivalently totalDeposits == sum of ERC20 credits) is not enforced on the debit path: withdraw bounds amount by the per-user balances ledger (which depositEth inflates without incrementing totalDeposits) and never by totalDeposits, so amount in (totalDeposits, min(balances[msg.sender], vault_token_balance)] wraps the counter.",
+    "vulnerable_code": "function withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked {\n        totalDeposits -= amount;\n    }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {
+      "who": "all users of the vault (depositors)",
+      "loses_what": "liveness of deposit() (every non-zero deposit reverts while headroom is 0) and the totalDeposits accounting invariant, which is permanently corrupted at ~2^256 magnitude",
+      "magnitude": "minimal attack: amount = totalDeposits + 1 (1 wei beyond the counter, ~1 wei of ETH via depositEth + gas) sets headroom to 0 so every deposit(x >= 1) reverts until some withdrawal grows headroom; the counter never returns to a meaningful value"
+    },
+    "exploit_trace": [
+      "1. Victim calls deposit(100) -> totalDeposits = 100, vault token balance = 100. At least 1 wei of token is then transferred directly to the vault (donation) -> vault token balance >= 101. (REQUIRED: without unaccounted tokens, withdraw(amount > totalDeposits) reverts at token.transfer and no wrap persists — Pass 1's original 200-against-100 trace cannot succeed.)",
+      "2. Attacker calls depositEth{value: 101 wei}() -> balances[attacker] = 101; totalDeposits unchanged at 100.",
+      "3. Attacker calls withdraw(101): checked balances[attacker] -= 101 passes; unchecked totalDeposits = 100 - 101 wraps to 2^256 - 1; token.transfer(attacker, 101) succeeds because the vault holds >= 101 token units (100 victim + >= 1 donated).",
+      "4. totalDeposits now reads 2^256 - 1 (E = 1). Every subsequent deposit(x) with x >= 1 overflows the checked totalDeposits += x and reverts; only deposit(0) succeeds. The core deposit function is fully DoS'd at the attacker's minimal cost.",
+      "5. Any later withdraw(w) sets totalDeposits = 2^256 - 1 - w, restoring deposit headroom to w (DoS partially reversible); however each deposit(x <= headroom) shrinks headroom by x, so cumulative deposits drive the DoS back, and the counter itself remains permanently desynced at ~2^256 with no reset path anywhere in the codebase."
+    ],
+    "preconditions": [
+      {
+        "text": "at least 1 wei of unaccounted ERC20 tokens in the vault (direct donation) so that token.transfer(amount) succeeds while amount > totalDeposits — without this the wrap cannot persist",
+        "type": "BALANCE"
+      },
+      {
+        "text": "attacker holds credits >= amount in balances (via permissionless depositEth, which inflates balances without incrementing totalDeposits)",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "totalDeposits wrapped to 2^256 - E and permanently desynced from any real quantity; deposit() reverts for all amounts above the current headroom E - 1",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Lens: A=✗(N/A: no access/auth dimension on this candidate) B=✗(N/A: no new value-flow path — corruption targets the accounting counter, theft is DP1-2's separate harm) C=✗(N/A: no external-protocol composition beyond the immutable ERC20) D=✓(Q5.6 math boundary, Module M counter-consistency, mechanical 3-set arithmetic trace, extended-heuristic UNSAFE/unchecked audit of the single unchecked block)",
+      "rules_applied": [
+        "R8:✗(no cached/stored external params)",
+        "R10:✓(assessed at wrapped state E=1: total deposit DoS + permanent counter corruption)",
+        "R11:✗(enabler is unaccounted standard-token balance from a direct transfer, not an exotic token behavior)",
+        "R12:✓(enablers enumerated: donation >= 1 wei required; false-returning-token enabler rejected under Gate B — no named token)",
+        "R15:✗(no flash-loan-accessible threshold; wrap needs persistent state, not same-tx balance manipulation)",
+        "R16:✗(no oracle dependency)"
+      ],
+      "depth_evidence": [
+        "[TRACE:ERC20-only invariant vault_token_balance == totalDeposits proved by induction over deposit/withdraw; depositEth touches neither -> underflow amount > totalDeposits jointly unreachable with a succeeding transfer without unaccounted tokens]",
+        "[TRACE:Pass 1 DP1-3 original step 3 (withdraw(200) with vault balance 100) -> token.transfer reverts -> whole tx reverts -> wrap NOT persisted; corrected with donation >= 1 wei]",
+        "[BOUNDARY:amount == totalDeposits -> totalDeposits = 0, no wrap, transfer OK]",
+        "[BOUNDARY:amount == totalDeposits + 1 -> wraps to 2^256 - 1 (E=1), headroom = E - 1 = 0 -> every deposit(x >= 1) reverts; minimal-cost total deposit DoS]",
+        "[VARIATION:deposit(x <= headroom) shrinks headroom by x; withdraw(w) grows headroom by w (DoS partially reversible, counter stays corrupted)]",
+        "[SAFE:ERC20-only round-trip deposit(X)->withdraw(X) returns exactly X; checked X=0 (no-op), X=1 (exact 1), X=type(uint256).max (reverts at transferFrom allowance) — no value created or destroyed]",
+        "[SAFE:_selfBalance assembly — selfbalance() is the correct opcode; edge balance=0 -> returns 0; function is dead code, never invoked, equivalent to address(this).balance]",
+        "[SAFE:ZERO-OP-01 — deposit(0)/withdraw(0) are pure no-ops; no timestamp/last-block counter exists to grief, and FEE_BPS is never read so zero-amount fee paths do not exist]"
+      ],
+      "missing_precondition": "at least 1 wei of unaccounted ERC20 tokens in the vault (direct donation) — without it token.transfer(amount > totalDeposits) reverts and the wrapped counter never persists (Pass 1's original trace omitted this)",
+      "postconditions_created": [
+        "totalDeposits permanently corrupted at ~2^256 magnitude with no reset path",
+        "deposit() DoS'd for all non-zero amounts while headroom = 0; re-triggerable by shrinking headroom via deposits"
+      ],
+      "who_benefits": "Attacker (DoS / permanent accounting corruption)"
+    }
+  }
+]

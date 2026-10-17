@@ -1,0 +1,2495 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "root": "/private/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/initcapital",
+  "units": [
+    {
+      "name": "AccessControlManager",
+      "kind": "contract",
+      "file": "contracts/common/AccessControlManager.sol",
+      "line": 7,
+      "loc": 10,
+      "parents": [
+        "IAccessControlManager",
+        "AccessControlDefaultAdminRules"
+      ]
+    },
+    {
+      "name": "Multicall",
+      "kind": "contract",
+      "file": "contracts/common/Multicall.sol",
+      "line": 10,
+      "loc": 22,
+      "parents": [
+        "IMulticall"
+      ]
+    },
+    {
+      "name": "TransparentUpgradeableProxyReceiveETH",
+      "kind": "contract",
+      "file": "contracts/common/TransparentUpgradeableProxyReceiveETH.sol",
+      "line": 6,
+      "loc": 8,
+      "parents": [
+        "TransparentUpgradeableProxy"
+      ]
+    },
+    {
+      "name": "UnderACM",
+      "kind": "contract",
+      "file": "contracts/common/UnderACM.sol",
+      "line": 6,
+      "loc": 9,
+      "parents": []
+    },
+    {
+      "name": "UncheckedIncrement",
+      "kind": "library",
+      "file": "contracts/common/library/UncheckedIncrement.sol",
+      "line": 4,
+      "loc": 7,
+      "parents": []
+    },
+    {
+      "name": "Config",
+      "kind": "contract",
+      "file": "contracts/core/Config.sol",
+      "line": 14,
+      "loc": 136,
+      "parents": [
+        "IConfig",
+        "UnderACM",
+        "Initializable"
+      ]
+    },
+    {
+      "name": "InitCore",
+      "kind": "contract",
+      "file": "contracts/core/InitCore.sol",
+      "line": 28,
+      "loc": 573,
+      "parents": [
+        "IInitCore",
+        "Multicall",
+        "ReentrancyGuardUpgradeable",
+        "UnderACM"
+      ]
+    },
+    {
+      "name": "LiqIncentiveCalculator",
+      "kind": "contract",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 14,
+      "loc": 103,
+      "parents": [
+        "ILiqIncentiveCalculator",
+        "UnderACM",
+        "Initializable"
+      ]
+    },
+    {
+      "name": "PosManager",
+      "kind": "contract",
+      "file": "contracts/core/PosManager.sol",
+      "line": 19,
+      "loc": 323,
+      "parents": [
+        "IPosManager",
+        "UnderACM",
+        "ERC721EnumerableUpgradeable",
+        "ERC721HolderUpgradeable"
+      ]
+    },
+    {
+      "name": "BaseRebaseHelper",
+      "kind": "contract",
+      "file": "contracts/helper/rebase_helper/BaseRebaseHelper.sol",
+      "line": 7,
+      "loc": 13,
+      "parents": [
+        "IRebaseHelper"
+      ]
+    },
+    {
+      "name": "mUSDUSDYHelper",
+      "kind": "contract",
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "line": 9,
+      "loc": 25,
+      "parents": [
+        "BaseRebaseHelper"
+      ]
+    },
+    {
+      "name": "MoneyMarketHook",
+      "kind": "contract",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 21,
+      "loc": 253,
+      "parents": [
+        "IMoneyMarketHook",
+        "ERC721HolderUpgradeable"
+      ]
+    },
+    {
+      "name": "DoubleSlopeIRM",
+      "kind": "contract",
+      "file": "contracts/lending_pool/DoubleSlopeIRM.sol",
+      "line": 7,
+      "loc": 36,
+      "parents": [
+        "IIRM"
+      ]
+    },
+    {
+      "name": "LendingPool",
+      "kind": "contract",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 15,
+      "loc": 255,
+      "parents": [
+        "ERC20Upgradeable",
+        "ILendingPool",
+        "UnderACM"
+      ]
+    },
+    {
+      "name": "Api3OracleReader",
+      "kind": "contract",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 15,
+      "loc": 78,
+      "parents": [
+        "IApi3OracleReader",
+        "UnderACM",
+        "Initializable"
+      ]
+    },
+    {
+      "name": "InitOracle",
+      "kind": "contract",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 12,
+      "loc": 109,
+      "parents": [
+        "IInitOracle",
+        "UnderACM",
+        "Initializable"
+      ]
+    },
+    {
+      "name": "RiskManager",
+      "kind": "contract",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 12,
+      "loc": 80,
+      "parents": [
+        "IRiskManager",
+        "UnderACM",
+        "Initializable"
+      ]
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "AccessControlManager",
+      "name": "checkRole",
+      "file": "contracts/common/AccessControlManager.sol",
+      "line": 13,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Multicall",
+      "name": "multicall",
+      "file": "contracts/common/Multicall.sol",
+      "line": 14,
+      "visibility": "public",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "TransparentUpgradeableProxyReceiveETH",
+      "name": "receive",
+      "file": "contracts/common/TransparentUpgradeableProxyReceiveETH.sol",
+      "line": 12,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "initialize",
+      "file": "contracts/core/Config.sol",
+      "line": 46,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "getModeConfig",
+      "file": "contracts/core/Config.sol",
+      "line": 50,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "getPoolConfig",
+      "file": "contracts/core/Config.sol",
+      "line": 61,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "isAllowedForBorrow",
+      "file": "contracts/core/Config.sol",
+      "line": 66,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "isAllowedForCollateral",
+      "file": "contracts/core/Config.sol",
+      "line": 71,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "getTokenFactors",
+      "file": "contracts/core/Config.sol",
+      "line": 76,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "getMaxHealthAfterLiq_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 80,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "getModeStatus",
+      "file": "contracts/core/Config.sol",
+      "line": 85,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "Config",
+      "name": "setPoolConfig",
+      "file": "contracts/core/Config.sol",
+      "line": 90,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "setCollFactors_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 96,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "setBorrFactors_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 112,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "setModeStatus",
+      "file": "contracts/core/Config.sol",
+      "line": 128,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "setMaxHealthAfterLiq_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 135,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "Config",
+      "name": "setWhitelistedWLps",
+      "file": "contracts/core/Config.sol",
+      "line": 143,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "initialize",
+      "file": "contracts/core/InitCore.sol",
+      "line": 87,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "mintTo",
+      "file": "contracts/core/InitCore.sol",
+      "line": 100,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "burnTo",
+      "file": "contracts/core/InitCore.sol",
+      "line": 111,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "borrow",
+      "file": "contracts/core/InitCore.sol",
+      "line": 120,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "ensurePositionHealth",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "repay",
+      "file": "contracts/core/InitCore.sol",
+      "line": 151,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "createPos",
+      "file": "contracts/core/InitCore.sol",
+      "line": 162,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "setPosMode",
+      "file": "contracts/core/InitCore.sol",
+      "line": 169,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "ensurePositionHealth",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "collateralize",
+      "file": "contracts/core/InitCore.sol",
+      "line": 216,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "decollateralize",
+      "file": "contracts/core/InitCore.sol",
+      "line": 229,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "ensurePositionHealth",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "collateralizeWLp",
+      "file": "contracts/core/InitCore.sol",
+      "line": 244,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "decollateralizeWLp",
+      "file": "contracts/core/InitCore.sol",
+      "line": 264,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized",
+        "ensurePositionHealth",
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "liquidate",
+      "file": "contracts/core/InitCore.sol",
+      "line": 282,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "liquidateWLp",
+      "file": "contracts/core/InitCore.sol",
+      "line": 317,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "flash",
+      "file": "contracts/core/InitCore.sol",
+      "line": 356,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "multicall",
+      "file": "contracts/core/InitCore.sol",
+      "line": 389,
+      "visibility": "public",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "InitCore",
+      "name": "setConfig",
+      "file": "contracts/core/InitCore.sol",
+      "line": 406,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "setOracle",
+      "file": "contracts/core/InitCore.sol",
+      "line": 411,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "setLiqIncentiveCalculator",
+      "file": "contracts/core/InitCore.sol",
+      "line": 416,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "setRiskManager",
+      "file": "contracts/core/InitCore.sol",
+      "line": 421,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "InitCore",
+      "name": "getCollateralCreditCurrent_e36",
+      "file": "contracts/core/InitCore.sol",
+      "line": 450,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "InitCore",
+      "name": "getBorrowCreditCurrent_e36",
+      "file": "contracts/core/InitCore.sol",
+      "line": 478,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "InitCore",
+      "name": "getPosHealthCurrent_e18",
+      "file": "contracts/core/InitCore.sol",
+      "line": 497,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "InitCore",
+      "name": "callback",
+      "file": "contracts/core/InitCore.sol",
+      "line": 505,
+      "visibility": "public",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "InitCore",
+      "name": "transferToken",
+      "file": "contracts/core/InitCore.sol",
+      "line": 517,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "initialize",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 41,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "getLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 48,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "setModeLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 68,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "setTokenLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 81,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "setMaxLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 94,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "name": "setMinLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 99,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "initialize",
+      "file": "contracts/core/PosManager.sol",
+      "line": 68,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosBorrInfo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 80,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosBorrExtraInfo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 90,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosCollInfo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 101,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getCollAmt",
+      "file": "contracts/core/PosManager.sol",
+      "line": 131,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getCollWLpAmt",
+      "file": "contracts/core/PosManager.sol",
+      "line": 136,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosInfo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 143,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosMode",
+      "file": "contracts/core/PosManager.sol",
+      "line": 150,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getPosDebtShares",
+      "file": "contracts/core/PosManager.sol",
+      "line": 155,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getViewerPosIdsAt",
+      "file": "contracts/core/PosManager.sol",
+      "line": 160,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "getViewerPosIdsLength",
+      "file": "contracts/core/PosManager.sol",
+      "line": 165,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "updatePosDebtShares",
+      "file": "contracts/core/PosManager.sol",
+      "line": 170,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "updatePosMode",
+      "file": "contracts/core/PosManager.sol",
+      "line": 190,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "addCollateral",
+      "file": "contracts/core/PosManager.sol",
+      "line": 195,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "addCollateralWLp",
+      "file": "contracts/core/PosManager.sol",
+      "line": 213,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "removeCollateralTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 230,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "removeCollateralWLpTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 249,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "createPos",
+      "file": "contracts/core/PosManager.sol",
+      "line": 271,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "harvestTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 281,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "claimPendingRewards",
+      "file": "contracts/core/PosManager.sol",
+      "line": 292,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "isAuthorized",
+      "file": "contracts/core/PosManager.sol",
+      "line": 316,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "PosManager",
+      "name": "setMaxCollCount",
+      "file": "contracts/core/PosManager.sol",
+      "line": 321,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "PosManager",
+      "name": "setPosViewer",
+      "file": "contracts/core/PosManager.sol",
+      "line": 327,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyAuthorized"
+      ]
+    },
+    {
+      "unit": "mUSDUSDYHelper",
+      "name": "wrap",
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "line": 19,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "mUSDUSDYHelper",
+      "name": "unwrap",
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "line": 27,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "name": "initialize",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 49,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "name": "execute",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 53,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "name": "createPos",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 84,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "DoubleSlopeIRM",
+      "name": "getBorrowRate_e18",
+      "file": "contracts/lending_pool/DoubleSlopeIRM.sol",
+      "line": 33,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 75,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "decimals",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 95,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "mint",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 100,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore",
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "burn",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 111,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore",
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 125,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore",
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "repay",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 136,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore",
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "syncCash",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 148,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue",
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "accrueInterest",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 155,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "debtAmtToShareStored",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 172,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "debtAmtToShareCurrent",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 177,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "debtShareToAmtStored",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 182,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "debtShareToAmtCurrent",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 187,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "toShares",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 192,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "toAmt",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 197,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "toSharesCurrent",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 202,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "toAmtCurrent",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 207,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "getSupplyRate_e18",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 212,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "getBorrowRate_e18",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 223,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "totalAssets",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 228,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LendingPool",
+      "name": "setIrm",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 233,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue",
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "setReserveFactor_e18",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 239,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "accrue",
+        "onlyGuardian"
+      ]
+    },
+    {
+      "unit": "LendingPool",
+      "name": "setTreasury",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 245,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Api3OracleReader",
+      "name": "initialize",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 41,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "Api3OracleReader",
+      "name": "setDataFeedIds",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 48,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Api3OracleReader",
+      "name": "setApi3ServerV1",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 58,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Api3OracleReader",
+      "name": "setMaxStaleTimes",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 64,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "Api3OracleReader",
+      "name": "getPrice_e36",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 74,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "InitOracle",
+      "name": "initialize",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 37,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "InitOracle",
+      "name": "getPrice_e36",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 41,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "InitOracle",
+      "name": "getPrices_e36",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 81,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "InitOracle",
+      "name": "setPrimarySources",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 89,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "InitOracle",
+      "name": "setSecondarySources",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 98,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "InitOracle",
+      "name": "setMaxPriceDeviations_e18",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 107,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGovernor"
+      ]
+    },
+    {
+      "unit": "RiskManager",
+      "name": "initialize",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 46,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "initializer"
+      ]
+    },
+    {
+      "unit": "RiskManager",
+      "name": "getModeDebtShares",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 50,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "RiskManager",
+      "name": "getModeDebtAmtCurrent",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 55,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "RiskManager",
+      "name": "getModeDebtAmtStored",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 60,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "RiskManager",
+      "name": "getModeDebtCeilingAmt",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 65,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "RiskManager",
+      "name": "updateModeDebtShares",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 70,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyCore"
+      ]
+    },
+    {
+      "unit": "RiskManager",
+      "name": "setModeDebtCeilingInfo",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 81,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyGuardian"
+      ]
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "AccessControlManager",
+      "file": "contracts/common/AccessControlManager.sol",
+      "line": 14,
+      "kind": "inline"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 90,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 96,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 112,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 128,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 135,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "Config",
+      "file": "contracts/core/Config.sol",
+      "line": 143,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 120,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 151,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 169,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 216,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 229,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 244,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 264,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 406,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 411,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 416,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "InitCore",
+      "file": "contracts/core/InitCore.sol",
+      "line": 421,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 68,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 81,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 94,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 99,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 49,
+      "kind": "inline"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 170,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 190,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 195,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 213,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 230,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 249,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 271,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 281,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 292,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 321,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "PosManager",
+      "file": "contracts/core/PosManager.sol",
+      "line": 327,
+      "kind": "modifier:onlyAuthorized"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 51,
+      "kind": "inline"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 100,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 111,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 125,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 136,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 148,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 233,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 239,
+      "kind": "modifier:onlyGuardian"
+    },
+    {
+      "unit": "LendingPool",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 245,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 48,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 58,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 64,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitOracle",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 89,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitOracle",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 98,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "InitOracle",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 107,
+      "kind": "modifier:onlyGovernor"
+    },
+    {
+      "unit": "RiskManager",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 34,
+      "kind": "inline"
+    },
+    {
+      "unit": "RiskManager",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 70,
+      "kind": "modifier:onlyCore"
+    },
+    {
+      "unit": "RiskManager",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 81,
+      "kind": "modifier:onlyGuardian"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "Config",
+      "function": "setPoolConfig",
+      "file": "contracts/core/Config.sol",
+      "line": 91,
+      "target": "__poolConfigs"
+    },
+    {
+      "unit": "Config",
+      "function": "setCollFactors_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 106,
+      "target": "__modeConfigs"
+    },
+    {
+      "unit": "Config",
+      "function": "setBorrFactors_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 122,
+      "target": "__modeConfigs"
+    },
+    {
+      "unit": "Config",
+      "function": "setModeStatus",
+      "file": "contracts/core/Config.sol",
+      "line": 130,
+      "target": "__modeConfigs"
+    },
+    {
+      "unit": "Config",
+      "function": "setMaxHealthAfterLiq_e18",
+      "file": "contracts/core/Config.sol",
+      "line": 138,
+      "target": "__modeConfigs"
+    },
+    {
+      "unit": "Config",
+      "function": "setWhitelistedWLps",
+      "file": "contracts/core/Config.sol",
+      "line": 145,
+      "target": "whitelistedWLps"
+    },
+    {
+      "unit": "InitCore",
+      "function": "multicall",
+      "file": "contracts/core/InitCore.sol",
+      "line": 391,
+      "target": "isMulticallTx"
+    },
+    {
+      "unit": "InitCore",
+      "function": "multicall",
+      "file": "contracts/core/InitCore.sol",
+      "line": 402,
+      "target": "isMulticallTx"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_setConfig",
+      "file": "contracts/core/InitCore.sol",
+      "line": 427,
+      "target": "config"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_setOracle",
+      "file": "contracts/core/InitCore.sol",
+      "line": 433,
+      "target": "oracle"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_setLiqIncentiveCalculator",
+      "file": "contracts/core/InitCore.sol",
+      "line": 439,
+      "target": "liqIncentiveCalculator"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_setRiskManager",
+      "file": "contracts/core/InitCore.sol",
+      "line": 445,
+      "target": "riskManager"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "function": "setModeLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 74,
+      "target": "modeLiqIncentiveMultiplier_e18"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "function": "setTokenLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 87,
+      "target": "tokenLiqIncentiveMultiplier_e18"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "function": "setMinLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 105,
+      "target": "minLiqIncentiveMultiplier_e18"
+    },
+    {
+      "unit": "LiqIncentiveCalculator",
+      "function": "_setMaxLiqIncentiveMultiplier_e18",
+      "file": "contracts/core/LiqIncentiveCalculator.sol",
+      "line": 113,
+      "target": "maxLiqIncentiveMultiplier_e18"
+    },
+    {
+      "unit": "PosManager",
+      "function": "initialize",
+      "file": "contracts/core/PosManager.sol",
+      "line": 73,
+      "target": "core"
+    },
+    {
+      "unit": "PosManager",
+      "function": "initialize",
+      "file": "contracts/core/PosManager.sol",
+      "line": 74,
+      "target": "maxCollCount"
+    },
+    {
+      "unit": "PosManager",
+      "function": "updatePosDebtShares",
+      "file": "contracts/core/PosManager.sol",
+      "line": 182,
+      "target": "__posBorrInfos"
+    },
+    {
+      "unit": "PosManager",
+      "function": "updatePosMode",
+      "file": "contracts/core/PosManager.sol",
+      "line": 191,
+      "target": "__posInfos"
+    },
+    {
+      "unit": "PosManager",
+      "function": "addCollateral",
+      "file": "contracts/core/PosManager.sol",
+      "line": 209,
+      "target": "__collBalances"
+    },
+    {
+      "unit": "PosManager",
+      "function": "addCollateralWLp",
+      "file": "contracts/core/PosManager.sol",
+      "line": 225,
+      "target": "isCollateralized"
+    },
+    {
+      "unit": "PosManager",
+      "function": "removeCollateralTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 244,
+      "target": "__collBalances"
+    },
+    {
+      "unit": "PosManager",
+      "function": "removeCollateralWLpTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 263,
+      "target": "isCollateralized"
+    },
+    {
+      "unit": "PosManager",
+      "function": "createPos",
+      "file": "contracts/core/PosManager.sol",
+      "line": 272,
+      "target": "nextNonces"
+    },
+    {
+      "unit": "PosManager",
+      "function": "createPos",
+      "file": "contracts/core/PosManager.sol",
+      "line": 275,
+      "target": "__posInfos"
+    },
+    {
+      "unit": "PosManager",
+      "function": "createPos",
+      "file": "contracts/core/PosManager.sol",
+      "line": 276,
+      "target": "__posInfos"
+    },
+    {
+      "unit": "PosManager",
+      "function": "claimPendingRewards",
+      "file": "contracts/core/PosManager.sol",
+      "line": 301,
+      "target": "pendingRewards"
+    },
+    {
+      "unit": "PosManager",
+      "function": "_harvest",
+      "file": "contracts/core/PosManager.sol",
+      "line": 311,
+      "target": "pendingRewards"
+    },
+    {
+      "unit": "PosManager",
+      "function": "setMaxCollCount",
+      "file": "contracts/core/PosManager.sol",
+      "line": 322,
+      "target": "maxCollCount"
+    },
+    {
+      "unit": "PosManager",
+      "function": "setPosViewer",
+      "file": "contracts/core/PosManager.sol",
+      "line": 330,
+      "target": "__posInfos"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "createPos",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 85,
+      "target": "lastPosIds"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "createPos",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 87,
+      "target": "initPosIds"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 83,
+      "target": "underlyingToken"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 85,
+      "target": "irm"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 86,
+      "target": "treasury"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 87,
+      "target": "lastAccruedTime"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "initialize",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 88,
+      "target": "reserveFactor_e18"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "mint",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 107,
+      "target": "cash"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "burn",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 118,
+      "target": "cash"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 129,
+      "target": "totalDebtShares"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 130,
+      "target": "totalDebt"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 131,
+      "target": "cash"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "repay",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 142,
+      "target": "totalDebtShares"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "repay",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 143,
+      "target": "totalDebt"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "repay",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 144,
+      "target": "cash"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "syncCash",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 151,
+      "target": "cash"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "accrueInterest",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 166,
+      "target": "totalDebt"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "accrueInterest",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 167,
+      "target": "lastAccruedTime"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "setIrm",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 234,
+      "target": "irm"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "setReserveFactor_e18",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 240,
+      "target": "reserveFactor_e18"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "setTreasury",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 246,
+      "target": "treasury"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "function": "initialize",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 42,
+      "target": "api3ServerV1"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "function": "setDataFeedIds",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 52,
+      "target": "dataFeedInfos"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "function": "setApi3ServerV1",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 59,
+      "target": "api3ServerV1"
+    },
+    {
+      "unit": "Api3OracleReader",
+      "function": "setMaxStaleTimes",
+      "file": "contracts/oracle/Api3OracleReader.sol",
+      "line": 68,
+      "target": "dataFeedInfos"
+    },
+    {
+      "unit": "InitOracle",
+      "function": "setPrimarySources",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 92,
+      "target": "primarySources"
+    },
+    {
+      "unit": "InitOracle",
+      "function": "setSecondarySources",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 101,
+      "target": "secondarySources"
+    },
+    {
+      "unit": "InitOracle",
+      "function": "setMaxPriceDeviations_e18",
+      "file": "contracts/oracle/InitOracle.sol",
+      "line": 116,
+      "target": "maxPriceDeviations_e18"
+    },
+    {
+      "unit": "RiskManager",
+      "function": "updateModeDebtShares",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 77,
+      "target": "__modeDebtCeilingInfos"
+    },
+    {
+      "unit": "RiskManager",
+      "function": "setModeDebtCeilingInfo",
+      "file": "contracts/risk_manager/RiskManager.sol",
+      "line": 87,
+      "target": "__modeDebtCeilingInfos"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "Multicall",
+      "function": "multicall",
+      "file": "contracts/common/Multicall.sol",
+      "line": 17,
+      "kind": "delegatecall"
+    },
+    {
+      "unit": "InitCore",
+      "function": "flash",
+      "file": "contracts/core/InitCore.sol",
+      "line": 377,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "InitCore",
+      "function": "transferToken",
+      "file": "contracts/core/InitCore.sol",
+      "line": 519,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_repay",
+      "file": "contracts/core/InitCore.sol",
+      "line": 543,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "PosManager",
+      "function": "removeCollateralTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 243,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "PosManager",
+      "function": "claimPendingRewards",
+      "file": "contracts/core/PosManager.sol",
+      "line": 302,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "mUSDUSDYHelper",
+      "function": "wrap",
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "line": 23,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "execute",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 78,
+      "kind": "call"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleRepay",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 153,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 262,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 257,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 240,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 243,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "burn",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 121,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 132,
+      "kind": "safeTransfer"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "InitCore",
+      "function": "flash",
+      "file": "contracts/core/InitCore.sol",
+      "line": 377,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "InitCore",
+      "function": "transferToken",
+      "file": "contracts/core/InitCore.sol",
+      "line": 519,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "InitCore",
+      "function": "_repay",
+      "file": "contracts/core/InitCore.sol",
+      "line": 543,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "PosManager",
+      "function": "removeCollateralTo",
+      "file": "contracts/core/PosManager.sol",
+      "line": 243,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "PosManager",
+      "function": "claimPendingRewards",
+      "file": "contracts/core/PosManager.sol",
+      "line": 302,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "mUSDUSDYHelper",
+      "function": "wrap",
+      "file": "contracts/helper/rebase_helper/mUSDUSDYHelper.sol",
+      "line": 23,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "execute",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 78,
+      "kind": "call",
+      "asset": "native"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleRepay",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 153,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 262,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 257,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 240,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "MoneyMarketHook",
+      "function": "_handleDeposit",
+      "file": "contracts/hook/MoneyMarketHook.sol",
+      "line": 243,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "burn",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 121,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "LendingPool",
+      "function": "borrow",
+      "file": "contracts/lending_pool/LendingPool.sol",
+      "line": 132,
+      "kind": "safeTransfer",
+      "asset": "token"
+    }
+  ],
+  "counters": {
+    "contracts/common/AccessControlManager.sol": {
+      "loc": 16,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/common/Multicall.sol": {
+      "loc": 31,
+      "external_calls": 1,
+      "state_writers": 1,
+      "payable": 1,
+      "assembly_blocks": 1,
+      "unchecked_blocks": 0
+    },
+    "contracts/common/TransparentUpgradeableProxyReceiveETH.sol": {
+      "loc": 13,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 2,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/common/UnderACM.sol": {
+      "loc": 14,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/common/library/UncheckedIncrement.sol": {
+      "loc": 10,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 1
+    },
+    "contracts/core/Config.sol": {
+      "loc": 149,
+      "external_calls": 0,
+      "state_writers": 7,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/core/InitCore.sol": {
+      "loc": 600,
+      "external_calls": 3,
+      "state_writers": 24,
+      "payable": 2,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/core/LiqIncentiveCalculator.sol": {
+      "loc": 116,
+      "external_calls": 0,
+      "state_writers": 5,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/core/PosManager.sol": {
+      "loc": 341,
+      "external_calls": 2,
+      "state_writers": 12,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/rebase_helper/BaseRebaseHelper.sol": {
+      "loc": 19,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/rebase_helper/mUSDUSDYHelper.sol": {
+      "loc": 33,
+      "external_calls": 1,
+      "state_writers": 2,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/hook/MoneyMarketHook.sol": {
+      "loc": 273,
+      "external_calls": 6,
+      "state_writers": 3,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/lending_pool/DoubleSlopeIRM.sol": {
+      "loc": 42,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/lending_pool/LendingPool.sol": {
+      "loc": 269,
+      "external_calls": 2,
+      "state_writers": 14,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 1
+    },
+    "contracts/oracle/Api3OracleReader.sol": {
+      "loc": 92,
+      "external_calls": 0,
+      "state_writers": 4,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/oracle/InitOracle.sol": {
+      "loc": 120,
+      "external_calls": 0,
+      "state_writers": 4,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/risk_manager/RiskManager.sol": {
+      "loc": 91,
+      "external_calls": 0,
+      "state_writers": 4,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    }
+  }
+}

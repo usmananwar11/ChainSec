@@ -1,0 +1,120 @@
+[
+  {
+    "id": "DB-1",
+    "chain": "solidity",
+    "title": "Challenger reward is 2% of owner-set price*size and is paid via notifyLoss even when the position has no debt: unbounded reserve drain / unbacked ZCHF mint",
+    "severity": "Critical",
+    "category": "economic-design",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/MintingHub.sol", "line_start": 252, "line_end": 276, "unit": "MintingHub", "function": "end"},
+      {"file": "contracts/Position.sol", "line_start": 159, "line_end": 167, "unit": "Position", "function": "adjustPrice"},
+      {"file": "contracts/Position.sol", "line_start": 329, "line_end": 354, "unit": "Position", "function": "notifyChallengeSucceeded"},
+      {"file": "contracts/Frankencoin.sol", "line_start": 280, "line_end": 288, "unit": "Frankencoin", "function": "notifyLoss"}
+    ],
+    "discovery": {"phase": "detect", "lens": "B", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Lens B value-flow trace of end(): volume = price * size (price is a free, owner-controlled variable, only gated by a 3-day mint cooldown when raised), reward = 2% of volume, fundsNeeded = reward + repayment. If effectiveBid < fundsNeeded the hub calls zchf.notifyLoss(fundsNeeded - effectiveBid), which transfers the whole equity reserve and then MINTS the rest to the hub; the hub then pays the reward to the challenger. The reward does not depend on the position's minted debt (repayment = min(minted, volume) can be 0), on market value, or on the challenger being independent of the owner. Unlike DP1-1 (self-liquidation of a debt-carrying position), no debt, no vetted original and no dishonest bidder are needed: a clone with minimum collateral and _initialMint = 0 (no fee, no veto window) is enough. The attacker sets price to an astronomically high value, a second address launches a challenge of size s >= minimumCollateral with its own collateral, nobody can avert (averting requires bid >= price*s), and after challengePeriod end() pays the challenger 2%*price*s out of the reserve and then out of newly minted ZCHF. The challenger's collateral is returned, and the position's collateral goes to the end() caller, so the attacker's cost is only gas plus temporary collateral.",
+    "root_cause": "Reward and loss coverage are denominated in a position parameter the owner can set arbitrarily high at any time (adjustPrice has no upper bound or collateral-value check when raising), and notifyLoss will mint unlimited ZCHF once the reserve is exhausted; there is no cap relative to minted debt, realised bid or collateral value.",
+    "recommendation": "Cap the reward by realised value (e.g. min(reward, bid-based or debt-based amount)), do not let price-derived quantities drive notifyLoss, and bound/validate upward price changes.",
+    "vulnerable_code": "uint256 reward = (volume * CHALLENGER_REWARD) / 1000_000;\nuint256 fundsNeeded = reward + repayment;\n...\n} else if (effectiveBid < fundsNeeded){\n    zchf.notifyLoss(fundsNeeded - effectiveBid);\n}\nzchf.transfer(challenge.challenger, reward);\n---\nfunction adjustPrice(uint256 newPrice) public onlyOwner noChallenge {\n    if (newPrice > price) { restrictMinting(3 days); } else { checkCollateral(collateralBalance(), newPrice); }\n    price = newPrice;\n}",
+    "harm": {"who": "FPS holders (equity reserve), minter reserve, and all ZCHF holders via inflation", "loses_what": "entire ZCHF reserve and then unbounded newly minted unbacked ZCHF", "magnitude": "2% * price * size, with price attacker-chosen: effectively unbounded (limited only by uint256 overflow of price*size)"},
+    "exploit_trace": [
+      "1. Attacker calls MintingHub.clonePosition(vettedPosition, minCollateral, 0): gets a clone with price 0, minted 0, no veto window, no fee.",
+      "2. Attacker calls clone.adjustPrice(1e45) (increase path: no collateral check, only 3-day mint cooldown, no challenge active).",
+      "3. A second address calls launchChallenge(clone, s) with s >= minimumCollateral; averting would require a bid >= price*s, so nobody bids.",
+      "4. After challengePeriod anyone calls end(n): volume = price*s, repayment = 0, reward = 2%*volume, effectiveBid = 0, hub calls notifyLoss(reward): reserve is drained, remainder is minted to the hub.",
+      "5. Hub transfers reward to the challenger; challenger collateral is returned; the end() caller receives the position collateral. Attacker holds the minted ZCHF and can repeat."
+    ],
+    "preconditions": [
+      {"text": "attacker can clone any position that is alive, unchallenged and out of cooldown (or open its own position and avoid veto)", "type": "STATE"},
+      {"text": "no honest party pays price*size to avert (impossible for large price)", "type": "ACCESS"}
+    ],
+    "postconditions": [
+      {"text": "equity reserve reduced to 0 and unbacked ZCHF minted to challenger", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens B: ECON-02, Module O payment trace, Module D",
+      "rules_applied": ["R8:✓(price is cached owner state)", "R10:✓(price max)", "R12:✓(enablers: clone, adjustPrice increase, no bidder)", "R15:✗", "R16:✗(no oracle: owner-set price)"],
+      "depth_evidence": ["[TRACE:adjustPrice(big)->launchChallenge->end()->notifyLoss(reward)->mint]", "[BOUNDARY:minted=0 -> repayment=0, reward still 2%*price*size]"],
+      "missing_precondition": "",
+      "postconditions_created": ["reserve drained / ZCHF inflated"],
+      "who_benefits": "attacker controlling owner and challenger addresses"
+    }
+  },
+  {
+    "id": "DB-2",
+    "chain": "solidity",
+    "title": "FPS minted for dust when total supply is below 1000 FPS: calculateSharesInternal ignores the invested amount",
+    "severity": "High",
+    "category": "share-accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Equity.sol", "line_start": 241, "line_end": 255, "unit": "Equity", "function": "onTokenTransfer"},
+      {"file": "contracts/Equity.sol", "line_start": 266, "line_end": 270, "unit": "Equity", "function": "calculateSharesInternal"}
+    ],
+    "discovery": {"phase": "detect", "lens": "B", "mindset": "edge-case", "consensus": null, "unit": null},
+    "description": "calculateSharesInternal returns newTotalShares - totalShares where newTotalShares = 1000e18 whenever totalSupply() < 1000e18, regardless of capitalBefore and investment. If the FPS supply ever falls below 1000 shares (the initial depositor receives exactly 1000 FPS and can redeem any part of it after the holding period; redeem only requires shares + 1e18 < totalSupply) while equity is positive, the next caller who sends any amount that keeps equity() >= MINIMUM_EQUITY (even 1 wei, since the existing equity already satisfies the requirement) receives 1000e18 - totalSupply new shares, i.e. a majority of the pool, at no real cost. After the holding period these shares redeem for the corresponding fraction of the existing equity. A related boundary: when capitalBefore <= 0 (equity <= amount) a fixed 1000 FPS is issued independent of the existing supply, so a recapitaliser into a negative-equity pool with large supply receives a negligible share (relies on restructureCapTable).",
+    "root_cause": "Bootstrap special case keyed on totalSupply rather than on capital: share issuance is not a function of the amount paid when supply < 1000 FPS.",
+    "recommendation": "Apply the fixed 1000-share bootstrap only when capitalBefore is 0 (or supply is 0); otherwise use the bonding curve.",
+    "vulnerable_code": "uint256 newTotalShares = totalShares < 1000 * ONE_DEC18 ? 1000 * ONE_DEC18 : _mulD18(totalShares, _cubicRoot(_divD18(capitalBefore + investment, capitalBefore)));\nreturn newTotalShares - totalShares;",
+    "harm": {"who": "existing FPS holders", "loses_what": "most of the equity value through dilution", "magnitude": "up to (1000 - supply)/1000 of equity per exploit"},
+    "exploit_trace": [
+      "1. Initial depositor holds 1000 FPS and redeems e.g. 500 after the 90-day holding period; supply = 500 FPS, equity still E (> 1000 ZCHF).",
+      "2. Attacker calls zchf.transferAndCall(equity, 1 wei, '') (equity() after transfer >= 1000 ZCHF holds from existing balance).",
+      "3. onTokenTransfer mints 1000e18 - 500e18 = 500 FPS to the attacker, now 50% of supply.",
+      "4. After the holding period the attacker redeems and receives about 87.5% of the capital via the cubic curve for 50% of shares (or votes with 50%)."
+    ],
+    "preconditions": [
+      {"text": "FPS total supply below 1000 FPS while equity() >= 1000 ZCHF", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "attacker owns a large FPS fraction for dust", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens B: Module I, vault-share-accounting first-depositor/last-depositor edge",
+      "rules_applied": ["R8:✗", "R10:✓(supply < 1000)", "R12:✓(enabler: partial redemption)", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:totalSupply<1000e18 -> shares independent of investment]", "[BOUNDARY:equity<=amount -> flat 1000 FPS]"],
+      "missing_precondition": "supply must drop below 1000 FPS",
+      "postconditions_created": ["diluted FPS holders"],
+      "who_benefits": "caller of the dust mint"
+    }
+  },
+  {
+    "id": "DB-3",
+    "chain": "solidity",
+    "title": "Partial challenge clears the owner's whole debt because repayment is min(minted, price*size) rather than proportional to the challenged share",
+    "severity": "Medium",
+    "category": "economic-design",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/Position.sol", "line_start": 340, "line_end": 353, "unit": "Position", "function": "notifyChallengeSucceeded"},
+      {"file": "contracts/MintingHub.sol", "line_start": 260, "line_end": 273, "unit": "MintingHub", "function": "end"}
+    ],
+    "discovery": {"phase": "detect", "lens": "B", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "The code comment argues volume >= minted*size/colBal, so the repayment is at least proportional. But the repayment is capped only by minted, not by the proportional share. For a position with collateral C, minted M and price P with P*C >> M, a challenge of size s with P*s >= M burns the entire debt M while only s of C collateral is sold at the (market-value) bid. The owner keeps C - s collateral debt-free; the difference between M + reward and the bid is covered by notifyLoss (reserve or newly minted ZCHF). The owner (or colluding challenger) can engineer this by raising price, then self-challenging a slice of the collateral.",
+    "root_cause": "Debt forgiveness is computed from the owner-controlled price instead of the proportional share minted * size / collateralBalance.",
+    "recommendation": "Cap repayment at minted * size / collateralBalance (rounded up) or tie it to the realised bid.",
+    "vulnerable_code": "uint256 volumeZCHF = _mulD18(price, _size);\nuint256 repayment = minted < volumeZCHF ? minted : volumeZCHF;\nnotifyRepaidInternal(repayment);",
+    "harm": {"who": "reserve / FPS holders and ZCHF holders", "loses_what": "reserve ZCHF equal to debt not backed by the sold slice of collateral", "magnitude": "up to minted per challenge sequence"},
+    "exploit_trace": [
+      "1. Owner holds C=100 collateral, minted M=500, price P=10 (market 8); a slice s=60 gives volume 600 >= M.",
+      "2. Challenge on s=60 ends with bid 480 (market value) or none.",
+      "3. repayment = 500 (all debt), reward = 12, bid 480 < 512: notifyLoss(32+).",
+      "4. Owner keeps the remaining 40 collateral with zero debt and the unspent minted ZCHF."
+    ],
+    "preconditions": [
+      {"text": "price*size >= minted for a slice of the collateral and market value of the slice below price*size", "type": "STATE"}
+    ],
+    "postconditions": [
+      {"text": "reserve loss; owner debt forgiven beyond sold collateral share", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Lens B: Module O, lending-liquidation-deep partial liquidation proportionality",
+      "rules_applied": ["R8:✓", "R10:✓", "R12:✓", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[TRACE:s<C, P*s>=M -> repayment=M]"],
+      "missing_precondition": "",
+      "postconditions_created": ["debt cleared with remaining collateral kept"],
+      "who_benefits": "position owner"
+    }
+  }
+]

@@ -1,0 +1,192 @@
+{
+  "id": "frankencoin",
+  "tool": "chainsec",
+  "official_total": 21,
+  "exact": 4,
+  "partial": 1,
+  "fp": 2,
+  "matches": [
+    {
+      "official_id": "H-01",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/945",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-02",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/886",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-03",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/691",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-04",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/670",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "H-05",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/481",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-004"
+      ],
+      "reason": "Same root cause and location: owner sets price to a huge value (type(uint256).max) via Position.adjustPrice with no upper bound, so price*size overflows in tryAvertChallenge (bid) and end(), blocking liquidation."
+    },
+    {
+      "official_id": "H-06",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/458",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-001"
+      ],
+      "reason": "Same root cause and location: owner-controlled price inflates the 2% CHALLENGER_REWARD in MintingHub.end(), which is paid via Frankencoin.notifyLoss from the reserve and then freshly minted ZCHF."
+    },
+    {
+      "official_id": "M-01",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/941",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "Candidate (restructureCapTable addressesToWipe[0] index typo) was judged Low and excluded from the final report, so no credit."
+    },
+    {
+      "official_id": "M-02",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/932",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "Candidate (zero-mint clone limit capture) was judged Low and excluded from the final report, so no credit."
+    },
+    {
+      "official_id": "M-03",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/915",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-006"
+      ],
+      "reason": "Same root cause and location: Equity.calculateSharesInternal issues the 1000e18 bootstrap amount whenever totalSupply < 1000e18 regardless of deposit, and redeem can push supply under that threshold."
+    },
+    {
+      "official_id": "M-04",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/914",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-05",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/874",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-06",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/745",
+      "grade": "EXACT",
+      "chainsec_ids": [
+        "SOL-007"
+      ],
+      "reason": "Same mechanism and location: Position.tryAvertChallenge calls restrictMinting(1 days) on every averted challenge, so a colluding or self challenger/bidder pair can repeatedly extend the owner's cooldown for only gas."
+    },
+    {
+      "official_id": "M-07",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/680",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-08",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/663",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-09",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/454",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-10",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/396",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-11",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/349",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report; SOL-002 uses bid() time extension for a different stall attack and is not credited here."
+    },
+    {
+      "official_id": "M-12",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/234",
+      "grade": "PARTIAL",
+      "chainsec_ids": [
+        "SOL-002"
+      ],
+      "reason": "Related auction-bid weakness in MintingHub.bid (line ~199): auction has no meaningful minimum bid (minBid is 0 with no prior bid), but SOL-002 reports a zero-bid stall/DoS via time extension while M-12 reports a near-zero bid winning collateral / no bid leaving bad debt; same weak-floor area, different impact."
+    },
+    {
+      "official_id": "M-13",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/230",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-14",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/155",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    },
+    {
+      "official_id": "M-15",
+      "official_url": "https://github.com/code-423n4/2023-04-frankencoin-findings/issues/48",
+      "grade": "MISSED",
+      "chainsec_ids": [],
+      "reason": "No matching finding in the final validated report."
+    }
+  ],
+  "false_positives": [
+    {
+      "chainsec_id": "SOL-003",
+      "reason": "Owner raising price with clones skipping the veto window to mint unbacked ZCHF matches no official finding; it shares adjustPrice with H-05/H-06 but the root cause and harm differ."
+    },
+    {
+      "chainsec_id": "SOL-005",
+      "reason": "Partial challenge repaying min(minted, price*size) debt matches no official finding (H-01 is front-run de-leveraging, a different mechanism)."
+    }
+  ],
+  "notes": {
+    "chainsec_commit": "7598d8f3d52e4a9b2f01e8edee046369a6f408c5",
+    "target_commit": "1022cb106919fba963a89205d3b90bf62543f68f",
+    "runtime": "Claude Code 2.1.300",
+    "model": "claude-sonnet-5-5",
+    "facts_mode": "compiler",
+    "tooling_mode": "degraded (slither unavailable)",
+    "quick": false,
+    "incomplete_phases": [],
+    "elapsed_seconds": 1883.29,
+    "artifacts": "../artifacts/frankencoin",
+    "scope": "10 implementation files from contest source table (interfaces and tests context only); source/tests unchanged",
+    "comparison": "Single-target result; five-contest acceptance remains pending. Baseline model/tooling are not controlled.",
+    "grading": "Only final report findings (7: SOL-001..SOL-007) receive credit. No PoC was run. Official findings were retrieved only after the audit output was frozen."
+  }
+}

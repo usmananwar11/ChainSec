@@ -1,0 +1,64 @@
+[
+  {
+    "id": "DC-1",
+    "chain": "solidity",
+    "title": "sweep() sends the vault's entire native balance to a caller-chosen recipient with no caller check",
+    "severity": "Critical",
+    "category": "access-control",
+    "status": "candidate",
+    "locations": [{"file": "src/Vault.sol", "line_start": 32, "line_end": 34, "unit": "Vault", "function": "sweep"}],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Module A (Untrusted Recipient) / EXT-01. Confirms DP1-1 from the external-call angle: the recipient `to` is fully attacker-controlled and the amount is address(this).balance, ignoring the balances[] ledger. Cross-function: facts.json shows no guard on sweep while sibling setFee uses onlyOwner.",
+    "root_cause": "A native-value transfer to an arbitrary address is reachable by any caller and is not bounded by any per-user accounting.",
+    "vulnerable_code": "function sweep(address payable to) external {\n    to.transfer(address(this).balance);\n}",
+    "harm": {"who": "every depositEth user", "loses_what": "all deposited ETH", "magnitude": "100% of the vault's native balance per call"},
+    "exploit_trace": [
+      "1. Users call depositEth(), vault holds N wei.",
+      "2. Attacker (EOA) calls sweep(attacker).",
+      "3. to.transfer(address(this).balance) sends N wei to attacker; balances[] entries remain but are unbacked."
+    ],
+    "preconditions": [{"text": "vault holds a non-zero native balance", "type": "BALANCE"}],
+    "postconditions": [{"text": "ETH credits in balances[] are unbacked", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(full native balance)", "R11:✗(native asset)", "R12:✓(no enabler needed)", "R15:✗(no flash-loan state)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:balance=0 → transfer of 0, no loss]", "[TRACE:sweep(attacker)→to.transfer(balance)→vault balance 0]", "[VARIATION:to=EOA→success; to=contract needing >2300 gas→revert, attacker uses EOA]"],
+      "missing_precondition": "",
+      "postconditions_created": ["ETH credits in balances[] are unbacked"],
+      "who_benefits": "Attacker"
+    }
+  },
+  {
+    "id": "DC-2",
+    "chain": "solidity",
+    "title": "withdraw() pays out ERC20 against a ledger that also holds unrelated ETH credits, letting an ETH depositor take other users' tokens",
+    "severity": "High",
+    "category": "accounting",
+    "status": "candidate",
+    "locations": [
+      {"file": "src/Vault.sol", "line_start": 27, "line_end": 29, "unit": "Vault", "function": "depositEth"},
+      {"file": "src/Vault.sol", "line_start": 36, "line_end": 42, "unit": "Vault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "accountant", "consensus": null, "unit": null},
+    "description": "Discovery: Module S-style cross-state check / token-flow tracing. Confirms DP1-2: the outgoing token.transfer in withdraw() is not tied to the asset that created the credit. Value out (token units) is not matched by value in (wei) because depositEth credits the same balances[] slot used for token accounting.",
+    "root_cause": "One mapping represents claims on two different assets; withdraw() always settles in the ERC20.",
+    "vulnerable_code": "function depositEth() external payable {\n    balances[msg.sender] += msg.value;\n}\nfunction withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked { totalDeposits -= amount; }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {"who": "ERC20 depositors", "loses_what": "deposited tokens", "magnitude": "up to the vault's whole token balance, for the same count of wei"},
+    "exploit_trace": [
+      "1. Victims deposit 1,000,000 token units via deposit().",
+      "2. Attacker calls depositEth{value: 1_000_000 wei}().",
+      "3. Attacker calls withdraw(1_000_000): balances debit passes, token.transfer sends 1,000,000 token units to attacker.",
+      "4. Attacker later recovers the wei via sweep(); victims' tokens are gone."
+    ],
+    "preconditions": [{"text": "vault holds tokens deposited by others", "type": "BALANCE"}],
+    "postconditions": [{"text": "token holdings below sum of token depositors' balances", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✓(deposit then withdraw)", "R10:✓(fully funded vault)", "R11:✗(token is immutable asset)", "R12:✓(depositEth plus shared mapping)", "R15:✗(no flash-loan state)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:amount=1 wei → 1 token unit]", "[TRACE:depositEth(1e6)→withdraw(1e6)→token.transfer(attacker,1e6)]"],
+      "missing_precondition": "",
+      "postconditions_created": ["token holdings below sum of token depositors' balances"],
+      "who_benefits": "Attacker"
+    }
+  }
+]

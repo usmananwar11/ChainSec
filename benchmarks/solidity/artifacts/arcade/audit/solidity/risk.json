@@ -1,0 +1,187 @@
+{
+  "chain": "solidity",
+  "mode": "regex",
+  "size": "SMALL",
+  "files": [
+    {
+      "file": "contracts/NFTBoostVault.sol",
+      "score": 128.3,
+      "breakdown": {
+        "external_calls": 20,
+        "state_writers": 48,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 35.3,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ArcadeTreasury.sol",
+      "score": 111.9,
+      "breakdown": {
+        "external_calls": 15,
+        "state_writers": 48,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 19.9,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ARCDVestingVault.sol",
+      "score": 93.2,
+      "breakdown": {
+        "external_calls": 25,
+        "state_writers": 24,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 19.2,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/token/ArcadeTokenDistributor.sol",
+      "score": 92.0,
+      "breakdown": {
+        "external_calls": 30,
+        "state_writers": 28,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 9.0,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/nft/ReputationBadge.sol",
+      "score": 61.1,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 16,
+        "payable": 4,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 11.1,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/token/ArcadeAirdrop.sol",
+      "score": 42.0,
+      "breakdown": {
+        "external_calls": 5,
+        "state_writers": 8,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 4.0,
+        "novelty": 15,
+        "value": 10
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/BaseVotingVault.sol",
+      "score": 37.05,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 12,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 10.05,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/token/ArcadeToken.sol",
+      "score": 31.55,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 8,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 8.55,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/nft/BadgeDescriptor.sol",
+      "score": 22.1,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 4,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 3.1,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ImmutableVestingVault.sol",
+      "score": 17.15,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.15,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ArcadeGSCVault.sol",
+      "score": 17.0,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 2.0,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    },
+    {
+      "file": "contracts/ArcadeGSCCoreVoting.sol",
+      "score": 16.65,
+      "breakdown": {
+        "external_calls": 0,
+        "state_writers": 0,
+        "payable": 0,
+        "assembly_blocks": 0,
+        "unchecked_blocks": 0,
+        "loc": 1.65,
+        "novelty": 15,
+        "value": 0
+      },
+      "tier": "DEEP"
+    }
+  ]
+}

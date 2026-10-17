@@ -1,0 +1,173 @@
+[
+ {
+  "n": 1,
+  "units": [
+   "NFTBoostVault",
+   "BaseVotingVault"
+  ],
+  "files": [
+   "contracts/NFTBoostVault.sol",
+   "contracts/BaseVotingVault.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/NFTBoostVault.sol",
+    "loc": 706,
+    "opened": true,
+    "functions": 28
+   },
+   {
+    "file": "contracts/BaseVotingVault.sol",
+    "loc": 201,
+    "opened": true,
+    "functions": 13
+   }
+  ],
+  "excluded": [
+   "EXCLUDED \u2014 NFTBoostVault.delegate() no registration check, zero-value checkpoint spam. Duplicate of [Low] DA-1 contracts/NFTBoostVault.sol:182-212."
+  ]
+ },
+ {
+  "n": 2,
+  "units": [
+   "ARCDVestingVault",
+   "ImmutableVestingVault"
+  ],
+  "files": [
+   "contracts/ARCDVestingVault.sol",
+   "contracts/ImmutableVestingVault.sol",
+   "contracts/BaseVotingVault.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/ARCDVestingVault.sol",
+    "loc": 384,
+    "opened": true,
+    "functions": 13
+   },
+   {
+    "file": "contracts/ImmutableVestingVault.sol",
+    "loc": 43,
+    "opened": true,
+    "functions": 2
+   },
+   {
+    "file": "contracts/BaseVotingVault.sol",
+    "loc": 201,
+    "opened": true,
+    "functions": 13
+   }
+  ],
+  "excluded": [
+   "EXCLUDED \u2014 ARCDVestingVault.delegate() zero-value checkpoint spam at :260-282. Duplicate of [Low] DA-1.",
+   "EXCLUDED \u2014 addGrantAndDelegate NatSpec timestamps vs block.number at :91-112. Duplicate of [Low] D-2.",
+   "EXCLUDED \u2014 claim() strict equality and deposit() unchecked transferFrom are listed in known-issues.md."
+  ]
+ },
+ {
+  "n": 3,
+  "units": [
+   "ArcadeTreasury"
+  ],
+  "files": [
+   "contracts/ArcadeTreasury.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/ArcadeTreasury.sol",
+    "loc": 398,
+    "opened": true,
+    "functions": 16
+   }
+  ],
+  "excluded": [
+   "EXCLUDED \u2014 shared blockExpenditure counter at ArcadeTreasury.sol:358-362/:384-388. Duplicate of DC-1 [Medium]."
+  ]
+ },
+ {
+  "n": 4,
+  "units": [
+   "ArcadeAirdrop",
+   "ArcadeToken",
+   "ArcadeTokenDistributor"
+  ],
+  "files": [
+   "contracts/token/ArcadeAirdrop.sol",
+   "contracts/token/ArcadeToken.sol",
+   "contracts/token/ArcadeTokenDistributor.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/token/ArcadeAirdrop.sol",
+    "loc": 80,
+    "opened": true,
+    "functions": 3
+   },
+   {
+    "file": "contracts/token/ArcadeToken.sol",
+    "loc": 171,
+    "opened": true,
+    "functions": 4
+   },
+   {
+    "file": "contracts/token/ArcadeTokenDistributor.sol",
+    "loc": 180,
+    "opened": true,
+    "functions": 8
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 5,
+  "units": [
+   "ReputationBadge",
+   "BadgeDescriptor"
+  ],
+  "files": [
+   "contracts/nft/ReputationBadge.sol",
+   "contracts/nft/BadgeDescriptor.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/nft/ReputationBadge.sol",
+    "loc": 223,
+    "opened": true,
+    "functions": 7
+   },
+   {
+    "file": "contracts/nft/BadgeDescriptor.sol",
+    "loc": 63,
+    "opened": true,
+    "functions": 3
+   }
+  ],
+  "excluded": []
+ },
+ {
+  "n": 6,
+  "units": [
+   "ArcadeGSCVault",
+   "ArcadeGSCCoreVoting"
+  ],
+  "files": [
+   "contracts/ArcadeGSCVault.sol",
+   "contracts/ArcadeGSCCoreVoting.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/ArcadeGSCVault.sol",
+    "loc": 41,
+    "opened": true,
+    "functions": 1
+   },
+   {
+    "file": "contracts/ArcadeGSCCoreVoting.sol",
+    "loc": 34,
+    "opened": true,
+    "functions": 1
+   }
+  ],
+  "excluded": []
+ }
+]

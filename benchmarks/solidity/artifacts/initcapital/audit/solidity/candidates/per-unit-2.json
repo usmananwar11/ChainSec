@@ -1,0 +1,43 @@
+[
+  {
+    "id": "PC2-1",
+    "chain": "solidity",
+    "title": "accrueInterest advances lastAccruedTime even when the truncated interest is 0, so frequent public accrual erases interest on small-debt or low-decimal pools",
+    "severity": "Low",
+    "category": "rounding",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/lending_pool/LendingPool.sol", "line_start": 155, "line_end": 169, "unit": "LendingPool", "function": "accrueInterest"}
+    ],
+    "discovery": {"phase": "per-unit", "lens": null, "mindset": "edge-case", "consensus": null, "unit": "LendingPool"},
+    "description": "Discovery: per-unit step 2 (conditional branch audit) and step 3 (boundary values). accrueInterest is public. It computes accruedInterest = rate * dt * totalDebt / 1e18 (rounds down) and then always writes lastAccruedTime = block.timestamp. When rate * dt * totalDebt < 1e18 the interest is 0 but the elapsed time is consumed, so the fraction is never carried forward. Anyone (typically a borrower) can call accrueInterest every block, or every borrow/repay accrues anyway, to keep dt tiny. Example: a 10% APR rate is about 3.17e9 per second in e18; for a WBTC (8 decimals) pool with totalDebt = 3e8 (3 BTC), interest per 1 second is 0.95 units and truncates to 0 each time, so interest on that debt is almost entirely lost if accrued every second or two. Pools with 6 to 8 decimal tokens and modest total debt are affected most.",
+    "root_cause": "Time is checkpointed unconditionally while the interest increment is floored, with no remainder carried over.",
+    "vulnerable_code": "uint accruedInterest = (borrowRate_e18 * (block.timestamp - _lastAccruedTime) * _totalDebt) / ONE_E18;\n...\ntotalDebt = _totalDebt + accruedInterest;\nlastAccruedTime = block.timestamp;",
+    "harm": {
+      "who": "lenders and treasury of low-decimal or low-debt pools",
+      "loses_what": "accrued interest that rounds to 0 on each short accrual",
+      "magnitude": "up to nearly all interest when rate * dt * totalDebt < 1e18 per accrual, e.g. totalDebt below about 3e8 units at 10% APR with 1 second accruals"
+    },
+    "exploit_trace": [
+      "1. Pool of an 8-decimal token has totalDebt = 3e8 and a borrow rate of about 3.17e9 (e18) per second.",
+      "2. A borrower calls accrueInterest() every block (about 1 to 2 s apart).",
+      "3. Each call computes 3.17e9 * 1 * 3e8 / 1e18 = 0, then sets lastAccruedTime = now.",
+      "4. Debt never grows, so lenders earn nothing and the borrower pays no interest."
+    ],
+    "preconditions": [
+      {"text": "pool debt small enough in raw units that per-interval interest truncates to 0", "type": "STATE"},
+      {"text": "someone calls accrueInterest (or other accruing functions) at short intervals", "type": "TIMING"}
+    ],
+    "postconditions": [
+      {"text": "totalDebt does not reflect elapsed time; lenders' yield is lost", "type": "BALANCE"}
+    ],
+    "audit_trail": {
+      "step_execution": "Per-unit: 1=✓ 2=✓ 3=✓ 4=✗(N/A) 5=✓ 6=✗(N/A: parent UnderACM has no state logic)",
+      "rules_applied": ["R8:✓(lastAccruedTime cached across calls)", "R10:✓(assessed at totalDebt=3e8, dt=1s)", "R11:✗(no external tokens beyond underlying)", "R12:✗(single path)", "R15:✗(no flash-loan-accessible state)", "R16:✗(no oracle dependency)"],
+      "depth_evidence": ["[BOUNDARY:totalDebt=3e8, rate=3.17e9, dt=1 -> interest=0]", "[TRACE:accrueInterest -> accruedInterest floors to 0 -> lastAccruedTime=now]"],
+      "missing_precondition": "",
+      "postconditions_created": ["interest accrual skipped for elapsed interval"],
+      "who_benefits": "Borrowers"
+    }
+  }
+]

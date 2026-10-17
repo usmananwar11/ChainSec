@@ -1,0 +1,537 @@
+[
+ {
+  "id": "DP1-1",
+  "chain": "solidity",
+  "title": "OPM.executeOperation does not check initiator or that the flashloan was started by buyOptions: anyone can open debt on a credit-delegating victim and receive the collateral",
+  "severity": "High",
+  "category": "access-control / flashloan-callback",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 38,
+    "line_end": 57,
+    "unit": "OptionsPositionManager",
+    "function": "executeOperation"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 61,
+    "line_end": 79,
+    "unit": "OptionsPositionManager",
+    "function": "executeBuyOptions"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 159,
+    "line_end": 177,
+    "unit": "OptionsPositionManager",
+    "function": "buyOptions"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q3.7 / Q4.1 (access control exhaustive check, caller assumptions). executeOperation only requires msg.sender == lendingPool (inside executeBuyOptions/executeLiquidation). The `initiator` argument is ignored and `poolId`, `user`, `sourceSwap` come from attacker-controlled params. buyOptions uses flashloan mode 2 with onBehalfOf = msg.sender, which only works if the user has delegated borrowing power to the OPM. Because anyone can call lendingPool.flashLoan(receiver = OPM, modes = [2], onBehalfOf = victim, params = (0, poolId, attacker, ...)) directly, the debt is opened on the victim (using the victim's delegation to the OPM) while executeBuyOptions deposits the withdrawn underlying to `user` = attacker through cleanup().",
+  "root_cause": "The callback trusts params instead of binding the flashloan to the original caller (initiator == address(this) and user == the party who initiated). Credit delegation granted to the OPM is therefore usable by any third party.",
+  "vulnerable_code": "function executeOperation(address[] calldata assets, uint256[] calldata amounts, uint256[] calldata premiums, address initiator, bytes calldata params) override external returns (bool result) {\n  uint8 mode = abi.decode(params, (uint8) );\n  if ( mode == 0 ){\n    (, uint poolId, address user, address[] memory sourceSwap) = abi.decode(params, (uint8, uint, address, address[]));\n    executeBuyOptions(poolId, assets, amounts, user, sourceSwap);\n  }\n  ...",
+  "harm": {
+   "who": "any user who delegated borrowing (credit delegation) to the OptionsPositionManager",
+   "loses_what": "borrowed TR debt opened in their name whose proceeds are credited to the attacker",
+   "magnitude": "up to the victim's delegated borrow allowance / borrow capacity"
+  },
+  "exploit_trace": [
+   "1. Victim calls ICreditDelegation.approveDelegation(OPM, large amount) on the TR variable debt token so buyOptions can work.",
+   "2. Attacker calls lendingPool.flashLoan(OPM, [TR], [amt], [2], victim, abi.encode(uint8(0), poolId, attacker, [address(0)]), 0).",
+   "3. The pool opens variable debt for the victim and calls OPM.executeOperation; msg.sender == lendingPool passes and initiator is never checked.",
+   "4. OPM withdraws the TR to underlying and cleanup() deposits token0/token1 into the lending pool for `user` = attacker.",
+   "5. Attacker withdraws the collateral; victim holds the debt (and may be liquidated)."
+  ],
+  "preconditions": [
+   {
+    "text": "victim has delegated credit to the OPM",
+    "type": "STATE"
+   },
+   {
+    "text": "attacker can call lendingPool.flashLoan directly",
+    "type": "ACCESS"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim holds TR variable debt with no matching collateral",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:flashLoan(onBehalfOf=victim, params.user=attacker)→executeBuyOptions→cleanup deposit to attacker]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim holds TR variable debt with no matching collateral"
+   ],
+   "who_benefits": "Attacker"
+  }
+ },
+ {
+  "id": "DP1-2",
+  "chain": "solidity",
+  "title": "OPM.close lets anyone force-close any user's debt without a health check, charge a 1% fee on the user's collateral, and sandwich the swap with maxAmount = the user's entire balance",
+  "severity": "High",
+  "category": "access-control / slippage",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 223,
+    "line_end": 241,
+    "unit": "OptionsPositionManager",
+    "function": "close"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 275,
+    "line_end": 304,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 491,
+    "line_end": 504,
+    "unit": "OptionsPositionManager",
+    "function": "swapTokensForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q3.7 / Q4.1 and Q7.8. close(poolId, user, ...) is external, takes an arbitrary `user` and has no check that msg.sender == user or that the user is unhealthy. closeDebt then PMTransfers the user's ENTIRE token0 and token1 aToken balances to the OPM (amtA, amtB), charges 1% of the closed TR value to the treasury out of the user's collateral when user != msg.sender, and, if one token is short, calls swapTokensForExactTokens(router, shortfall, maxAmount = amtB or amtA). maxAmount is the user's whole balance of the other token, and the only guard is getAmountsIn computed from the same (manipulable) pool spot, so there is no real slippage bound. The leftover is deposited back to the user afterwards.",
+  "root_cause": "Permissionless position closing (reachable on any user with debt and aToken balances because the OPM holds PMTransfer rights) with no authorization/health check and slippage limit equal to the user's full balance.",
+  "vulnerable_code": "function close(uint poolId, address user, address debtAsset, uint repayAmount, address collateralAsset) external {\n  ...\n  debt = closeDebt(poolId, user, debtAsset, debt, collateralAsset);\n}\n// closeDebt\namtA = IERC20(LP.getReserveData(token0).aTokenAddress ).balanceOf(user);\namtB = IERC20(LP.getReserveData(token1).aTokenAddress ).balanceOf(user);\nPMWithdraw(LP, user, token0, amtA ); PMWithdraw(LP, user, token1, amtB );\nif (user != msg.sender ) { uint feeAmount = calculateAndSendFee(...); ... }\nif ( amtA < token0Amount ){ ... swapTokensForExactTokens(ammRouter, token0Amount - amtA, amtB, path); }",
+  "harm": {
+   "who": "any borrower / option buyer with a TR debt and collateral in the lending pool",
+   "loses_what": "position is closed against their will with a 1% fee of the closed value, and the swap leg can cost up to their whole balance of the second token",
+   "magnitude": "1% of closed debt value per call; sandwich loss bounded by the user's collateral balance"
+  },
+  "exploit_trace": [
+   "1. Victim holds TR debt and token0/token1 aTokens in ROE.",
+   "2. Attacker moves the UniV3 pool price against the victim's required swap direction (front-run).",
+   "3. Attacker calls OPM.close(poolId, victim, debtAsset, 0, collateral): all victim aTokens are pulled, the missing token is bought with maxAmount = victim's whole balance at the manipulated price.",
+   "4. Attacker back-runs to restore the price and keeps the difference; treasury also takes 1% of the closed value from the victim.",
+   "5. Even without sandwiching, attacker can repeatedly force-close the victim's option positions."
+  ],
+  "preconditions": [
+   {
+    "text": "victim has TR debt and aTokens, OPM has PMTransfer rights",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "victim position closed, collateral reduced, swap executed at manipulated price",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:close(user=victim)→PMWithdraw all→swapTokensForExactTokens(max=balance)]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "victim position closed, collateral reduced, swap executed at manipulated price"
+   ],
+   "who_benefits": "Attacker (sandwich); treasury (fee)"
+  }
+ },
+ {
+  "id": "DP1-3",
+  "chain": "solidity",
+  "title": "GeVault TVL ignores idle token balances: after the vault is disabled any rebalance/withdraw leaves assets idle and later withdrawals pay 0",
+  "severity": "High",
+  "category": "accounting / TVL",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 202,
+    "line_end": 206,
+    "unit": "GeVault",
+    "function": "rebalance"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 214,
+    "line_end": 241,
+    "unit": "GeVault",
+    "function": "withdraw"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 392,
+    "line_end": 398,
+    "unit": "GeVault",
+    "function": "getTVL"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: TVL-01 and Q5.2. getTVL() sums only aToken balances of ticks (getTickBalance) and ignores token0/token1 sitting in the vault. With isEnabled == false, rebalance() (permissionless) and withdraw() call removeFromAllTicks() but skip deployAssets() ('otherwise just let assets sit here until totally withdrawn'). From then on getTVL() == 0, so withdraw computes valueX8 = 0, amount = 0, burns the caller's shares and transfers 0, while all funds stay idle in the vault with no recovery function.",
+  "root_cause": "Share valuation uses only deployed positions; the 'disabled' mode parks funds in an uncounted location.",
+  "vulnerable_code": "function rebalance() public {\n  require(poolMatchesOracle(), \"GEV: Oracle Error\");\n  removeFromAllTicks();\n  if (isEnabled) deployAssets();\n}\n...\nuint vaultValueX8 = getTVL();\nuint valueX8 = vaultValueX8 * liquidity / totalSupply();\n_burn(msg.sender, liquidity);\nremoveFromAllTicks();",
+  "harm": {
+   "who": "all GeVault share holders",
+   "loses_what": "their deposited funds (shares burned for zero payout)",
+   "magnitude": "entire vault TVL except the first withdrawer's share"
+  },
+  "exploit_trace": [
+   "1. Owner calls setEnabled(false) (the intended emergency lever).",
+   "2. Anyone calls rebalance(): all ticks are withdrawn into idle token0/token1 and nothing is redeployed.",
+   "3. A holder calls withdraw(liquidity, token): getTVL() == 0 so amount == 0; shares are burned and 0 tokens are sent.",
+   "4. Funds remain stuck in the vault."
+  ],
+  "preconditions": [
+   {
+    "text": "vault disabled via setEnabled(false)",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "vault funds idle and uncounted; share price 0",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:isEnabled=false → getTVL()=0 after removeFromAllTicks]",
+    "[TRACE:withdraw→valueX8=0→amount=0→_burn]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "vault funds idle and uncounted; share price 0"
+   ],
+   "who_benefits": "None (permanent loss to holders)"
+  }
+ },
+ {
+  "id": "DP1-4",
+  "chain": "solidity",
+  "title": "V3Proxy.swapTokensForExactETH does not refund unspent input tokens, and swapTokensForExactTokens refunds the whole proxy balance to the caller",
+  "severity": "High",
+  "category": "token-accounting / stuck funds",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 160,
+    "line_end": 176,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactETH"
+   },
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 124,
+    "line_end": 135,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q6.2 / Module O. swapTokensForExactETH pulls amountInMax from the caller, spends amounts[0] <= amountInMax in the router, and never returns amountInMax - amounts[0]. The remainder stays in the proxy. swapTokensForExactTokens (and any caller) sends back ogInAsset.balanceOf(address(this)), i.e. the entire proxy balance of that token, so the next caller of swapTokensForExactTokens with the same input token collects all stranded tokens (call with amountOut = 1 and amountInMax = 1).",
+  "root_cause": "Refund logic is missing in one function and uses the full contract balance rather than the unspent portion of the current call in the other.",
+  "vulnerable_code": "ogInAsset.safeTransferFrom(msg.sender, address(this), amountInMax);\nogInAsset.safeApprove(address(ROUTER), amountInMax);\namounts[0] = ROUTER.exactOutputSingle(...);\n...\nogInAsset.safeApprove(address(ROUTER), 0);   // no refund in swapTokensForExactETH\n// swapTokensForExactTokens\nogInAsset.safeTransfer(msg.sender, ogInAsset.balanceOf(address(this)));",
+  "harm": {
+   "who": "users of swapTokensForExactETH (and any other source of stranded proxy balance)",
+   "loses_what": "the unspent part of amountInMax, which is claimable by the next swapTokensForExactTokens caller",
+   "magnitude": "amountInMax - amountIn per call (slippage buffer, potentially large if amountInMax is generous)"
+  },
+  "exploit_trace": [
+   "1. User calls swapTokensForExactETH(amountOut, amountInMax = large buffer, [token, WETH], ...).",
+   "2. Router consumes amounts[0] < amountInMax; the remainder stays in the proxy.",
+   "3. Attacker calls swapTokensForExactTokens(1, 1, [token, other], ...): the proxy sends its entire balance of token to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "unspent input remains after swap",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "stranded tokens in V3Proxy claimable by anyone",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[VARIATION:amountInMax→2x needed → remainder stranded]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "stranded tokens in V3Proxy claimable by anyone"
+   ],
+   "who_benefits": "Next swapTokensForExactTokens caller"
+  }
+ },
+ {
+  "id": "DP1-5",
+  "chain": "solidity",
+  "title": "RangeManager.cleanup deposits the contract's entire token balance to the caller, so initRange refunds and any stray balance are claimable by the first caller of removeAssetsFromStep",
+  "severity": "Medium",
+  "category": "token-accounting / permissionless sweep",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 95,
+    "line_end": 102,
+    "unit": "RangeManager",
+    "function": "initRange"
+   },
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 139,
+    "line_end": 142,
+    "unit": "RangeManager",
+    "function": "removeAssetsFromStep"
+   },
+   {
+    "file": "contracts/RangeManager.sol",
+    "line_start": 190,
+    "line_end": 207,
+    "unit": "RangeManager",
+    "function": "cleanup"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q3.7 and Q7.5. TokenisableRange.init refunds unused token0/token1 to msg.sender, which is RangeManager (TR.creator), not the owner. initRange only forwards the TR token balance to the owner, leaving the refunded underlying (amounts need to be only ~95% correct, so up to ~5% of the provided liquidity) in RangeManager. removeAssetsFromStep(step) is permissionless; with zero user holdings removeFromStep does nothing and cleanup() deposits the whole RangeManager ASSET_0/ASSET_1 balance into the lending pool on behalf of msg.sender.",
+  "root_cause": "cleanup() uses balanceOf(address(this)) instead of the amounts delta of the current operation, and initRange does not forward refunds.",
+  "vulnerable_code": "uint256 asset0_amt = ASSET_0.balanceOf(address(this));\nuint256 asset1_amt = ASSET_1.balanceOf(address(this));\nif (asset0_amt > 0) { ... LENDING_POOL.deposit(address(ASSET_0), asset0_amt, msg.sender, 0); }",
+  "harm": {
+   "who": "the RangeManager owner (range initializer)",
+   "loses_what": "underlying tokens refunded by TokenisableRange.init",
+   "magnitude": "up to ~5% of the initial liquidity per range"
+  },
+  "exploit_trace": [
+   "1. Owner calls initRange(tr, amount0, amount1); TR.init mints with 95% minimums and refunds the unused underlying to RangeManager.",
+   "2. Attacker calls removeAssetsFromStep(0) (or any step).",
+   "3. cleanup() deposits all RangeManager token balances into the lending pool for the attacker, who withdraws them."
+  ],
+  "preconditions": [
+   {
+    "text": "initRange leaves non-zero refunds in RangeManager",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "refund credited to attacker's lending-pool account",
+    "type": "BALANCE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[TRACE:initRange→TR.init refund to RangeManager→cleanup sweeps to caller]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "refund credited to attacker's lending-pool account"
+   ],
+   "who_benefits": "First caller"
+  }
+ },
+ {
+  "id": "DP1-6",
+  "chain": "solidity",
+  "title": "GeVault.deployAssets indexes ticks[newTickIndex+3] out of bounds when the price is beyond the listed ticks, bricking deposit/withdraw/rebalance",
+  "severity": "Medium",
+  "category": "dos / array bounds",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 337,
+    "line_end": 363,
+    "unit": "GeVault",
+    "function": "deployAssets"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 428,
+    "line_end": 438,
+    "unit": "GeVault",
+    "function": "getActiveTickIndex"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q5.6 / Q9 boundary check. getActiveTickIndex loops up to ticks.length - 3 and, if no boundary is found (price past the last listed ticks), returns ticks.length - 3. deployAssets then touches ticks[tick0Index + 1] with tick0Index = newTickIndex + 2, i.e. ticks[ticks.length], which reverts with out-of-bounds when both token balances are non-zero (or for the corresponding side). With ticks.length < 4 it always reverts. withdraw() calls deployAssets when enabled, so withdrawals also revert until the owner pushes more ticks.",
+  "root_cause": "The active-index search does not leave room for the +3 offset used by deployAssets and has no guard for running out of ticks.",
+  "vulnerable_code": "uint tick0Index = newTickIndex;\nuint tick1Index = newTickIndex + 2;\n...\ndepositAndStash(ticks[tick0Index], availToken0 / 2, 0);\ndepositAndStash(ticks[tick0Index+1], availToken0 / 2, 0);",
+  "harm": {
+   "who": "all GeVault depositors",
+   "loses_what": "ability to withdraw (liveness) until the owner adds ticks",
+   "magnitude": "all vault funds frozen for the duration"
+  },
+  "exploit_trace": [
+   "1. Market price moves beyond the last configured tick (no boundary found in the loop).",
+   "2. getActiveTickIndex returns ticks.length - 3.",
+   "3. Any deposit, withdraw (when isEnabled) or rebalance reverts on ticks[ticks.length]."
+  ],
+  "preconditions": [
+   {
+    "text": "price moves outside the span of configured ticks",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "withdraw/rebalance revert until owner intervenes",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:newTickIndex=ticks.length-3 → ticks[length] OOB]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "withdraw/rebalance revert until owner intervenes"
+   ],
+   "who_benefits": "None (DoS)"
+  }
+ },
+ {
+  "id": "DP1-7",
+  "chain": "solidity",
+  "title": "TokenisableRange can be emptied to totalSupply 0 and permanently closes, bricking GeVault deposits that include it",
+  "severity": "Medium",
+  "category": "dos / closed range",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "line_start": 222,
+    "line_end": 227,
+    "unit": "TokenisableRange",
+    "function": "deposit"
+   },
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "line_start": 292,
+    "line_end": 327,
+    "unit": "TokenisableRange",
+    "function": "withdraw"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "P1",
+   "mindset": null,
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q5.2 (last call draining everything). deposit() requires totalSupply() > 0 ('TR Closed') but withdraw() has no minimum-liquidity or last-holder protection. GeVault.removeFromAllTicks withdraws its entire TR position on every rebalance/deposit/withdraw. If the vault is the only remaining holder of a TR in its tick list (the 1e18 minted at init may already have been redeemed by the owner), the vault's withdrawal burns the last supply and the next depositAndStash into that tick reverts with 'TR Closed', DoSing deposit, withdraw and rebalance until the owner replaces the tick with modifyTick.",
+  "root_cause": "No permanent minimum supply is kept in the TR and the closed-state check is applied to internal callers like GeVault.",
+  "vulnerable_code": "require(totalSupply() > 0, \"TR Closed\");\n...\nuint removedLiquidity = uint(liquidity) * lp / totalSupply();",
+  "harm": {
+   "who": "GeVault depositors",
+   "loses_what": "liveness of deposit/withdraw/rebalance until owner intervenes",
+   "magnitude": "all vault funds frozen for the duration"
+  },
+  "exploit_trace": [
+   "1. Other holders redeem their TR (including the initial 1e18).",
+   "2. GeVault holds 100% of the TR supply; any rebalance calls removeFromTick which burns all of it (totalSupply = 0).",
+   "3. deployAssets calls TR.deposit which reverts with 'TR Closed'; vault operations revert."
+  ],
+  "preconditions": [
+   {
+    "text": "GeVault is the sole TR holder of a listed tick",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "TR permanently closed",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+   "rules_applied": [
+    "R10:✓(assessed at worst realistic state)",
+    "R12:✗(single enabler)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:totalSupply=0 after full withdraw → deposit reverts]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "TR permanently closed"
+   ],
+   "who_benefits": "None (DoS)"
+  }
+ }
+]

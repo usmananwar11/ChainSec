@@ -1,0 +1,52 @@
+[
+  {
+    "id": "RV-1",
+    "chain": "solidity",
+    "title": "deposit() credits the requested amount without checking transferFrom's result or the amount actually received",
+    "severity": "Medium",
+    "category": "accounting",
+    "status": "verified-conditional",
+    "locations": [
+      {"file": "src/Vault.sol", "line_start": 21, "line_end": 25, "unit": "Vault", "function": "deposit"},
+      {"file": "src/Vault.sol", "line_start": 36, "line_end": 42, "unit": "Vault", "function": "withdraw"}
+    ],
+    "discovery": {"phase": "review", "lens": null, "mindset": null, "consensus": null, "unit": "Vault"},
+    "description": "deposit() ignores the bool returned by token.transferFrom and credits balances and totalDeposits by the caller-supplied amount. If the immutable token returns false instead of reverting, or takes a transfer fee, the credit exceeds what the vault received, and withdraw() pays the full credit out of other depositors' tokens.",
+    "root_cause": "Credit is based on the requested amount rather than on a checked return value or a balance-delta receipt.",
+    "vulnerable_code": "token.transferFrom(msg.sender, address(this), amount);\nbalances[msg.sender] += amount;\ntotalDeposits += amount;",
+    "harm": {
+      "who": "other ERC20 depositors",
+      "loses_what": "deposited tokens paid out against unbacked credit",
+      "magnitude": "up to the vault's whole token balance if the token returns false on failure; a per-deposit shortfall equal to the fee if it is fee-on-transfer"
+    },
+    "exploit_trace": [
+      "1. Honest users deposit 1,000 token units; the vault holds 1,000.",
+      "2. Attacker with zero token balance calls deposit(1000); transferFrom returns false without reverting and the result is discarded.",
+      "3. balances[attacker] = 1000 and totalDeposits = 2000.",
+      "4. Attacker calls withdraw(1000); token.transfer sends 1,000 units of other users' tokens to the attacker."
+    ],
+    "preconditions": [
+      {"text": "Confirm the deployed immutable token returns false (does not revert) on failed transferFrom, or charges a transfer fee; check the token address used at deployment", "type": "EXTERNAL"},
+      {"text": "Confirm the vault holds tokens deposited by other users at the time of the attack", "type": "BALANCE"}
+    ],
+    "postconditions": [
+      {"text": "vault token holdings fall below the sum of token credits", "type": "BALANCE"}
+    ],
+    "verdict": {
+      "gate": null,
+      "reason": "Second opinion — worth manual review: dismissed as theoretical because no named token is in scope, but the code ignores a return value the IERC20 interface in this file explicitly declares, the token is an unconstrained deployment parameter, and the trace is concrete once the token behaves that way (it also covers fee-on-transfer tokens, which need no failure at all). Distinct root cause from the shared ETH/token ledger. The original verdict named 'no token that returns false or charges a fee' as the missing precondition, which is a deployment fact to confirm, not a disproof.",
+      "evidence_tag": "[CODE-TRACE]",
+      "method": "code-trace",
+      "original_severity": null
+    },
+    "audit_trail": {
+      "step_execution": "Review: gate B re-examination 1=✓ 2=✓ 3=✓ 4=✗(no multi-block MEV path) 5=✓",
+      "rules_applied": ["R8:✓(deposit then withdraw)", "R10:✓(zero-balance attacker)", "R11:✓(external token return semantics)"],
+      "depth_evidence": ["[BOUNDARY:attacker balance=0, transferFrom returns false → credit 1000]", "[TRACE:deposit(1000)→withdraw(1000)→token.transfer(attacker,1000)]"],
+      "missing_precondition": "Deployed token returns false on failure or charges a transfer fee",
+      "postconditions_created": ["vault token holdings below sum of token credits"],
+      "who_benefits": "Attacker"
+    },
+    "merged_from": ["RS-1"]
+  }
+]

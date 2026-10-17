@@ -1,0 +1,36 @@
+[
+  {
+    "id": "DP1-1",
+    "chain": "solidity",
+    "title": "Treasury per-block spend limit is tracked in one counter shared by all tokens and units",
+    "severity": "Medium",
+    "category": "accounting-mismatch",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 358, "line_end": 373, "unit": "ArcadeTreasury", "function": "_spend"},
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 384, "line_end": 394, "unit": "ArcadeTreasury", "function": "_approve"},
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 68, "line_end": 68, "unit": "ArcadeTreasury", "function": "blockExpenditure"}
+    ],
+    "discovery": {"phase": "detect", "lens": "P1", "mindset": null, "consensus": null, "unit": null},
+    "description": "Discovery: Q3.5/Q4.6 (consistency of units across paired state). blockExpenditure is mapping(blockNumber => amount), not keyed by token. _spend and _approve add raw token amounts of any token (ETH in wei, 6-decimal USDC, 18-decimal ARCD) into the same per-block counter and compare the sum with the per-token threshold (small/medium/large) of the token currently being spent. Amounts in different units and tokens therefore consume each other's budget, and GSC spends/approvals and CORE_VOTING spends/approvals share it as well.",
+    "root_cause": "The block-expenditure counter is keyed only by block.number, so the limit check 'amount + spentThisBlock > limit' mixes unrelated token units.",
+    "vulnerable_code": "uint256 spentThisBlock = blockExpenditure[block.number];\nif (amount + spentThisBlock > limit) revert T_BlockSpendLimit();\nblockExpenditure[block.number] = amount + spentThisBlock;",
+    "harm": {"who": "DAO / GSC executing treasury actions", "loses_what": "ability to execute valid, threshold-compliant spends or approvals of a low-unit token in a block where a high-unit token was already spent (the call reverts with T_BlockSpendLimit)", "magnitude": "liveness of treasury spends for multi-token proposals or same-block GSC and governance actions; order dependent"},
+    "exploit_trace": [
+      "1. Thresholds: ARCD large = 1e24 wei (1M ARCD), USDC small = 1e12 (1M USDC, 6 decimals).",
+      "2. A governance proposal executes largeSpend(ARCD, 1e24, X) then smallSpend(USDC, 1e9, Y) in one block (same timelock execution, same block.number).",
+      "3. After the first call blockExpenditure[block.number] = 1e24; in the second call amount + spentThisBlock = 1e24 + 1e9 > USDC small limit 1e12, so T_BlockSpendLimit reverts the whole execution.",
+      "4. Result: a spend that is far below the USDC threshold cannot be executed in the same block; the same applies between GSC and CORE_VOTING spends of the same token, so the later action reverts."
+    ],
+    "preconditions": [{"text": "two spends or approvals of different tokens (or from GSC and core voting) land in the same block", "type": "TIMING"}],
+    "postconditions": [{"text": "whole proposal execution reverts; must be split across blocks or reordered", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Pass 1: Step 2=✓ Step 3=✓ Step 4=✓",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(worst state is multi-token proposal with an 18-decimal token spent first)", "R11:✗", "R12:✗", "R15:✗", "R16:✗"],
+      "depth_evidence": ["[BOUNDARY:ARCD spend 1e24 then USDC 1e9 vs limit 1e12 -> revert]", "[VARIATION:order USDC first then ARCD -> passes only if ARCD limit exceeds the sum]"],
+      "missing_precondition": "",
+      "postconditions_created": ["proposal batch reverts until reordered or split"],
+      "who_benefits": "No one (liveness harm)"
+    }
+  }
+]

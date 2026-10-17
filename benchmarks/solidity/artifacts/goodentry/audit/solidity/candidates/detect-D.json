@@ -1,0 +1,305 @@
+[
+ {
+  "id": "DD-1",
+  "chain": "solidity",
+  "title": "GeVault.deployAssets deposits a single token into the ticker that contains the spot price, so deposit/withdraw/rebalance revert whenever spot sits inside a listed ticker",
+  "severity": "Medium",
+  "category": "dos / edge-case",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 337,
+    "line_end": 363,
+    "unit": "GeVault",
+    "function": "deployAssets"
+   },
+   {
+    "file": "contracts/GeVault.sol",
+    "line_start": 428,
+    "line_end": 438,
+    "unit": "GeVault",
+    "function": "getActiveTickIndex"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.4 boundary (param=0 / one-sided input) on deployAssets. getActiveTickIndex breaks at the first i where tick i+1 holds no token0 and tick i+2 holds token0 (mirror for token1). Tick i+2 is therefore the first tick with the other token, which is the MIXED tick if the spot price lies inside a ticker range (amt0>0 and amt1>0). deployAssets then calls depositAndStash(ticks[tick0Index], availToken0/2, 0), i.e. TR.deposit(n0, 0) on an in-range tick. NPM.increaseLiquidity computes liquidity = min(L0, L1) = 0 for a one-sided in-range deposit and UniswapV3Pool.mint(0) reverts, so the whole call reverts. Tickers are 10 ticks wide and only revert when spot is inside one, but the oracle band in poolMatchesOracle is 1%, so spot can be pushed into a ticker while the guard still passes.",
+  "root_cause": "Active-tick selection does not exclude the tick containing the current price, and deployAssets assumes the first tick holding the other token is wholly single-sided.",
+  "vulnerable_code": "if ( (amt0 == 0 && amt0n > 0) || (amt1 == 0 && amt1n > 0) ) break;\n...\nif (availToken0 > 0){\n  depositAndStash(ticks[tick0Index], availToken0 / 2, 0);\n  depositAndStash(ticks[tick0Index+1], availToken0 / 2, 0);\n}",
+  "harm": {
+   "who": "GeVault depositors and withdrawers",
+   "loses_what": "ability to deposit, withdraw or rebalance (withdraw reverts after removeFromAllTicks only if isEnabled) while spot is inside a ticker",
+   "magnitude": "temporary liveness loss, repeatable by a swapper who keeps spot in a ticker window"
+  },
+  "exploit_trace": [
+   "1. Vault holds idle token0 and token1 after removeFromAllTicks (normal state for deposit/withdraw/rebalance).",
+   "2. Spot price of the Uniswap pool lies inside ticker j (mixed token0/token1), within the 1% oracle band; attacker can swap spot into that window and back around a victim tx (bundle).",
+   "3. getActiveTickIndex returns j-2 (or mirror); tick0Index = j; deployAssets calls TR_j.deposit(availToken0/2, 0).",
+   "4. NPM.increaseLiquidity yields 0 liquidity and the pool mint reverts; victim's withdraw/deposit/rebalance reverts."
+  ],
+  "preconditions": [
+   {
+    "text": "spot price inside a listed ticker's tick range",
+    "type": "STATE"
+   },
+   {
+    "text": "isEnabled == true",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "vault operations blocked while spot stays in the window",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=? B=? C=✓ D=✓",
+   "rules_applied": [
+    "R10:✓(worst state: window persists while market trades there)",
+    "R15:✓(spot moved by swap within the 1% band)",
+    "R16:✗(spot not oracle)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:n1=0 on in-range tick→L=min(L0,0)=0→mint revert]",
+    "[TRACE:getActiveTickIndex→i+2=mixed tick→deposit(n0,0)→revert]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "vault operations blocked while spot stays in the window"
+   ],
+   "who_benefits": "Griefer / MEV searcher"
+  }
+ },
+ {
+  "id": "DD-2",
+  "chain": "solidity",
+  "title": "TokenisableRange.deposit splits fees using slot0 spot with no oracle check, letting a depositor under-pay the pending-fee pool and capture it on withdraw",
+  "severity": "Medium",
+  "category": "price-manipulation / accounting",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "line_start": 237,
+    "line_end": 247,
+    "unit": "TokenisableRange",
+    "function": "deposit"
+   },
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "line_start": 316,
+    "line_end": 324,
+    "unit": "TokenisableRange",
+    "function": "withdraw"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.2 (trace concrete values) on deposit(). The share of the deposit routed to the uncompounded fee pool is newFee0 = n0*fee0/(token0Amount+fee0) where token0Amount comes from slot0 (pool spot), not from the oracle. LP minted is totalSupply*newLiquidity/liquidity when either newFee is non-zero, so the depositor is credited only for the liquidity part, but on withdraw receives fee*lp/totalSupply of the whole pool. Moving spot (a swap, undone after) changes token0Amount/token1Amount, so the depositor can set the fee-side share to roughly zero (e.g. n1 = 1 wei with price below range makes newFee1 = 1) while still owning x of all pending fees. TR.deposit itself has no poolMatchesOracle guard; only GeVault does.",
+  "root_cause": "Fee/liquidity split computed from manipulable spot composition and not reconciled with the oracle-based feeLiquidity path used when no fee is routed.",
+  "vulnerable_code": "(uint160 sqrtPriceX96,,,,,,)  = IUniswapV3Pool(pool).slot0();\n(uint256 token0Amount, uint256 token1Amount) = LiquidityAmounts.getAmountsForLiquidity( sqrtPriceX96, ..., liquidity);\nif (token0Amount + fee0 > 0) newFee0 = n0 * fee0 / (token0Amount + fee0);\nif (token1Amount + fee1 > 0) newFee1 = n1 * fee1 / (token1Amount + fee1);",
+  "harm": {
+   "who": "existing TR LP holders (including GeVault and lending-pool collateral)",
+   "loses_what": "part of the pending uncompounded fee pool (fees stay below ~1% of TR value before compounding)",
+   "magnitude": "up to the pending fee pool scaled by the attacker's liquidity share, bounded by about 1% of TR value per cycle"
+  },
+  "exploit_trace": [
+   "1. TR has pending fee0=F0, fee1=F1 (each below 1% of TR value).",
+   "2. Attacker swaps the pool so spot is below the range (token0Amount = full token0 composition, token1Amount = 0).",
+   "3. Attacker calls deposit(n0, 1): newFee1 = 1*F1/F1 = 1, newFee0 = n0*F0/(T0max+F0) is smaller than at fair price; remaining n0-newFee0 becomes liquidity; feeLiquidity branch skipped.",
+   "4. Attacker restores spot, calls withdraw(lp): receives lp/totalSupply of liquidity plus lp/totalSupply of fee0 and fee1, i.e. a share of F1 and F0 never paid for.",
+   "5. Net gain approx x*(F0+F1) for liquidity share x, minus swap fees."
+  ],
+  "preconditions": [
+   {
+    "text": "pending fees > 0 on both sides",
+    "type": "STATE"
+   },
+   {
+    "text": "attacker can move slot0 (swap/flash loan) in the same tx",
+    "type": "EXTERNAL"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "existing holders' fee claim diluted",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=✗ B=✓ C=✓ D=✓",
+   "rules_applied": [
+    "R10:✓(max pending fees)",
+    "R15:✓(spot moved by flash swap)",
+    "R16:✓(oracle not used in the split)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:price below range→token1Amount=0→newFee1=n1]",
+    "[VARIATION:spot in range→partial newFee0 vs spot below→smaller newFee0]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "existing holders' fee claim diluted"
+   ],
+   "who_benefits": "Attacker"
+  }
+ },
+ {
+  "id": "DD-3",
+  "chain": "solidity",
+  "title": "OptionsPositionManager.addDust is scaled in TR wei per underlying decimals, so closeDebt over-mints TR whose excess stays stuck in the OPM at the user's cost",
+  "severity": "Low",
+  "category": "math / unit mismatch",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 544,
+    "line_end": 551,
+    "unit": "OptionsPositionManager",
+    "function": "addDust"
+   },
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "line_start": 265,
+    "line_end": 310,
+    "unit": "OptionsPositionManager",
+    "function": "closeDebt"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "accountant",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.2 (mechanical arithmetic). addDust returns 10**(20-decimals)*price/1e8 interpreted as TR wei (1e18 = 1 TR) with the comment 'any underlying amount larger than 100 units'. That is only right if 1 TR is worth about $1. For a 6-decimal asset (USDC) it is 1e14 TR wei = 1e-4 TR regardless of TR value; a TR initialised with large liquidity is worth far more per unit, so the dust added to repayAmount and deposited is worth V*1e-4 per close/liquidation. LP.repay caps at the real debt, the excess TR remains in OPM (cleanup only handles token0/token1) and is only recoverable by removeDust to the treasury, so the user's (or liquidator's) funds pay for it.",
+  "root_cause": "Dust is defined in underlying raw units but applied as TR wei without converting via the TR's value per unit.",
+  "vulnerable_code": "uint scale0 = 10**(20 - ERC20(token0).decimals()) * oracle.getAssetPrice(token0) / 1e8;\nuint scale1 = 10**(20 - ERC20(token1).decimals()) * oracle.getAssetPrice(token1) / 1e8;\nif (scale0 > scale1) amount = scale0; else amount = scale1;",
+  "harm": {
+   "who": "users whose debt is closed via OPM.close and liquidators",
+   "loses_what": "underlying tokens worth V_TR*1e-4 (USDC pair) per call, left as TR in the OPM",
+   "magnitude": "about $10 per call if 1 TR is worth $100k; negligible for small TRs"
+  },
+  "exploit_trace": [
+   "1. TR value per 1e18 units is V (e.g. $100k); pair has a 6-decimal token at $1.",
+   "2. Anyone calls close(poolId, user, TR, 0, collateral); debt = userDebt + 1e14.",
+   "3. closeDebt deposits getTokenAmounts(debt) underlying, minting about userDebt+1e14 TR; LP.repay consumes only userDebt.",
+   "4. 1e14 TR (worth V*1e-4) stays in OPM; user's aTokens paid for it."
+  ],
+  "preconditions": [
+   {
+    "text": "TR value per unit well above $1",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "TR dust accumulates in the OPM",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=✗ B=✓ C=✗ D=✓",
+   "rules_applied": [
+    "R10:✓(depends on TR size)",
+    "R11:✗",
+    "R12:✗"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:decimals=6,price=1e8→dust=1e14 TR wei]",
+    "[VARIATION:V=$1→$0.0001, V=$100k→$10]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "TR dust accumulates in the OPM"
+   ],
+   "who_benefits": "Treasury (via removeDust)"
+  }
+ },
+ {
+  "id": "DD-4",
+  "chain": "solidity",
+  "title": "V3Proxy: swapTokensForExactETH keeps the unspent amountInMax and swapTokensForExactTokens refunds the entire proxy balance, so stranded input is claimable by the next caller",
+  "severity": "High",
+  "category": "token-accounting / refund",
+  "status": "candidate",
+  "locations": [
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 160,
+    "line_end": 176,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactETH"
+   },
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "line_start": 124,
+    "line_end": 135,
+    "unit": "V3Proxy",
+    "function": "swapTokensForExactTokens"
+   }
+  ],
+  "discovery": {
+   "phase": "detect",
+   "lens": "D",
+   "mindset": "edge-case",
+   "consensus": null,
+   "unit": null
+  },
+  "description": "Discovery: Q4.4 (amountIn < amountInMax boundary) and Module F. Both exact-output paths pull amountInMax from the caller, but the router only consumes amountIn <= amountInMax. swapTokensForExactETH never returns amountInMax-amountIn, so it stays in the proxy. swapTokensForExactTokens refunds ogInAsset.balanceOf(address(this)), which includes any previously stranded balance of that token, so the next caller of the exact-token path with the same path[0] (amountInMax can be small) receives the leftovers. The function is also payable but ETH sent is not used. Deepens DP1-4.",
+  "root_cause": "Refund logic is not tied to this call's delta (amountInMax - amountIn); one path omits the refund, the other refunds the full balance.",
+  "vulnerable_code": "amounts[0] = ROUTER.exactOutputSingle(...amountInMax...);\n...\nogInAsset.safeApprove(address(ROUTER), 0);   // swapTokensForExactETH: no refund\n...\nogInAsset.safeTransfer(msg.sender, ogInAsset.balanceOf(address(this)));   // swapTokensForExactTokens",
+  "harm": {
+   "who": "callers of swapTokensForExactETH (and contracts integrating it)",
+   "loses_what": "amountInMax - amountIn of the input token on every call",
+   "magnitude": "the slippage margin per call, taken by the next swapTokensForExactTokens caller or the owner via emergencyWithdraw"
+  },
+  "exploit_trace": [
+   "1. Victim calls swapTokensForExactETH(amountOut, amountInMax = 1.01*quote, [USDC, WETH]); router spends the quote, 1% of USDC stays in V3Proxy.",
+   "2. Attacker calls swapTokensForExactTokens(1 wei, 1, [USDC, X]) (any valid direct path with USDC as input).",
+   "3. The final safeTransfer sends ogInAsset.balanceOf(proxy), including the victim's stranded USDC, to the attacker."
+  ],
+  "preconditions": [
+   {
+    "text": "a swapTokensForExactETH call with amountInMax above the real input",
+    "type": "STATE"
+   }
+  ],
+  "postconditions": [
+   {
+    "text": "stranded token balance sits in the proxy",
+    "type": "STATE"
+   }
+  ],
+  "audit_trail": {
+   "step_execution": "Lens: A=✗ B=✓ C=✓ D=✓",
+   "rules_applied": [
+    "R10:✓(worst state: large amountInMax margins)",
+    "R11:✓(unsolicited balance claimed by balanceOf refund)"
+   ],
+   "depth_evidence": [
+    "[BOUNDARY:amountIn<amountInMax→remainder stranded]",
+    "[TRACE:swapTokensForExactETH→no refund→swapTokensForExactTokens balanceOf refund→attacker]"
+   ],
+   "missing_precondition": "",
+   "postconditions_created": [
+    "stranded token balance sits in the proxy"
+   ],
+   "who_benefits": "Attacker"
+  }
+ }
+]

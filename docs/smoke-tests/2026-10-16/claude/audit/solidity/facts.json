@@ -1,0 +1,240 @@
+{
+  "chain": "solidity",
+  "mode": "compiler",
+  "root": "/private/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/claude",
+  "units": [
+    {
+      "name": "Owned",
+      "kind": "contract",
+      "file": "src/Base.sol",
+      "line": 4,
+      "loc": 16,
+      "parents": []
+    },
+    {
+      "name": "IERC20",
+      "kind": "interface",
+      "file": "src/Vault.sol",
+      "line": 6,
+      "loc": 4,
+      "parents": []
+    },
+    {
+      "name": "Vault",
+      "kind": "contract",
+      "file": "src/Vault.sol",
+      "line": 11,
+      "loc": 45,
+      "parents": [
+        "Owned"
+      ]
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "Owned",
+      "name": "transferOwnership",
+      "file": "src/Base.sol",
+      "line": 16,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Vault",
+      "name": "deposit",
+      "file": "src/Vault.sol",
+      "line": 21,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Vault",
+      "name": "depositEth",
+      "file": "src/Vault.sol",
+      "line": 27,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "Vault",
+      "name": "sweep",
+      "file": "src/Vault.sol",
+      "line": 32,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Vault",
+      "name": "withdraw",
+      "file": "src/Vault.sol",
+      "line": 36,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "Vault",
+      "name": "setFee",
+      "file": "src/Vault.sol",
+      "line": 44,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "Vault",
+      "name": "balanceOf",
+      "file": "src/Vault.sol",
+      "line": 46,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "Owned",
+      "file": "src/Base.sol",
+      "line": 8,
+      "kind": "inline"
+    },
+    {
+      "unit": "Owned",
+      "file": "src/Base.sol",
+      "line": 16,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "Vault",
+      "file": "src/Vault.sol",
+      "line": 44,
+      "kind": "modifier:onlyOwner"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "Owned",
+      "function": "constructor",
+      "file": "src/Base.sol",
+      "line": 13,
+      "target": "owner"
+    },
+    {
+      "unit": "Owned",
+      "function": "transferOwnership",
+      "file": "src/Base.sol",
+      "line": 17,
+      "target": "owner"
+    },
+    {
+      "unit": "Vault",
+      "function": "deposit",
+      "file": "src/Vault.sol",
+      "line": 23,
+      "target": "balances"
+    },
+    {
+      "unit": "Vault",
+      "function": "deposit",
+      "file": "src/Vault.sol",
+      "line": 24,
+      "target": "totalDeposits"
+    },
+    {
+      "unit": "Vault",
+      "function": "depositEth",
+      "file": "src/Vault.sol",
+      "line": 28,
+      "target": "balances"
+    },
+    {
+      "unit": "Vault",
+      "function": "withdraw",
+      "file": "src/Vault.sol",
+      "line": 37,
+      "target": "balances"
+    },
+    {
+      "unit": "Vault",
+      "function": "withdraw",
+      "file": "src/Vault.sol",
+      "line": 39,
+      "target": "totalDeposits"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "Vault",
+      "function": "deposit",
+      "file": "src/Vault.sol",
+      "line": 22,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "Vault",
+      "function": "sweep",
+      "file": "src/Vault.sol",
+      "line": 33,
+      "kind": "transfer"
+    },
+    {
+      "unit": "Vault",
+      "function": "withdraw",
+      "file": "src/Vault.sol",
+      "line": 41,
+      "kind": "transfer"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "Vault",
+      "function": "deposit",
+      "file": "src/Vault.sol",
+      "line": 22,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "Vault",
+      "function": "sweep",
+      "file": "src/Vault.sol",
+      "line": 33,
+      "kind": "transfer",
+      "asset": "native"
+    },
+    {
+      "unit": "Vault",
+      "function": "withdraw",
+      "file": "src/Vault.sol",
+      "line": 41,
+      "kind": "transfer",
+      "asset": "token"
+    }
+  ],
+  "counters": {
+    "src/Base.sol": {
+      "loc": 19,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "src/Vault.sol": {
+      "loc": 55,
+      "external_calls": 3,
+      "state_writers": 5,
+      "payable": 1,
+      "assembly_blocks": 1,
+      "unchecked_blocks": 1
+    }
+  }
+}

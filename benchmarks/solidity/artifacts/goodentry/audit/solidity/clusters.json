@@ -1,0 +1,154 @@
+[
+ {
+  "n": 1,
+  "units": [
+   "OptionsPositionManager",
+   "PositionManager"
+  ],
+  "files": [
+   "contracts/PositionManager/OptionsPositionManager.sol",
+   "contracts/PositionManager/PositionManager.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/PositionManager/OptionsPositionManager.sol",
+    "loc": 552,
+    "opened": true,
+    "functions": 18
+   },
+   {
+    "file": "contracts/PositionManager/PositionManager.sol",
+    "loc": 148,
+    "opened": true,
+    "functions": 7
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ },
+ {
+  "n": 2,
+  "units": [
+   "GeVault"
+  ],
+  "files": [
+   "contracts/GeVault.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/GeVault.sol",
+    "loc": 465,
+    "opened": true,
+    "functions": 27
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ },
+ {
+  "n": 3,
+  "units": [
+   "TokenisableRange"
+  ],
+  "files": [
+   "contracts/TokenisableRange.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/TokenisableRange.sol",
+    "loc": 383,
+    "opened": true,
+    "functions": 13
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ },
+ {
+  "n": 4,
+  "units": [
+   "V3Proxy"
+  ],
+  "files": [
+   "contracts/helper/V3Proxy.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/helper/V3Proxy.sol",
+    "loc": 196,
+    "opened": true,
+    "functions": 11
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ },
+ {
+  "n": 5,
+  "units": [
+   "RangeManager",
+   "RoeRouter"
+  ],
+  "files": [
+   "contracts/RangeManager.sol",
+   "contracts/RoeRouter.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/RangeManager.sol",
+    "loc": 215,
+    "opened": true,
+    "functions": 9
+   },
+   {
+    "file": "contracts/RoeRouter.sol",
+    "loc": 87,
+    "opened": true,
+    "functions": 5
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ },
+ {
+  "n": 6,
+  "units": [
+   "HardcodedPriceOracle",
+   "LPOracle",
+   "OracleConvert"
+  ],
+  "files": [
+   "contracts/helper/FixedOracle.sol",
+   "contracts/helper/LPOracle.sol",
+   "contracts/helper/OracleConvert.sol"
+  ],
+  "coverage": [
+   {
+    "file": "contracts/helper/FixedOracle.sol",
+    "loc": 46,
+    "opened": true,
+    "functions": 5
+   },
+   {
+    "file": "contracts/helper/LPOracle.sol",
+    "loc": 105,
+    "opened": true,
+    "functions": 6
+   },
+   {
+    "file": "contracts/helper/OracleConvert.sol",
+    "loc": 81,
+    "opened": true,
+    "functions": 5
+   }
+  ],
+  "excluded": [
+   "see subagent reply (duplicates of detect/rescan candidates)"
+  ]
+ }
+]

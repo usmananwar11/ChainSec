@@ -1,0 +1,36 @@
+[
+  {
+    "id": "DC-1",
+    "chain": "solidity",
+    "title": "Treasury per-block expenditure counter is shared by all tokens and by both governance paths (GSC and CORE_VOTING), so one executed action can make an unrelated one revert",
+    "severity": "Medium",
+    "category": "accounting-mismatch",
+    "status": "candidate",
+    "locations": [
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 358, "line_end": 362, "unit": "ArcadeTreasury", "function": "_spend"},
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 384, "line_end": 388, "unit": "ArcadeTreasury", "function": "_approve"},
+      {"file": "contracts/ArcadeTreasury.sol", "line_start": 68, "line_end": 68, "unit": "ArcadeTreasury", "function": "blockExpenditure"}
+    ],
+    "discovery": {"phase": "detect", "lens": "C", "mindset": "attacker", "consensus": null, "unit": null},
+    "description": "Discovery: Q5.4 / Q7.8 (two callers sequenced in one block; cross-contract read of Council CoreVoting.execute and the shared Timelock). Confirms and deepens DP1-1. blockExpenditure is mapping(block.number => amount) with no token key and no caller key. gscSpend/gscApprove (GSC_CORE_VOTING_ROLE) and the small/medium/large spend and approve functions (CORE_VOTING_ROLE) all add their raw token amounts to the same slot and compare the sum with the threshold of the token being moved. Proposal execution is a permissionless call (CoreVoting.execute / Timelock execute run once the unlock block is reached), so any account can choose which ready proposal is executed first in a block. A ready GSC spend or approve can therefore be placed ahead of a ready governance spend in the same block, and the second execution reverts with T_BlockSpendLimit. The same happens across tokens because raw units of different decimals are summed.",
+    "root_cause": "The per-block limit is keyed only by block.number, so the check 'amount + spentThisBlock > limit' mixes different tokens, different units and different authorities. The counter is never partitioned by token or by role.",
+    "vulnerable_code": "uint256 spentThisBlock = blockExpenditure[block.number];\nif (amount + spentThisBlock > limit) revert T_BlockSpendLimit();\nblockExpenditure[block.number] = amount + spentThisBlock;",
+    "harm": {"who": "DAO / GSC executing treasury actions", "loses_what": "liveness of a valid, threshold-compliant treasury execution in a given block (the whole timelock call package reverts)", "magnitude": "temporary; execution has to be retried in a later block or the proposal reordered or split. Permanent only if the proposal's lastCall passes first."},
+    "exploit_trace": [
+      "1. Token X has small threshold 1e12 and the GSC has a gscAllowance of 1e12 for X. A governance proposal containing smallSpend(X, 1e12, dest) and a GSC proposal containing gscSpend(X, 1e12, dest2) are both past their unlock block.",
+      "2. A third party calls execute for the GSC proposal first in block B; gscSpend writes blockExpenditure[B] = 1e12.",
+      "3. The governance execution for smallSpend(X, 1e12, dest) in the same block B computes 1e12 + 1e12 > 1e12 and reverts with T_BlockSpendLimit, which reverts the whole proposal execution (CoreVoting.execute requires every call to succeed).",
+      "4. Cross-token variant: largeSpend(ARCD, 1e24, a) followed in the same call package by smallSpend(USDC, 1e9, b) fails because 1e24 + 1e9 > 1e12 (USDC small limit)."
+    ],
+    "preconditions": [{"text": "two treasury spends or approvals (different token, or GSC and core voting) are executed in the same block", "type": "TIMING"}],
+    "postconditions": [{"text": "the later execution reverts and must be retried in another block", "type": "STATE"}],
+    "audit_trail": {
+      "step_execution": "Lens: A=? B=? C=✓ D=?",
+      "rules_applied": ["R8:✗(single-step)", "R10:✓(worst state is a multi-token package or same-block GSC plus core voting execution)", "R11:✗(no unsolicited tokens)", "R12:✗", "R15:✗(no flash-loan accessible state)", "R16:✗(no oracle)"],
+      "depth_evidence": ["[BOUNDARY:USDC amount 1e9, prior ARCD spend 1e24, limit 1e12 -> revert]", "[VARIATION:order USDC then ARCD -> sum 1e9+1e24 compared with ARCD limit; the counter is only ever stricter than a per-token counter, never looser]", "[TRACE:gscSpend(X,1e12) then smallSpend(X,1e12) same block -> T_BlockSpendLimit]"],
+      "missing_precondition": "",
+      "postconditions_created": ["whole timelock execution reverts until retried"],
+      "who_benefits": "No one directly (liveness harm); a third party executing proposals in a chosen order can grief"
+    }
+  }
+]

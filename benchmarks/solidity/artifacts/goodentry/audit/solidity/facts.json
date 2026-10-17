@@ -1,0 +1,2401 @@
+{
+  "chain": "solidity",
+  "mode": "regex",
+  "root": "/var/folders/th/5p3z_2150wdcqqwx42vqfmw80000gn/T/chainsec-release-u064ipzk/goodentry",
+  "units": [
+    {
+      "name": "GeVault",
+      "kind": "contract",
+      "file": "contracts/GeVault.sol",
+      "line": 27,
+      "loc": 440,
+      "parents": [
+        "ERC20",
+        "Ownable",
+        "ReentrancyGuard"
+      ]
+    },
+    {
+      "name": "RangeManager",
+      "kind": "contract",
+      "file": "contracts/RangeManager.sol",
+      "line": 25,
+      "loc": 191,
+      "parents": [
+        "ReentrancyGuard",
+        "Ownable"
+      ]
+    },
+    {
+      "name": "RoeRouter",
+      "kind": "contract",
+      "file": "contracts/RoeRouter.sol",
+      "line": 10,
+      "loc": 79,
+      "parents": [
+        "Ownable"
+      ]
+    },
+    {
+      "name": "TokenisableRange",
+      "kind": "contract",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 18,
+      "loc": 366,
+      "parents": [
+        "ERC20",
+        "ReentrancyGuard"
+      ]
+    },
+    {
+      "name": "AmountsRouter",
+      "kind": "interface",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 7,
+      "loc": 4,
+      "parents": []
+    },
+    {
+      "name": "OptionsPositionManager",
+      "kind": "contract",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 12,
+      "loc": 541,
+      "parents": [
+        "PositionManager"
+      ]
+    },
+    {
+      "name": "PositionManager",
+      "kind": "contract",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 17,
+      "loc": 132,
+      "parents": [
+        "IFlashLoanReceiver"
+      ]
+    },
+    {
+      "name": "HardcodedPriceOracle",
+      "kind": "contract",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 3,
+      "loc": 44,
+      "parents": []
+    },
+    {
+      "name": "UniswapV2Pair",
+      "kind": "interface",
+      "file": "contracts/helper/LPOracle.sol",
+      "line": 6,
+      "loc": 6,
+      "parents": []
+    },
+    {
+      "name": "IERC20",
+      "kind": "interface",
+      "file": "contracts/helper/LPOracle.sol",
+      "line": 13,
+      "loc": 3,
+      "parents": []
+    },
+    {
+      "name": "LPOracle",
+      "kind": "contract",
+      "file": "contracts/helper/LPOracle.sol",
+      "line": 17,
+      "loc": 89,
+      "parents": []
+    },
+    {
+      "name": "OracleConvert",
+      "kind": "contract",
+      "file": "contracts/helper/OracleConvert.sol",
+      "line": 15,
+      "loc": 67,
+      "parents": []
+    },
+    {
+      "name": "ISwapRouter",
+      "kind": "interface",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 9,
+      "loc": 27,
+      "parents": []
+    },
+    {
+      "name": "IQuoter",
+      "kind": "interface",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 38,
+      "loc": 17,
+      "parents": []
+    },
+    {
+      "name": "IWETH9",
+      "kind": "interface",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 56,
+      "loc": 3,
+      "parents": [
+        "IERC20"
+      ]
+    },
+    {
+      "name": "V3Proxy",
+      "kind": "contract",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 60,
+      "loc": 137,
+      "parents": [
+        "ReentrancyGuard",
+        "Ownable"
+      ]
+    },
+    {
+      "name": "AggregatorV3Interface",
+      "kind": "interface",
+      "file": "interfaces/AggregatorV3Interface.sol",
+      "line": 4,
+      "loc": 29,
+      "parents": []
+    },
+    {
+      "name": "DataTypes",
+      "kind": "library",
+      "file": "interfaces/DataTypes.sol",
+      "line": 4,
+      "loc": 46,
+      "parents": []
+    },
+    {
+      "name": "IAToken",
+      "kind": "interface",
+      "file": "interfaces/IAToken.sol",
+      "line": 9,
+      "loc": 104,
+      "parents": [
+        "IERC20",
+        "IScaledBalanceToken",
+        "IInitializableAToken"
+      ]
+    },
+    {
+      "name": "IAaveIncentivesController",
+      "kind": "interface",
+      "file": "interfaces/IAaveIncentivesController.sol",
+      "line": 5,
+      "loc": 144,
+      "parents": []
+    },
+    {
+      "name": "ILendingPool",
+      "kind": "interface",
+      "file": "interfaces/IAaveLendingPoolV2.sol",
+      "line": 8,
+      "loc": 440,
+      "parents": []
+    },
+    {
+      "name": "IAaveOracle",
+      "kind": "interface",
+      "file": "interfaces/IAaveOracle.sol",
+      "line": 4,
+      "loc": 6,
+      "parents": []
+    },
+    {
+      "name": "ICreditDelegationToken",
+      "kind": "interface",
+      "file": "interfaces/ICreditDelegationToken.sol",
+      "line": 4,
+      "loc": 25,
+      "parents": []
+    },
+    {
+      "name": "IERC20",
+      "kind": "interface",
+      "file": "interfaces/IERC20.sol",
+      "line": 9,
+      "loc": 70,
+      "parents": []
+    },
+    {
+      "name": "IERC721Permit",
+      "kind": "interface",
+      "file": "interfaces/IERC721Permit.sol",
+      "line": 8,
+      "loc": 25,
+      "parents": [
+        "IERC721"
+      ]
+    },
+    {
+      "name": "IFlashLoanReceiver",
+      "kind": "interface",
+      "file": "interfaces/IFlashLoanReceiver.sol",
+      "line": 13,
+      "loc": 13,
+      "parents": []
+    },
+    {
+      "name": "IInitializableAToken",
+      "kind": "interface",
+      "file": "interfaces/IInitializableAToken.sol",
+      "line": 12,
+      "loc": 44,
+      "parents": []
+    },
+    {
+      "name": "ILendingPoolAddressesProvider",
+      "kind": "interface",
+      "file": "interfaces/ILendingPoolAddressesProvider.sol",
+      "line": 11,
+      "loc": 32,
+      "parents": []
+    },
+    {
+      "name": "ILendingPoolConfigurator",
+      "kind": "interface",
+      "file": "interfaces/ILendingPoolConfigurator.sol",
+      "line": 5,
+      "loc": 189,
+      "parents": []
+    },
+    {
+      "name": "INonfungiblePositionManager",
+      "kind": "interface",
+      "file": "interfaces/INonfungiblePositionManager.sol",
+      "line": 17,
+      "loc": 164,
+      "parents": [
+        "IPoolInitializer",
+        "IPeripheryPayments",
+        "IPeripheryImmutableState",
+        "IERC721Metadata",
+        "IERC721Enumerable",
+        "IERC721Permit"
+      ]
+    },
+    {
+      "name": "IPeripheryImmutableState",
+      "kind": "interface",
+      "file": "interfaces/IPeripheryImmutableState.sol",
+      "line": 6,
+      "loc": 7,
+      "parents": []
+    },
+    {
+      "name": "IPeripheryPayments",
+      "kind": "interface",
+      "file": "interfaces/IPeripheryPayments.sol",
+      "line": 6,
+      "loc": 23,
+      "parents": []
+    },
+    {
+      "name": "IPoolInitializer",
+      "kind": "interface",
+      "file": "interfaces/IPoolInitializer.sol",
+      "line": 8,
+      "loc": 15,
+      "parents": []
+    },
+    {
+      "name": "IPriceOracle",
+      "kind": "interface",
+      "file": "interfaces/IPriceOracle.sol",
+      "line": 7,
+      "loc": 11,
+      "parents": []
+    },
+    {
+      "name": "IScaledBalanceToken",
+      "kind": "interface",
+      "file": "interfaces/IScaledBalanceToken.sol",
+      "line": 4,
+      "loc": 23,
+      "parents": []
+    },
+    {
+      "name": "ISwapRouter",
+      "kind": "interface",
+      "file": "interfaces/ISwapRouter.sol",
+      "line": 9,
+      "loc": 59,
+      "parents": [
+        "IUniswapV3SwapCallback"
+      ]
+    },
+    {
+      "name": "IUniswapV2Factory",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV2Factory.sol",
+      "line": 3,
+      "loc": 15,
+      "parents": []
+    },
+    {
+      "name": "IUniswapV2Pair",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV2Pair.sol",
+      "line": 3,
+      "loc": 50,
+      "parents": []
+    },
+    {
+      "name": "IUniswapV2Router01",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV2Router01.sol",
+      "line": 5,
+      "loc": 158,
+      "parents": []
+    },
+    {
+      "name": "IUniswapV3Factory",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV3Factory.sol",
+      "line": 6,
+      "loc": 73,
+      "parents": []
+    },
+    {
+      "name": "IUniswapV3Pool",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV3Pool.sol",
+      "line": 6,
+      "loc": 23,
+      "parents": []
+    },
+    {
+      "name": "IUniswapV3SwapCallback",
+      "kind": "interface",
+      "file": "interfaces/IUniswapV3SwapCallback.sol",
+      "line": 6,
+      "loc": 16,
+      "parents": []
+    },
+    {
+      "name": "IWETH",
+      "kind": "interface",
+      "file": "interfaces/IWETH.sol",
+      "line": 3,
+      "loc": 9,
+      "parents": []
+    },
+    {
+      "name": "PoolAddress",
+      "kind": "library",
+      "file": "interfaces/PoolAddress.sol",
+      "line": 5,
+      "loc": 46,
+      "parents": []
+    }
+  ],
+  "entry_points": [
+    {
+      "unit": "GeVault",
+      "name": "setEnabled",
+      "file": "contracts/GeVault.sol",
+      "line": 101,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "setTreasury",
+      "file": "contracts/GeVault.sol",
+      "line": 108,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "pushTick",
+      "file": "contracts/GeVault.sol",
+      "line": 116,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "shiftTick",
+      "file": "contracts/GeVault.sol",
+      "line": 137,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "modifyTick",
+      "file": "contracts/GeVault.sol",
+      "line": 167,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "getTickLength",
+      "file": "contracts/GeVault.sol",
+      "line": 177,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "setBaseFee",
+      "file": "contracts/GeVault.sol",
+      "line": 183,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "setTvlCap",
+      "file": "contracts/GeVault.sol",
+      "line": 191,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "rebalance",
+      "file": "contracts/GeVault.sol",
+      "line": 202,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 214,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "deposit",
+      "file": "contracts/GeVault.sol",
+      "line": 247,
+      "visibility": "public",
+      "mutability": "payable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "GeVault",
+      "name": "latestAnswer",
+      "file": "contracts/GeVault.sol",
+      "line": 289,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "getReserves",
+      "file": "contracts/GeVault.sol",
+      "line": 298,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "poolMatchesOracle",
+      "file": "contracts/GeVault.sol",
+      "line": 367,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "getTVL",
+      "file": "contracts/GeVault.sol",
+      "line": 392,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "getTickBalance",
+      "file": "contracts/GeVault.sol",
+      "line": 420,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "getActiveTickIndex",
+      "file": "contracts/GeVault.sol",
+      "line": 428,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "getAdjustedBaseFee",
+      "file": "contracts/GeVault.sol",
+      "line": 445,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "GeVault",
+      "name": "receive",
+      "file": "contracts/GeVault.sol",
+      "line": 462,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "RangeManager",
+      "name": "generateRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 75,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "RangeManager",
+      "name": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 95,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "RangeManager",
+      "name": "removeAssetsFromStep",
+      "file": "contracts/RangeManager.sol",
+      "line": 139,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "RangeManager",
+      "name": "transferAssetsIntoRangerStep",
+      "file": "contracts/RangeManager.sol",
+      "line": 175,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "RangeManager",
+      "name": "transferAssetsIntoTickerStep",
+      "file": "contracts/RangeManager.sol",
+      "line": 184,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "RangeManager",
+      "name": "getStepListLength",
+      "file": "contracts/RangeManager.sol",
+      "line": 212,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "RoeRouter",
+      "name": "getPoolsLength",
+      "file": "contracts/RoeRouter.sol",
+      "line": 40,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "RoeRouter",
+      "name": "deprecatePool",
+      "file": "contracts/RoeRouter.sol",
+      "line": 48,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "RoeRouter",
+      "name": "addPool",
+      "file": "contracts/RoeRouter.sol",
+      "line": 59,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "RoeRouter",
+      "name": "setTreasury",
+      "file": "contracts/RoeRouter.sol",
+      "line": 83,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 85,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "name",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 125,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "symbol",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 127,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 134,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 167,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 222,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 292,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "nonReentrant"
+      ]
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "returnExpectedBalance",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 343,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "getValuePerLPAtPrice",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 352,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "latestAnswer",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 361,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "getTokenAmountsExcludingFees",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 368,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "TokenisableRange",
+      "name": "getTokenAmounts",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 377,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "executeOperation",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 38,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "buyOptions",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 159,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "liquidate",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 189,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "close",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 223,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "sellOptions",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 384,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "withdrawOptions",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 412,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "name": "swapTokens",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 439,
+      "visibility": "public",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PositionManager",
+      "name": "executeOperation",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 46,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "PositionManager",
+      "name": "removeDust",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 114,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "name": "latestAnswer",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 20,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "name": "setHardcodedPrice",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 24,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "name": "latestRoundData",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 29,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "LPOracle",
+      "name": "decimals",
+      "file": "contracts/helper/LPOracle.sol",
+      "line": 38,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "LPOracle",
+      "name": "latestAnswer",
+      "file": "contracts/helper/LPOracle.sol",
+      "line": 69,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "OracleConvert",
+      "name": "decimals",
+      "file": "contracts/helper/OracleConvert.sol",
+      "line": 30,
+      "visibility": "external",
+      "mutability": "pure",
+      "guards": []
+    },
+    {
+      "unit": "OracleConvert",
+      "name": "latestAnswer",
+      "file": "contracts/helper/OracleConvert.sol",
+      "line": 50,
+      "visibility": "public",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "OracleConvert",
+      "name": "latestRoundData",
+      "file": "contracts/helper/OracleConvert.sol",
+      "line": 78,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "WETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 82,
+      "visibility": "external",
+      "mutability": "view",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "receive",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 86,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "fallback",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 90,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "emergencyWithdraw",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 94,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": [
+        "onlyOwner"
+      ]
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "getAmountsOut",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 98,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "getAmountsIn",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 105,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapExactTokensForTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 112,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapTokensForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 124,
+      "visibility": "external",
+      "mutability": "nonpayable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapExactETHForTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 137,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapETHForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 147,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 160,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    },
+    {
+      "unit": "V3Proxy",
+      "name": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 178,
+      "visibility": "external",
+      "mutability": "payable",
+      "guards": []
+    }
+  ],
+  "auth_sites": [
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 101,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 108,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 116,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 137,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 167,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 183,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 191,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "GeVault",
+      "file": "contracts/GeVault.sol",
+      "line": 463,
+      "kind": "inline"
+    },
+    {
+      "unit": "RangeManager",
+      "file": "contracts/RangeManager.sol",
+      "line": 75,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "RangeManager",
+      "file": "contracts/RangeManager.sol",
+      "line": 95,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "RoeRouter",
+      "file": "contracts/RoeRouter.sol",
+      "line": 48,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "RoeRouter",
+      "file": "contracts/RoeRouter.sol",
+      "line": 59,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "RoeRouter",
+      "file": "contracts/RoeRouter.sol",
+      "line": 83,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "TokenisableRange",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 136,
+      "kind": "inline"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 69,
+      "kind": "inline"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 91,
+      "kind": "inline"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 281,
+      "kind": "inline"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 327,
+      "kind": "inline"
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 24,
+      "kind": "modifier:onlyOwner"
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 11,
+      "kind": "inline"
+    },
+    {
+      "unit": "V3Proxy",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 94,
+      "kind": "modifier:onlyOwner"
+    }
+  ],
+  "storage_writes": [
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 84,
+      "target": "token0"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 85,
+      "target": "token1"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 87,
+      "target": "lendingPool"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 88,
+      "target": "oracle"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 89,
+      "target": "treasury"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 90,
+      "target": "uniswapPool"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 91,
+      "target": "WETH"
+    },
+    {
+      "unit": "GeVault",
+      "function": "constructor",
+      "file": "contracts/GeVault.sol",
+      "line": 92,
+      "target": "baseTokenIsToken0"
+    },
+    {
+      "unit": "GeVault",
+      "function": "setEnabled",
+      "file": "contracts/GeVault.sol",
+      "line": 102,
+      "target": "isEnabled"
+    },
+    {
+      "unit": "GeVault",
+      "function": "setTreasury",
+      "file": "contracts/GeVault.sol",
+      "line": 109,
+      "target": "treasury"
+    },
+    {
+      "unit": "GeVault",
+      "function": "shiftTick",
+      "file": "contracts/GeVault.sol",
+      "line": 155,
+      "target": "ticks"
+    },
+    {
+      "unit": "GeVault",
+      "function": "shiftTick",
+      "file": "contracts/GeVault.sol",
+      "line": 158,
+      "target": "ticks"
+    },
+    {
+      "unit": "GeVault",
+      "function": "modifyTick",
+      "file": "contracts/GeVault.sol",
+      "line": 171,
+      "target": "ticks"
+    },
+    {
+      "unit": "GeVault",
+      "function": "setBaseFee",
+      "file": "contracts/GeVault.sol",
+      "line": 185,
+      "target": "baseFeeX4"
+    },
+    {
+      "unit": "GeVault",
+      "function": "setTvlCap",
+      "file": "contracts/GeVault.sol",
+      "line": 192,
+      "target": "tvlCap"
+    },
+    {
+      "unit": "GeVault",
+      "function": "deployAssets",
+      "file": "contracts/GeVault.sol",
+      "line": 361,
+      "target": "tickIndex"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "constructor",
+      "file": "contracts/RangeManager.sol",
+      "line": 50,
+      "target": "LENDING_POOL"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "constructor",
+      "file": "contracts/RangeManager.sol",
+      "line": 51,
+      "target": "ASSET_0"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "constructor",
+      "file": "contracts/RangeManager.sol",
+      "line": 52,
+      "target": "ASSET_1"
+    },
+    {
+      "unit": "RoeRouter",
+      "function": "constructor",
+      "file": "contracts/RoeRouter.sol",
+      "line": 35,
+      "target": "treasury"
+    },
+    {
+      "unit": "RoeRouter",
+      "function": "deprecatePool",
+      "file": "contracts/RoeRouter.sol",
+      "line": 49,
+      "target": "pools"
+    },
+    {
+      "unit": "RoeRouter",
+      "function": "setTreasury",
+      "file": "contracts/RoeRouter.sol",
+      "line": 85,
+      "target": "treasury"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 88,
+      "target": "creator"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 89,
+      "target": "status"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 90,
+      "target": "ORACLE"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 92,
+      "target": "TOKEN0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 93,
+      "target": "TOKEN0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 94,
+      "target": "TOKEN1"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 95,
+      "target": "TOKEN1"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 103,
+      "target": "feeTier"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 108,
+      "target": "_name"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 109,
+      "target": "_symbol"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 111,
+      "target": "feeTier"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 114,
+      "target": "_name"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 115,
+      "target": "_symbol"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 117,
+      "target": "lowerTick"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "initProxy",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 118,
+      "target": "upperTick"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 137,
+      "target": "status"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 142,
+      "target": "tokenId"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 142,
+      "target": "liquidity"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 183,
+      "target": "fee0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 184,
+      "target": "fee1"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 210,
+      "target": "fee0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 211,
+      "target": "fee1"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 212,
+      "target": "liquidity"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 243,
+      "target": "fee0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 244,
+      "target": "fee1"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 279,
+      "target": "liquidity"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 304,
+      "target": "liquidity"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 318,
+      "target": "fee0"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 323,
+      "target": "fee1"
+    },
+    {
+      "unit": "PositionManager",
+      "function": "constructor",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 31,
+      "target": "ROEROUTER"
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "function": "constructor",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 16,
+      "target": "owner"
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "function": "constructor",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 17,
+      "target": "hardcodedPrice"
+    },
+    {
+      "unit": "HardcodedPriceOracle",
+      "function": "setHardcodedPrice",
+      "file": "contracts/helper/FixedOracle.sol",
+      "line": 25,
+      "target": "hardcodedPrice"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapETHForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 153,
+      "target": "acceptPayable"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapETHForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 155,
+      "target": "acceptPayable"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 171,
+      "target": "acceptPayable"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 173,
+      "target": "acceptPayable"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 189,
+      "target": "acceptPayable"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 191,
+      "target": "acceptPayable"
+    }
+  ],
+  "external_calls": [
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 227,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 232,
+      "kind": "transfer"
+    },
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 235,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "GeVault",
+      "function": "deposit",
+      "file": "contracts/GeVault.sol",
+      "line": 262,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "GeVault",
+      "function": "deposit",
+      "file": "contracts/GeVault.sol",
+      "line": 267,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 96,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 98,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 101,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 138,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 139,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 159,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 160,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 180,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 181,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 228,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 229,
+      "kind": "transferFrom"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 282,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 283,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 316,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 321,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "function": "calculateAndSendFee",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 370,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "PositionManager",
+      "function": "removeDust",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 115,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "emergencyWithdraw",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 95,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 115,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 127,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 132,
+      "kind": "safeTransfer"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapETHForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 156,
+      "kind": "call"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 164,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 174,
+      "kind": "call"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 182,
+      "kind": "safeTransferFrom"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 192,
+      "kind": "call"
+    }
+  ],
+  "value_transfers": [
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 227,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 232,
+      "kind": "transfer",
+      "asset": "native"
+    },
+    {
+      "unit": "GeVault",
+      "function": "withdraw",
+      "file": "contracts/GeVault.sol",
+      "line": 235,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "GeVault",
+      "function": "deposit",
+      "file": "contracts/GeVault.sol",
+      "line": 262,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "GeVault",
+      "function": "deposit",
+      "file": "contracts/GeVault.sol",
+      "line": 267,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 96,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 98,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "RangeManager",
+      "function": "initRange",
+      "file": "contracts/RangeManager.sol",
+      "line": 101,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 138,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 139,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 159,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "init",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 160,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 180,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "claimFee",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 181,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 228,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 229,
+      "kind": "transferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 282,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "deposit",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 283,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 316,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "TokenisableRange",
+      "function": "withdraw",
+      "file": "contracts/TokenisableRange.sol",
+      "line": 321,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "OptionsPositionManager",
+      "function": "calculateAndSendFee",
+      "file": "contracts/PositionManager/OptionsPositionManager.sol",
+      "line": 370,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "PositionManager",
+      "function": "removeDust",
+      "file": "contracts/PositionManager/PositionManager.sol",
+      "line": 115,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "emergencyWithdraw",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 95,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 115,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 127,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 132,
+      "kind": "safeTransfer",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapETHForExactTokens",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 156,
+      "kind": "call",
+      "asset": "native"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 164,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapTokensForExactETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 174,
+      "kind": "call",
+      "asset": "native"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 182,
+      "kind": "safeTransferFrom",
+      "asset": "token"
+    },
+    {
+      "unit": "V3Proxy",
+      "function": "swapExactTokensForETH",
+      "file": "contracts/helper/V3Proxy.sol",
+      "line": 192,
+      "kind": "call",
+      "asset": "native"
+    }
+  ],
+  "counters": {
+    "contracts/GeVault.sol": {
+      "loc": 465,
+      "external_calls": 5,
+      "state_writers": 11,
+      "payable": 2,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/RangeManager.sol": {
+      "loc": 215,
+      "external_calls": 3,
+      "state_writers": 5,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/RoeRouter.sol": {
+      "loc": 87,
+      "external_calls": 0,
+      "state_writers": 3,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/TokenisableRange.sol": {
+      "loc": 382,
+      "external_calls": 12,
+      "state_writers": 5,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/PositionManager/OptionsPositionManager.sol": {
+      "loc": 552,
+      "external_calls": 1,
+      "state_writers": 7,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 2
+    },
+    "contracts/PositionManager/PositionManager.sol": {
+      "loc": 148,
+      "external_calls": 1,
+      "state_writers": 2,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/FixedOracle.sol": {
+      "loc": 46,
+      "external_calls": 0,
+      "state_writers": 1,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/LPOracle.sol": {
+      "loc": 105,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/OracleConvert.sol": {
+      "loc": 81,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "contracts/helper/V3Proxy.sol": {
+      "loc": 196,
+      "external_calls": 9,
+      "state_writers": 11,
+      "payable": 9,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/AggregatorV3Interface.sol": {
+      "loc": 32,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/DataTypes.sol": {
+      "loc": 49,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IAToken.sol": {
+      "loc": 112,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IAaveIncentivesController.sol": {
+      "loc": 148,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IAaveLendingPoolV2.sol": {
+      "loc": 448,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IAaveOracle.sol": {
+      "loc": 9,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/ICreditDelegationToken.sol": {
+      "loc": 28,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IERC20.sol": {
+      "loc": 77,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IERC721Permit.sol": {
+      "loc": 32,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IFlashLoanReceiver.sol": {
+      "loc": 25,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IInitializableAToken.sol": {
+      "loc": 55,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/ILendingPoolAddressesProvider.sol": {
+      "loc": 42,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/ILendingPoolConfigurator.sol": {
+      "loc": 193,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/INonfungiblePositionManager.sol": {
+      "loc": 180,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 5,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IPeripheryImmutableState.sol": {
+      "loc": 12,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IPeripheryPayments.sol": {
+      "loc": 28,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 3,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IPoolInitializer.sol": {
+      "loc": 22,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IPriceOracle.sol": {
+      "loc": 17,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IScaledBalanceToken.sol": {
+      "loc": 26,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/ISwapRouter.sol": {
+      "loc": 67,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 4,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV2Factory.sol": {
+      "loc": 17,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV2Pair.sol": {
+      "loc": 52,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV2Router01.sol": {
+      "loc": 162,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 3,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV3Factory.sol": {
+      "loc": 78,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV3Pool.sol": {
+      "loc": 28,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IUniswapV3SwapCallback.sol": {
+      "loc": 21,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/IWETH.sol": {
+      "loc": 10,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 1,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    },
+    "interfaces/PoolAddress.sol": {
+      "loc": 50,
+      "external_calls": 0,
+      "state_writers": 0,
+      "payable": 0,
+      "assembly_blocks": 0,
+      "unchecked_blocks": 0
+    }
+  }
+}

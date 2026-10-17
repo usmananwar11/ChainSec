@@ -1,0 +1,1 @@
+{"chain": "solidity", "mode": "degraded", "tools": {"python3": "OK Python 3.14.6", "forge": "OK 1.7.1", "slither": "MISSING"}, "scope_files": 38, "quick": false, "warnings": ["per-unit: no dedicated cluster for the 28 interface-only files under interfaces/ (RISK_SCORE 15-44); they contain no function bodies and were only read for context"], "incomplete_phases": []}

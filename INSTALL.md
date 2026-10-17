@@ -24,10 +24,12 @@ Commands:
 
 ```
 codex plugin marketplace add usmananwar11/ChainSec
+codex plugin add chainsec@chainsec
 ```
 
-**Unverified:** the `codex plugin marketplace add` command and Codex reading the Claude plugin
-manifest have not been confirmed yet (pending the Codex smoke test). Or, in your project:
+Both commands succeeded with Codex CLI 0.162.1 on 2026-10-16, installing version 0.1.0
+from the existing Claude-compatible marketplace. Start a new session after installation.
+For a plain-skills install instead, run in your project:
 
 ```
 git clone https://github.com/usmananwar11/ChainSec

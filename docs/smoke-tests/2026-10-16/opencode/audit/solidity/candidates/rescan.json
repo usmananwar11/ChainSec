@@ -1,0 +1,80 @@
+[
+  {
+    "id": "RS-1",
+    "chain": "solidity",
+    "title": "ERC20 transfer/transferFrom return values ignored: deposit() credits balances even if token transferFrom returns false; withdraw() debits balances/totalDeposits before a possibly-failing/false-returning transfer",
+    "severity": "Medium",
+    "category": "integration",
+    "status": "candidate",
+    "locations": [
+      {
+        "file": "src/Vault.sol",
+        "line_start": 21,
+        "line_end": 25,
+        "unit": "Vault",
+        "function": "deposit"
+      },
+      {
+        "file": "src/Vault.sol",
+        "line_start": 36,
+        "line_end": 42,
+        "unit": "Vault",
+        "function": "withdraw"
+      }
+    ],
+    "discovery": {
+      "phase": "rescan",
+      "lens": null,
+      "mindset": "edge-case",
+      "consensus": null,
+      "unit": null
+    },
+    "description": "Discovery: rescan class 1/cross-function consistency + integration correctness (token return values). Vault treats IERC20.transferFrom/transfer as bool-returning but never checks the return value. If a non-compliant or misbehaving token returns false without reverting, deposit() will still increment balances[msg.sender] and totalDeposits without actually receiving tokens (unbacked credits). withdraw() debits balances[msg.sender] and totalDeposits before calling transfer; if transfer returns false (or behaves unexpectedly), tokens may not be sent but ledger state is already debited, creating loss for users or desyncs.",
+    "root_cause": "Return values from transferFrom/transfer are ignored; no validation that the token transfer actually succeeded.",
+    "vulnerable_code": "function deposit(uint256 amount) external {\n    token.transferFrom(msg.sender, address(this), amount);\n    balances[msg.sender] += amount;\n    totalDeposits += amount;\n}\n\nfunction withdraw(uint256 amount) external {\n    balances[msg.sender] -= amount;\n    unchecked {\n        totalDeposits -= amount;\n    }\n    token.transfer(msg.sender, amount);\n}",
+    "harm": {
+      "who": "depositors and withdrawers interacting with non-compliant ERC20 tokens (or tokens that can return false)",
+      "loses_what": "unbacked credits created on deposit (others can be redeemed against them), or tokens debited from ledger but not received on withdraw",
+      "magnitude": "up to the affected amounts; can create ledger/token desync proportional to transferred amounts"
+    },
+    "exploit_trace": [
+      "1. Assume a token returns false on transferFrom without reverting.",
+      "2. Attacker or user calls deposit(X); code ignores false and credits balances[user]+=X, totalDeposits+=X.",
+      "3. The vault received 0 tokens but the ledger shows X credit; other users' tokens can later be redeemed against this unbacked credit.",
+      "4. Alternatively, withdraw() debits ledger before transfer; if transfer returns false, user loses their credit with no tokens received."
+    ],
+    "preconditions": [
+      {
+        "text": "interaction with an ERC20 that returns false on failure instead of reverting",
+        "type": "EXTERNAL"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "vault ledger credits exceed actual token balance (unbacked)",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Rescan: pass 1=✓ pass 2=✓; Reinforced: (none)",
+      "rules_applied": [
+        "R8:✗",
+        "R10:✓",
+        "R11:✗",
+        "R12:✓",
+        "R15:✗",
+        "R16:✗"
+      ],
+      "depth_evidence": [
+        "[TRACE:deposit ignores transferFrom return at src/Vault.sol:22]",
+        "[TRACE:withdraw ignores transfer return at src/Vault.sol:41]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "unbacked ledger entries possible"
+      ],
+      "who_benefits": "No one; causes incorrect accounting/state integrity"
+    },
+    "recommendation": "Check return values (or use SafeERC20). In withdraw, consider effects of transfer failure and whether to roll back state safely."
+  }
+]

@@ -1,0 +1,10 @@
+contracts/Position.sol
+contracts/MintingHub.sol
+contracts/Equity.sol
+contracts/Frankencoin.sol
+contracts/ERC20.sol
+contracts/ERC20PermitLight.sol
+contracts/StablecoinBridge.sol
+contracts/PositionFactory.sol
+contracts/MathUtil.sol
+contracts/Ownable.sol

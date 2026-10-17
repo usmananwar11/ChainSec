@@ -1,0 +1,301 @@
+[
+  {
+    "id": "SOL-001",
+    "chain": "solidity",
+    "status": "verified",
+    "severity": "High",
+    "category": "access-control",
+    "title": "removeCollateralWLpTo skips tokenId membership check on partial or zero removal, so any position owner can unwrap LP and harvest rewards of other positions' wLp NFTs",
+    "locations": [
+      {
+        "file": "contracts/core/PosManager.sol",
+        "line_start": 249,
+        "line_end": 268,
+        "unit": "PosManager",
+        "function": "removeCollateralWLpTo"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 264,
+        "line_end": 279,
+        "unit": "InitCore",
+        "function": "decollateralizeWLp"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 317,
+        "line_end": 353,
+        "unit": "InitCore",
+        "function": "liquidateWLp"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "edge-case",
+      "consensus": "strong",
+      "unit": null
+    },
+    "description": "Discovery: Q4 edge-case (param _amt=0 / partial boundary), MODIFIER-01 sibling diff. Confirms and deepens DP1-1. getCollWLpAmt and harvestTo check ids[_wLp].contains(_tokenId), but removeCollateralWLpTo only reaches ids.remove(_tokenId) when newWLpAmt == 0. For _amt < balanceOfLp(_tokenId) (including _amt == 0) the caller-supplied tokenId is never tied to _posId, while PosManager is the ERC721 owner of every collateralized wLp NFT, so _harvest and unwrap (both onlyOwner(id) in the wLp) succeed for a foreign NFT. liquidateWLp reaches the same path with a foreign _tokenId: getCollWLpAmt returns 0 for a non-member, wLpAmtToBurn = 0, and removeCollateralWLpTo(_posId, _wLp, foreignId, 0, liquidator) harvests the victim NFT's rewards into pendingRewards[_posId]. Full removal is blocked by the NOT_CONTAIN check, so the drain is capped at balanceOfLp - 1 per NFT.\n\nState-analysis view (STATE-1): the NFT's LP balance falls and rewards are booked to pendingRewards[_posId] of the acting position, while the owning position still lists the tokenId and its collateral valuation (read live from balanceOfLp) shrinks without that position having acted. The attacker then calls claimPendingRewards to take the harvested rewards.",
+    "root_cause": "Position-to-token membership is enforced only on the newWLpAmt == 0 branch; the partial path trusts the caller-supplied (_wLp, _tokenId) pair and acts on the NFT-global balance.",
+    "vulnerable_code": "uint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    _require(posCollInfo.ids[_wLp].remove(_tokenId), Errors.NOT_CONTAIN);\n    ...\n}\n_harvest(_posId, _wLp, _tokenId);\nIBaseWrapLp(_wLp).unwrap(_tokenId, _amt, _receiver);",
+    "harm": {
+      "who": "owners of positions with collateralized wLp NFTs",
+      "loses_what": "LP tokens backing the NFT (all but 1 unit), accrued wLp rewards, and the victim position becomes undercollateralized",
+      "magnitude": "up to balanceOfLp(tokenId) - 1 per NFT"
+    },
+    "exploit_trace": [
+      "1. Victim collateralizes wLp NFT N (balanceOfLp = 1000) in position V.",
+      "2. Attacker owns any position A and calls decollateralizeWLp(A, wLp, N, 999, attacker).",
+      "3. removeCollateralWLpTo: newWLpAmt = 1 != 0, membership check skipped; _harvest credits N's rewards to A; unwrap(N, 999, attacker) runs as PosManager (owner).",
+      "4. ensurePositionHealth(A) checks only A, which is unchanged, and passes.",
+      "5. Attacker calls claimPendingRewards(A, rewardTokens, attacker) to take N's rewards; the victim position V still lists N but its valuation collapses."
+    ],
+    "preconditions": [
+      {
+        "text": "a whitelisted wLp NFT is collateralized by another position",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "victim NFT hollowed out and victim position may be undercollateralized; rewards credited to attacker position",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Gates: A=\u2713 B=\u2713 C=\u2713 D=\u2713 E=\u2713 F=\u2713 G=\u2713 H=\u2713",
+      "rules_applied": [
+        "R8:\u2717(single-step)",
+        "R10:\u2713(full balance minus 1)",
+        "R11:\u2717(n/a)",
+        "R12:\u2713(any collateralized NFT)",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:_amt=0 -> newWLpAmt=balance, no membership check]",
+        "[TRACE:decollateralizeWLp(A,wLp,N,999)->unwrap(N,999,attacker)]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "victim NFT drained"
+      ],
+      "who_benefits": "Attacker"
+    },
+    "merged_from": [
+      "DD-1",
+      "STATE-1",
+      "DA-1",
+      "DB-1",
+      "DC-1",
+      "DP1-1"
+    ],
+    "verdict": {
+      "gate": null,
+      "reason": "Survived gates A-H and Harm statement. PosManager.removeCollateralWLpTo (L249-268) only calls ids.remove(_tokenId) (membership) when newWLpAmt == 0; for _amt < balanceOfLp it proceeds to _harvest and IBaseWrapLp.unwrap as PosManager, which owns every collateralized NFT; the wLp mock confirms harvest/unwrap are onlyOwner(id) only (MockWLpUniV2.sol L57,71). decollateralizeWLp only checks onlyAuthorized(_posId) of the attacker's own position and ensurePositionHealth on that position (no debt => healthy). Not a known issue. Strong consensus. PoC recommended.",
+      "evidence_tag": "[CODE-TRACE]",
+      "method": "hybrid",
+      "original_severity": null
+    },
+    "recommendation": "In PosManager.removeCollateralWLpTo, assert membership before any partial/zero removal, independent of the remaining amount:\n\n_require(posCollInfo.ids[_wLp].contains(_tokenId), Errors.NOT_CONTAIN);\nuint newWLpAmt = IBaseWrapLp(_wLp).balanceOfLp(_tokenId) - _amt;\nif (newWLpAmt == 0) {\n    posCollInfo.ids[_wLp].remove(_tokenId);\n    ...\n}\n\nThis also closes the liquidateWLp path (non-member tokenId with _amt == 0), mirroring the contains() checks already present in harvestTo and getCollWLpAmt."
+  },
+  {
+    "id": "SOL-002",
+    "chain": "solidity",
+    "status": "verified-conditional",
+    "severity": "Medium",
+    "category": "rounding-dos",
+    "title": "updatePosDebtShares snapshots lastDebtAmt with the pre-operation debt ratio, so a second debt update on the same position and pool in one timestamp underflows",
+    "locations": [
+      {
+        "file": "contracts/core/PosManager.sol",
+        "line_start": 170,
+        "line_end": 187,
+        "unit": "PosManager",
+        "function": "updatePosDebtShares"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 141,
+        "line_end": 146,
+        "unit": "InitCore",
+        "function": "borrow"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 544,
+        "line_end": 547,
+        "unit": "InitCore",
+        "function": "_repay"
+      },
+      {
+        "file": "contracts/lending_pool/LendingPool.sol",
+        "line_start": 125,
+        "line_end": 145,
+        "unit": "LendingPool",
+        "function": "repay"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "D",
+      "mindset": "accountant",
+      "consensus": "strong",
+      "unit": null
+    },
+    "description": "Discovery: Q2 accountant (trace concrete values through rounding). Confirms DP1-3. Traced: totalDebt=1,000,000, totalDebtShares=900,000, position holds all shares. repay(1 share): updatePosDebtShares sets lastDebtAmt = ceil(899,999*1e6/9e5) = 999,999 using the pre-repay ratio; LendingPool.repay then charges ceil(1e6/9e5)=2, leaving totalDebt 999,998 / shares 899,999. A second update at the same timestamp reads debtAmtCurrent = 999,998, so debtAmtCurrent - lastDebtAmt underflows (checked arithmetic) and the borrow/repay/liquidate reverts. Borrow behaves the same because shares round up after the snapshot. A borrower can front-run a liquidation in the same block with a dust repay or borrow. Small debts of low-decimal tokens keep the blockage for several seconds because per-second interest rounds to 0.",
+    "root_cause": "The interest snapshot uses a ratio that the pool's round-up arithmetic immediately lowers, breaking the documented invariant debtAmtCurrent >= lastDebtAmt.",
+    "vulnerable_code": "extraInfo.totalInterest += (debtAmtCurrent - extraInfo.lastDebtAmt).toUint128();\n...\nextraInfo.lastDebtAmt = newDebtAmt.toUint128();",
+    "harm": {
+      "who": "liquidators and borrowers",
+      "loses_what": "liquidations or same-block repay/borrow on the position revert",
+      "magnitude": "liveness, per block"
+    },
+    "exploit_trace": [
+      "1. Position P has debt in pool X with non-integral totalDebt/totalDebtShares.",
+      "2. Borrower sends a dust repay (or borrow) in block N before the liquidator's tx.",
+      "3. The liquidator's _repay calls updatePosDebtShares with no accrued interest in the same timestamp and underflows."
+    ],
+    "preconditions": [
+      {
+        "text": "two debt updates on same position/pool in one timestamp and non-integral debt ratio",
+        "type": "TIMING"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "position cannot be updated until >= 1 wei of interest accrues",
+        "type": "STATE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Gates: A=\u2713 B=\u2713 C=\u2713 D=\u2713 E=\u2713 F=\u2713 G=\u2713 H=\u2713",
+      "rules_applied": [
+        "R8:\u2713(cached lastDebtAmt)",
+        "R10:\u2713",
+        "R11:\u2717(n/a)",
+        "R12:\u2713",
+        "R15:\u2717(n/a)",
+        "R16:\u2717(n/a)"
+      ],
+      "depth_evidence": [
+        "[BOUNDARY:totalDebt=1e6 shares=9e5 repay 1 share -> 999,998 < 999,999]",
+        "[TRACE:repay->repay same ts->Panic 0x11]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [
+        "temporary per-block DoS"
+      ],
+      "who_benefits": "Borrower avoiding liquidation"
+    },
+    "merged_from": [
+      "DD-3",
+      "DB-3",
+      "DC-2",
+      "DP1-3"
+    ],
+    "verdict": {
+      "gate": null,
+      "reason": "Survived gates. Trace checked against PosManager.updatePosDebtShares (L170-187) and LendingPool.repay/borrow (round-up). lastDebtAmt is snapshotted with the pre-operation ratio (debtShareToAmtStored before pool.repay), then pool.repay charges ceil(shares*TD/TS), lowering the ratio; with TD=1,000,000, TS=900,000, position shares 900,000, repay(1): lastDebtAmt=999,999, post-state debtAmtCurrent for 899,999 shares = 999,998, so a second update in the same timestamp underflows (0.8.19 checked) at L176. Gap is at most 1 wei and vanishes once any interest accrues, so impact is per-timestamp: a borrower's dust repay in the same block ahead of a liquidator makes liquidation revert, and repay-then-borrow (or two ops) on the same pool in one block/multicall reverts. Conditional on same-timestamp second update and non-integral debt ratio. Not a known issue. PoC recommended.",
+      "evidence_tag": "[CODE-TRACE]",
+      "method": "hybrid",
+      "original_severity": null
+    },
+    "recommendation": "Snapshot lastDebtAmt after the pool has applied its round-up (e.g. call LendingPool.repay/borrow first, then compute newDebtAmt from debtShareToAmtStored for the post-operation shares), or compute the interest delta with a saturating form: `extraInfo.totalInterest += debtAmtCurrent > extraInfo.lastDebtAmt ? (debtAmtCurrent - extraInfo.lastDebtAmt).toUint128() : 0;`. The first option preserves the invariant debtAmtCurrent >= lastDebtAmt."
+  },
+  {
+    "id": "SOL-003",
+    "chain": "solidity",
+    "severity": "Medium",
+    "category": "token-flow",
+    "status": "verified-conditional",
+    "title": "MoneyMarketHook pulls repay tokens for the requested shares but core repays only min(shares, position debt); excess is stranded in the hook and stealable for WNATIVE",
+    "locations": [
+      {
+        "file": "contracts/hook/MoneyMarketHook.sol",
+        "line_start": 145,
+        "line_end": 159,
+        "unit": "MoneyMarketHook",
+        "function": "_handleRepay"
+      },
+      {
+        "file": "contracts/hook/MoneyMarketHook.sol",
+        "line_start": 75,
+        "line_end": 80,
+        "unit": "MoneyMarketHook",
+        "function": "execute"
+      },
+      {
+        "file": "contracts/core/InitCore.sol",
+        "line_start": 533,
+        "line_end": 548,
+        "unit": "InitCore",
+        "function": "_repay"
+      }
+    ],
+    "discovery": {
+      "phase": "detect",
+      "lens": "C",
+      "mindset": "accountant",
+      "consensus": "moderate",
+      "unit": null
+    },
+    "description": "Discovery: Q2 value-in vs value-out cross-contract check (hook vs core). The hook computes repayAmt = debtShareToAmtCurrent(_params[i].shares) and pulls that from the user, but InitCore._repay clamps sharesToRepay to the position's actual debt shares and transfers only that amount from the hook. If the position's debt shares dropped between signing and execution (partial liquidation front-run, or the user overshooting to close a debt), the difference stays in the hook. No refund exists. For WNATIVE, returnNative=true unwraps the hook's whole WNATIVE balance and sends the whole ETH balance to the next caller; other tokens are stuck permanently.",
+    "root_cause": "The hook sizes the pull from caller-supplied shares instead of min(shares, position debt shares) and never refunds leftovers.",
+    "vulnerable_code": "uint repayAmt = ILendingPool(_params[i].pool).debtShareToAmtCurrent(_params[i].shares);\n_ensureApprove(uToken, repayAmt);\nIERC20(uToken).safeTransferFrom(msg.sender, address(this), repayAmt);",
+    "harm": {
+      "who": "user repaying through the hook",
+      "loses_what": "the overpaid amount (stuck, or taken by whoever next calls execute with returnNative for WNATIVE)",
+      "magnitude": "difference between requested and actual repaid debt"
+    },
+    "exploit_trace": [
+      "1. User calls hook.execute with repay shares = full debt of a WNATIVE pool position.",
+      "2. A liquidator's tx lands first and reduces the position's debt shares.",
+      "3. Hook pulls WNATIVE for the full requested shares; core repays only the remaining shares; excess WNATIVE stays in the hook.",
+      "4. Attacker calls execute with posId = 0, a valid mode and returnNative = true; the hook unwraps its WNATIVE balance and pays all ETH to the attacker."
+    ],
+    "preconditions": [
+      {
+        "text": "requested repay shares exceed position debt shares at execution",
+        "type": "STATE"
+      }
+    ],
+    "postconditions": [
+      {
+        "text": "hook holds third-party tokens",
+        "type": "BALANCE"
+      }
+    ],
+    "audit_trail": {
+      "step_execution": "Gates: A=\u2713 B=\u2713 C=\u2713 D=\u2713 E=\u2713 F=\u2713 G=\u2713 H=\u2713",
+      "rules_applied": [
+        "R8:\u2717(single-step)",
+        "R10:\u2713",
+        "R11:\u2717",
+        "R12:\u2713",
+        "R15:\u2717",
+        "R16:\u2717"
+      ],
+      "depth_evidence": [
+        "[VARIATION:shares=S vs debt=S-x -> x excess in hook]",
+        "[TRACE:execute->_handleRepay pull->core.repay clamp->no refund->returnNative sweep]"
+      ],
+      "missing_precondition": "",
+      "postconditions_created": [],
+      "who_benefits": "Next caller / attacker"
+    },
+    "merged_from": [
+      "DC-3",
+      "DB-2"
+    ],
+    "verdict": {
+      "gate": null,
+      "reason": "Survived gates. MoneyMarketHook._handleRepay (L145-158) pulls debtShareToAmtCurrent(_params.shares) from the user, while InitCore._repay (L538-543) clamps sharesToRepay to the position's debt shares and moves only that amount from the hook; hook has no refund path. Realistic trigger: a liquidator reduces the position's debt shares between the user's signing and execution (users repay precisely when positions are near liquidation); excess stays in the hook (stuck for non-WNATIVE tokens; for WNATIVE the next execute(returnNative=true) caller unwraps the whole WNATIVE balance and receives all ETH, L76-80). Conditional on shares exceeding debt shares at execution. Mechanism (b) of DA-3.",
+      "evidence_tag": "[CODE-TRACE]",
+      "method": "code-trace",
+      "original_severity": null
+    },
+    "recommendation": "In MoneyMarketHook._handleRepay, clamp the requested shares to the position's current debt shares before pulling funds:\n\nuint debtShares = IPosManager(POS_MANAGER).getPosDebtShares(_initPosId, _params[i].pool);\nuint shares = _params[i].shares < debtShares ? _params[i].shares : debtShares;\nuint repayAmt = ILendingPool(_params[i].pool).debtShareToAmtCurrent(shares);\n\nAlso refund any leftover underlying (balance delta) to msg.sender at the end of execute(), and avoid sweeping the hook's entire WNATIVE/ETH balance to an unrelated caller."
+  }
+]
