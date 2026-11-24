@@ -1,0 +1,37 @@
+# ChainSec Cairo benchmark registry.
+# Acceptance targets: public Code4rena Cairo contests with official High/Medium reports.
+# Baseline: the cairo-auditor skill (keep-starknet-strange/starknet-skills) run on the same
+# target, commit and scope. Pass: ChainSec recall >= baseline recall, ChainSec FP <= baseline FP.
+# Scoring rules: benchmarks/solidity/scoring.md (exact 1, partial 0.5).
+# Commits are pinned when a run starts (latest contest-era commit) and recorded in the result.
+# Official totals are filled in only after both audits' outputs are frozen.
+
+contests:
+  - id: opus
+    chain: cairo
+    name: "Opus"
+    contest: "2024-01-opus"
+    repo: "https://github.com/code-423n4/2024-01-opus"
+    findings_repo: "code-423n4/2024-01-opus-findings"
+    report: "https://code4rena.com/reports/2024-01-opus"
+    type: "CDP stablecoin (troves, absorber, liquidation)"
+    status: pending
+
+  - id: starknet-perpetual
+    chain: cairo
+    name: "Starknet Perpetual"
+    contest: "2025-03-starknet"
+    repo: "https://github.com/code-423n4/2025-03-starknet"
+    report: "https://code4rena.com/reports/2025-03-starknet-perpetual"
+    type: "Perpetuals exchange core"
+    status: pending
+
+  - id: kakarot
+    chain: cairo
+    name: "Kakarot (optional third target)"
+    contest: "2024-09-kakarot"
+    repo: "https://github.com/code-423n4/2024-09-kakarot"
+    findings_repo: "code-423n4/2024-09-kakarot-findings"
+    report: "https://code4rena.com/reports/2024-09-kakarot"
+    type: "EVM interpreter in Cairo; source is in git submodules"
+    status: optional

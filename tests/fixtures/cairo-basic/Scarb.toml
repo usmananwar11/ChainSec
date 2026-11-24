@@ -1,0 +1,16 @@
+[package]
+name = "cairo_basic"
+version = "0.1.0"
+edition = "2024_07"
+
+[dependencies]
+starknet = "2.18.0"
+
+[[target.starknet-contract]]
+
+[dev-dependencies]
+snforge_std = "0.61.0"
+assert_macros = "2.18.0"
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]

@@ -33,6 +33,18 @@ class DetectChainTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "solidity", "root": "."}])
 
+    def test_real_cairo_pack_detects_fixture(self):
+        r = run_py("detect-chain.py", os.path.join(FIXTURES, "cairo-basic"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "cairo", "root": "."}])
+
+    def test_real_cairo_pack_ignores_plain_cairo_marker(self):
+        from helpers import make_tree
+        root = make_tree({"Scarb.toml": "[package]\nname = \"lib\"\n"})
+        r = run_py("detect-chain.py", root)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
