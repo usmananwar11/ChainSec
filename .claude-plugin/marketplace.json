@@ -4,7 +4,7 @@
   "owner": { "name": "Usman Anwar", "url": "https://github.com/usmananwar11" },
   "metadata": {
     "description": "Multi-chain smart-contract security audits: one engine, one pack per chain.",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
