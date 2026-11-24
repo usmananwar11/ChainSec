@@ -232,6 +232,36 @@ The behavior flagged is intentional:
 
 **Check**: Read surrounding comments and documentation.
 
+### FP-11: Dependent Impact Path
+The finding is real code, but its harm only materializes when **another candidate's bug** has
+already been exploited or its precondition already holds. Your own verdict would read like
+"material only when X (another finding) holds", "not a stand-alone drain" or "overlaps <id> in
+root cause". This is an extra impact of that other finding, not a separate finding.
+
+**Check**: Remove the other candidate's bug in your head. Does this candidate still cause harm
+with every other precondition reachable? If not, kill it as `fp-pattern:FP-11` with
+`verdict.reason` naming the enabling candidate's id, and add this impact path to that
+candidate's `description` if it is not already there. Sharing an input (for example both use
+an owner-set price) is not dependence. Dependence means this candidate's harm needs the other
+bug's harm state as a precondition.
+
+### FP-12: Re-Scoped After Design Intent
+Gate C or FP-10 evidence covers the finding's headline claim, such as a comment saying
+third-party calls are intended. The finding was then kept by moving its severity onto
+secondary aspects, as in "intended, so severity rests on the missing check and the swap".
+
+**Check**: If the design-intent evidence covers the headline claim, kill the finding under
+Gate C. Do not re-scope it. A secondary concern survives only as its own candidate with its
+own trace. If another candidate already covers it, nothing is lost by the kill.
+
+### Missing precondition on a surviving finding
+`audit_trail.missing_precondition` records the blocker that makes a finding invalid. A
+`verified` or `verified-conditional` finding must leave it empty. If you name a blocker,
+such as a challenge, auction, liquidation, veto or cooldown that the protocol designed as
+the defense, then either show with a concrete trace that the defense fails and move the
+condition into `preconditions`, or kill the finding. `scripts/validate-findings.py` rejects
+surviving Critical/High/Medium findings with a non-empty `missing_precondition`.
+
 ## Cross-Feed Iteration
 
 After initial verification, check if any VERIFIED findings from the Detector reveal state inconsistencies that the State Auditor should re-examine, or vice versa.

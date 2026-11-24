@@ -28,6 +28,32 @@ class ValidateFindingsTest(unittest.TestCase):
         r, out, _ = check([valid_finding(exploit_trace=[])])
         self.assertEqual([x["rule"] for x in out], ["exploit_trace"])
 
+    def test_unresolved_missing_precondition_on_verified(self):
+        for status in ("verified", "verified-conditional"):
+            with self.subTest(status=status):
+                r, out, _ = check([valid_finding(
+                    status=status,
+                    audit_trail={"missing_precondition": "a challenger during the cooldown averts it"})])
+                self.assertEqual(r.returncode, 1)
+                self.assertEqual([x["rule"] for x in out], ["unresolved-precondition"])
+
+    def test_blank_missing_precondition_passes(self):
+        r, out, _ = check([valid_finding(audit_trail={"missing_precondition": "  "})])
+        self.assertEqual((r.returncode, out), (0, []), r.stderr)
+
+    def test_missing_precondition_allowed_on_downgraded(self):
+        r, out, _ = check([valid_finding(status="downgraded", severity="Medium",
+                                         audit_trail={"missing_precondition": "supply must drop"})])
+        self.assertEqual((r.returncode, out), (0, []), r.stderr)
+
+    def test_downgrade_resolves_unresolved_precondition(self):
+        r, out, path = check([valid_finding(audit_trail={"missing_precondition": "blocker"})],
+                             "--downgrade")
+        self.assertEqual((r.returncode, out), (0, []), r.stdout)
+        f = load(path)[0]
+        self.assertEqual((f["status"], f["severity"]), ("downgraded", "Low"))
+        self.assertIn("unresolved-precondition", f["verdict"]["reason"])
+
     def test_rules_skip_candidates_and_low(self):
         r, out, _ = check([valid_finding(status="candidate", exploit_trace=[], harm={}),
                            valid_finding(id="SOL-002", severity="Low", exploit_trace=[])])

@@ -26,6 +26,12 @@ Code comments/docs indicate deliberate behavior, same pattern as reference imple
 ### Gate D — Speculative / No Concrete Exploit (kill immediately)
 "Could be an issue if...", cannot specify WHO/WHAT/HOW MUCH, vague "manipulation" without exact path, "stale data" without exploitable window.
 → Ask: "Can I write `1. Attacker calls X 2. State becomes Y 3. Profit Z`?" If no → **KILL.**
+**SANDWICH / FRONT-RUN CHECK**: A finding whose harm needs a third party to move a pool price
+around the victim's transaction (missing slippage bound, zero `amountMin`, spot-quoted limit)
+must state with numbers the victim's loss and the attacker's net profit after pool fees on both
+legs, for a stated pool liquidity and trade size. "Price distortion × size" or "large for wide
+ranges" is not a number → **KILL.** This does not apply when the attacker profits in a single
+transaction without a victim transaction, such as flash-loan spot manipulation.
 
 ### Gate E — Admin Trust Boundary (kill immediately)
 Requires trusted admin/owner/governance to act maliciously. EXCEPTION: Missing timelock on irreversible destructive action may qualify as Medium.

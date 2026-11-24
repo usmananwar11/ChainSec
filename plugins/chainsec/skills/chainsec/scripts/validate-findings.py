@@ -12,6 +12,9 @@ severity Critical, High or Medium:
   location       at least one location with file and line_start
   harm           non-empty harm.who and harm.loses_what (the Impact Premise)
   exploit_trace  non-empty exploit_trace
+  unresolved-precondition
+                 empty audit_trail.missing_precondition (a named blocker means the
+                 finding is not verified)
 Every id must be unique: each repeated id gets one "duplicate-id" reject.
 With --downgrade, hard-rule rejects are rewritten in place to status "downgraded",
 severity "Low", with the reason recorded; only the offending element is touched.
@@ -46,6 +49,10 @@ def hard_rule_failures(f):
         fails.append(("harm", "needs harm.who and harm.loses_what (Impact Premise)"))
     if not [s for s in (f.get("exploit_trace") or []) if str(s).strip()]:
         fails.append(("exploit_trace", "needs a non-empty exploit_trace"))
+    if str((f.get("audit_trail") or {}).get("missing_precondition", "")).strip():
+        fails.append(("unresolved-precondition",
+                      "audit_trail.missing_precondition names a blocker; show it is reachable "
+                      "(move it to preconditions and clear this field) or kill the finding"))
     return fails
 
 

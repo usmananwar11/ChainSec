@@ -33,6 +33,9 @@ Multiple candidates may describe the same underlying bug from different angles (
 - Same file + same lines + same root cause → merge into single finding, combine evidence
 - Same root cause but different manifestations → single finding with multiple impact paths
 - Related but distinct bugs → keep separate, note relationship
+- A finding whose harm needs another finding's bug as a precondition (verify phase FP-11) →
+  merge it into that finding as an extra impact path, even if its fix differs. Step 2.5's
+  "Do NOT merge" list does not apply here.
 
 A merged finding lists the ids it absorbed in `merged_from`.
 
