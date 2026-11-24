@@ -3,7 +3,7 @@
 Multi-chain smart-contract security audits for AI coding agents (Claude Code, OpenCode, Codex,
 Antigravity, and other tools that load Agent Skills from a folder).
 
-One audit engine, one pack per chain. Solidity today; Cairo and Soroban planned.
+One audit engine, one pack per chain. Solidity and Starknet Cairo (preview) today; Soroban planned.
 
 ## What it does
 
@@ -32,7 +32,7 @@ One audit engine, one pack per chain. Solidity today; Cairo and Soroban planned.
 | Chain | Status |
 |---|---|
 | Solidity | Supported |
-| Cairo | Planned |
+| Cairo (Starknet) | Preview: Cairo 1+, benchmark in progress |
 | Soroban | Planned |
 
 ## Supported tools
