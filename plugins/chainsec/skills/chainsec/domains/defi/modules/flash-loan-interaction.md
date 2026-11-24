@@ -1,6 +1,6 @@
 # Flash Loan Interaction Module
 
-> **Trigger**: Protocol reads `balanceOf(address(this))`, uses spot prices, has deposit/withdraw in same tx, or integrates with flash-loan-capable protocols
+> **Trigger**: Protocol reads its own token balance, uses spot prices, has deposit/withdraw in same tx, or integrates with flash-loan-capable protocols
 > **Inject into**: Lens B (Value/Economic), Lens C (External/Cross-contract)
 > **Priority**: HIGH — flash loans amplify every rounding/edge-case bug into a critical exploit
 
@@ -25,7 +25,7 @@ For each YES: model the attack — flash borrow → manipulate external state �
 
 ## 2. Balance-Dependent Logic
 
-For every function that reads `balanceOf(address(this))`:
+For every function that reads the contract's own token balance:
 - Is this the ONLY source of truth for token amounts? (vs tracked internal accounting)
 - Can donations inflate this balance? → First depositor inflation, exchange rate manipulation
 - Is there a `skim()` or `sync()` to reconcile? If not → permanent accounting divergence

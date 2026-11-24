@@ -18,7 +18,7 @@ If NFT ownership is in Contract A but game logic is in Contract B, and they can 
 
 ### 4. Reward Loop Exploit
 If `claimReward()` can be called multiple times for the same action, or reentered during reward distribution → infinite reward extraction.
-**Check**: Is there a `claimed[user][actionId]` mapping? Is `nonReentrant` on claim functions? Does claim update state BEFORE transfer?
+**Check**: Is there a `claimed[user][actionId]` mapping? Is a reentrancy guard on claim functions? Does claim update state BEFORE transfer?
 
 ### 5. On-Chain Randomness Manipulation
 Chain-specific checks: see the pack's primers/gamefi-nft.md.

@@ -100,7 +100,7 @@ If `distribute(amount)` is permissionless and resets a distribution timer → at
 **Check**: Can any permissionless function be called with dust (0, 1 wei) to manipulate timing state?
 
 ### 21. Cross-Contract Call Chain Modifier Propagation
-If `unstake()` calls `getRewards()` which calls `mint()` which has `whenNotPaused` → pausing the minter blocks unstaking even though unstaking should always be available.
+If `unstake()` calls `getRewards()` which calls `mint()` which has a pause guard → pausing the minter blocks unstaking even though unstaking should always be available.
 **Check**: For every user-facing function, trace the FULL call chain. Does any downstream call have a modifier that could block the upstream user operation?
 
 ### 22. Base Contract Override Side Effects

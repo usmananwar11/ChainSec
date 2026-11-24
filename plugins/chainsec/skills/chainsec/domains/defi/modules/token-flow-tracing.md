@@ -22,7 +22,7 @@ Chain-specific checks: see the pack's modules/token-flow-tracing.md.
 
 For each entry point:
 - What state variable tracks the balance?
-- Is `balanceOf(address(this))` used directly? → **Donation attack vector**
+- Is the contract's own token balance used directly? → **Donation attack vector**
 - Can tracked balance desynchronize from actual balance?
 
 **Red flags**:

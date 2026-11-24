@@ -40,7 +40,7 @@ When a position has more debt than collateral:
 
 ## 6. Pause Blocking Liquidations
 
-- If protocol has `whenNotPaused` modifier on `liquidate()` → pausing = freezing all liquidations
+- If protocol has a pause guard on `liquidate()` → pausing = freezing all liquidations
 - During a crash: admin pauses (for safety), bad debt accumulates because nobody can liquidate
 - Check: can liquidations proceed during pause? They MUST for solvency
 
