@@ -71,7 +71,7 @@ If `initialize()` is a separate tx from `deploy()` → attacker can front-run wi
 **Check**: Is deploy+initialize atomic? Or can anyone call initialize() between deploy and intended init?
 
 ### 18. Token Reserve Manipulation via Direct Transfer
-If accounting uses `balanceOf(address(this))` → attacker sends tokens directly to inflate reserves without going through swap logic.
+If accounting uses the contract's own token balance → attacker sends tokens directly to inflate reserves without going through swap logic.
 **Check**: Does pool use internal accounting (`reserve0`, `reserve1`) or `balanceOf`? Direct transfer bypasses `balanceOf`-based accounting.
 
 ### 19. Amplification Parameter Attack (StableSwap)

@@ -70,7 +70,8 @@ install.sh --tool agents
 
 - `python3` ≥ 3.11.
 - The tools `chainsec-init` reports for your chain. For Solidity: `forge` (required), `slither`
-  (optional).
+  (optional). For Cairo: `scarb` and `snforge` (required for PoC and fuzz), `caracal` (optional;
+  it supports only older Cairo versions). Cairo 0 is not supported.
 
 ## Updating
 

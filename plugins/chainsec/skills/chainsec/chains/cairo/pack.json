@@ -1,0 +1,55 @@
+{
+  "chain": "cairo",
+  "id_prefix": "CAIRO",
+  "extensions": [".cairo"],
+  "detect": {
+    "markers": ["Scarb.toml"],
+    "contains": ["starknet"],
+    "fallback_glob": "**/*.cairo"
+  },
+  "scope": {
+    "include": ["src/**/*.cairo", "packages/*/src/**/*.cairo", "crates/*/src/**/*.cairo"],
+    "exclude": ["**/tests/**", "**/test/**", "**/target/**", "**/mock/**", "**/mocks/**",
+                "**/*_test.cairo", "**/test_*.cairo", "**/tests.cairo"],
+    "fallback_include": ["**/*.cairo"]
+  },
+  "tools": {
+    "required": [
+      { "name": "python3", "check": "python3 --version", "install": "https://www.python.org/downloads/", "purpose": "ChainSec scripts" },
+      { "name": "scarb", "check": "scarb --version", "install": "curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh", "purpose": "compile check, PoC and fuzz builds" },
+      { "name": "snforge", "check": "snforge --version", "install": "curl -L https://raw.githubusercontent.com/foundry-rs/starknet-foundry/master/scripts/install.sh | sh && snfoundryup", "purpose": "PoC and fuzz tests" }
+    ],
+    "optional": [
+      { "name": "caracal", "check": "caracal --version", "install": "cargo install --git https://github.com/crytic/caracal --profile release --force", "purpose": "Sierra static-analysis signal table during recon" }
+    ]
+  },
+  "extractor": "recon/extract.sh",
+  "analyzers": [ { "name": "caracal", "run": "recon/caracal-summary.py", "requires": "caracal" } ],
+  "risk_weights": { "external_calls": 5, "state_writers": 4, "syscalls": 6, "l1_handlers": 6, "felt_arith": 2 },
+  "loc_weight": 0.05,
+  "novelty_bonus": 15,
+  "value_bonus": 10,
+  "novelty_allowlist": ["**/openzeppelin*/**", "**/alexandria*/**"],
+  "unit_of_analysis": "contract_module",
+  "clustering": "recon/clustering.md",
+  "value_unit": { "name": "fri", "decimals": 18 },
+  "code_fence": "cairo",
+  "modules_by_protocol": {
+    "always": ["../../domains/defi/modules/access-control-state.md", "modules/starknet-access-and-upgrades.md",
+               "primers/starknet-vs-evm.md"],
+    "dex-amm": ["../../domains/defi/modules/amm-mev-deep.md", "../../domains/defi/modules/economic-design.md",
+                "../../domains/defi/modules/flash-loan-interaction.md", "../../domains/defi/primers/defi-dex-amm.md"],
+    "lending": ["../../domains/defi/modules/lending-liquidation-deep.md", "../../domains/defi/modules/oracle-analysis.md",
+                "../../domains/defi/modules/economic-design.md", "../../domains/defi/primers/defi-lending.md"],
+    "vault": ["../../domains/defi/modules/vault-share-accounting.md", "../../domains/defi/modules/flash-loan-interaction.md"],
+    "governance": ["../../domains/defi/modules/governance-voting.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "staking": ["../../domains/defi/modules/economic-design.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "nft-gamefi": ["../../domains/defi/primers/gamefi-nft.md"],
+    "bridge": ["../../domains/defi/modules/cross-chain-bridge.md", "modules/l1-l2-messaging.md",
+               "../../domains/defi/primers/bridge-crosschain.md"],
+    "proxy-upgradeable": ["modules/starknet-access-and-upgrades.md"],
+    "wallet-aa": ["modules/account-abstraction.md", "modules/signatures-and-replay.md"]
+  },
+  "poc": { "framework": "starknet-foundry", "run": "cd <TARGET>/<root> && mkdir -p tests && cp <TARGET>/.audit/cairo/poc/<ID>/<test file> tests/ && snforge test chainsec_poc_<id> 2>&1; rm -f tests/<test file>", "guide": "poc/guide.md" },
+  "fuzz": { "framework": "starknet-foundry-fuzzer", "run": "cd <TARGET>/<root> && mkdir -p tests && cp <TARGET>/.audit/cairo/fuzz/tests/<test file> tests/ && snforge test chainsec_fuzz 2>&1; rm -f tests/<test file>", "guide": "fuzz/guide.md" }
+}
