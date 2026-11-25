@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Vault, IERC20} from "../../../../src/Vault.sol";
+import {Vault, IERC20} from "src/Vault.sol";
 
 interface Vm {
     function prank(address) external;
