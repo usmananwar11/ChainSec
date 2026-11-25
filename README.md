@@ -42,7 +42,7 @@ One audit engine, one pack per chain. Solidity and Starknet Cairo (preview) toda
 | Claude Code | Parallel |
 | OpenCode | Parallel |
 | Antigravity | Parallel |
-| Codex | Parallel (unverified — no local Codex install during v0.1 smoke tests) |
+| Codex | Parallel |
 | Others (Cursor, Gemini CLI, generic) | Sequential, in-conversation |
 
 ## Quick start
@@ -90,6 +90,31 @@ Audit output lives under `.audit/` in the target repository:
     fuzz/                 # written by chainsec-fuzz
 ```
 
+## Benchmark vs Krait (Solidity)
+
+ChainSec and Krait v8 were scored on the same five Code4rena contests, graded against the
+official High/Medium findings (exact = 1, partial = 0.5). ChainSec found more of the official
+bugs: **12.5 / 67 (18.66%) recall vs Krait's 11.5 / 67 (17.16%)**, with 12 exact matches against
+Krait's 10.
+
+| Target | Official H/M | Krait recall | ChainSec recall | Krait FP | ChainSec FP |
+|---|---:|---:|---:|---:|---:|
+| PoolTogether | 9 | 11.11% | 11.11% | 0 | 0 |
+| InitCapital | 15 | 3.33% | **20.00%** | 0 | 0 |
+| GoodEntry | 14 | 35.71% | 28.57% | 0 | 4 |
+| Arcade | 8 | 31.25% | 0.00% | 0 | 0 |
+| Frankencoin | 21 | 11.90% | **21.43%** | 0 | 2 |
+| **Total** | **67** | **17.16%** | **18.66%** | **0** | **6** |
+
+The gain comes from InitCapital and Frankencoin. Grades come from agent review against
+the official reports and are borderline in places. See
+[benchmarks/solidity/scoring.md](benchmarks/solidity/scoring.md) for the method and the
+per-finding reasons. To reproduce the comparison:
+
+```
+python3 tools/score_benchmark.py compare benchmarks/solidity/baselines/krait-v8.json benchmarks/solidity/results
+```
+
 ## Limitations
 
 - One root per chain (v0.1): if a repository has several roots for the same chain, the audit
@@ -133,8 +158,8 @@ runs the skill lint and the full test suite.
 ## Attribution and license
 
 ChainSec's engine and Solidity pack are derived from **Krait** by Zealynx Security (MIT). v0.1
-reuses Krait's methodology as-is; ChainSec's own benchmark acceptance run is still pending, so no
-accuracy numbers are claimed here yet. See [ATTRIBUTION.md](ATTRIBUTION.md) for the full
+reuses Krait's methodology as-is. See [Benchmark vs Krait](#benchmark-vs-krait-solidity) for how
+the two compare on the same contests. See [ATTRIBUTION.md](ATTRIBUTION.md) for the full
 attribution and third-party source list.
 
 ChainSec is licensed under the [MIT License](LICENSE).

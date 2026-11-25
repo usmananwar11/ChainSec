@@ -11,4 +11,4 @@ the user asks — this skill is asking).
 - No sub-agent tool available → follow `runtimes/generic.md`.
 - Verify outputs as in `runtimes/claude-code.md`.
 
-Status: tool names unverified on Codex (no local install during v0.1 smoke tests).
+Status: verified on Codex.
