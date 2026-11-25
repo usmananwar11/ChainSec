@@ -1,7 +1,7 @@
 ### PoC — SOL-002
 - **Class**: local
-- **File**: .audit/solidity/poc/SOL-002/SOL002.t.sol (exploit, baseline, 1-wei boundary); Sweep.t.sol (fix-efficacy sweep)
-- **Command**: `cd <TARGET> && FOUNDRY_TEST=<TARGET>/.audit/solidity/poc/SOL-002 forge test --match-path '*/SOL002.t.sol' -vvv`
+- **Files**: [`SOL002.t.sol`](SOL002.t.sol) (exploit, baseline, 1-wei boundary) and [`Sweep.t.sol`](Sweep.t.sol) (fix-efficacy sweep). These are the preserved copies of the tests generated under the temporary fixture's `.audit/solidity/poc/SOL-002/` directory.
+- **Rerun command** (from the repository root): `cd tests/fixtures/solidity-basic && FOUNDRY_TEST=../../../docs/smoke-tests/2026-10-17/entry-skills/poc/SOL-002 forge test --match-path '*/SOL002.t.sol' -vvv`
 - **Result**: PASS (3/3)
 - **Evidence**: [POC-PASS]
 - **Harm asserted**: victim deposits 1,000,000 token units; attacker (no tokens) depositEth{1e6 wei} + withdraw(1e6) gains exactly 1,000,000 tokens, vault token balance goes to 0, victim's withdraw(1e6) reverts, attacker then recovers the wei via sweep().
@@ -20,4 +20,4 @@
      }
 ```
 **Fix scope**: separate ETH ledger. The finding's recommendation also adds `withdrawEth()`, which was not tested; without it ETH deposits are unwithdrawable.
-**Verified**: YES — applied to a throwaway copy; project src/ unchanged.
+**Verified**: YES — applied to a throwaway copy of [`tests/fixtures/solidity-basic`](../../../../../../tests/fixtures/solidity-basic); the checked-in fixture source is unchanged.

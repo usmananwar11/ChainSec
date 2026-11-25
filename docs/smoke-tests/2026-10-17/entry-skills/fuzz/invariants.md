@@ -1,6 +1,6 @@
-# Invariants — Vault (src/Vault.sol, src/Base.sol)
+# Invariants — Vault ([fixture source](../../../../../tests/fixtures/solidity-basic/src/Vault.sol), [base](../../../../../tests/fixtures/solidity-basic/src/Base.sol))
 
-Source: code only plus `.audit/solidity/recon.md`. Ledger model: `balances` is one shared ledger for ERC20 deposits and native deposits; `totalDeposits` tracks ERC20 deposits only.
+Source: fixture code plus the archived [recon](../../../2026-10-16/opencode/audit/solidity/recon.md). The generated `.audit/solidity/recon.md` from the 2026-10-17 temporary fixture copy is not present in this repository. Ledger model: `balances` is one shared ledger for ERC20 deposits and native deposits; `totalDeposits` tracks ERC20 deposits only.
 
 | ID | Category | Priority | Description | Formal expression | State | Functions that could violate it |
 |---|---|---|---|---|---|---|
