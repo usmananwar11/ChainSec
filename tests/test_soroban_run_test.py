@@ -181,6 +181,42 @@ class RunTestRealCargo(unittest.TestCase):
         self.assertIn("chainsec_poc_soroban_001_withdraw_without_auth ... ok", r.stdout + r.stderr)
         self.assertEqual(snapshot(crate), before)
 
+    def test_fuzz_harness_on_fixture_copies(self):
+        with open(os.path.join(CORE, "chains", "soroban", "fuzz", "guide.md"), encoding="utf-8") as gf:
+            guide = gf.read()
+        start = guide.index("```rust\n", guide.index("<!-- chainsec:verified-fuzz-harness -->")) + len("```rust\n")
+        src = guide[start:guide.index("```", start)]
+
+        def go(fixed):
+            tmp = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+            crate = os.path.join(tmp, "soroban-basic")
+            shutil.copytree(FIXTURE, crate)
+            if fixed:
+                lib = os.path.join(crate, "src", "lib.rs")
+                with open(lib, encoding="utf-8") as f:
+                    code = f.read()
+                sig = "pub fn withdraw(env: Env, from: Address, to: Address, amount: i128) {\n"
+                self.assertIn(sig, code)
+                with open(lib, "w", encoding="utf-8") as f:
+                    f.write(code.replace(sig, sig + "        from.require_auth();\n"))
+            work = os.path.join(tmp, "audit")
+            tf = os.path.join(work, "fuzz", "tests", "chainsec_fuzz.rs")
+            os.makedirs(os.path.dirname(tf))
+            with open(tf, "w") as f:
+                f.write(src)
+            before = snapshot(crate)
+            r = run(["bash", RUN_TEST, crate, tf, work, "--", "--nocapture"])
+            self.assertEqual(snapshot(crate), before)
+            return r
+
+        r = go(False)
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("INV-1 broken", r.stdout + r.stderr)
+        r = go(True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("chainsec_fuzz_vault_invariants ... ok", r.stdout + r.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
