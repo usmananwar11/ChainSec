@@ -10,7 +10,7 @@
 
 ## Description
 
-Scout's detector (`zero-or-test-address`) flags an `Address` argument stored or compared as an admin or owner without rejecting the all-zero account. Nobody can sign for it, so an admin set to it is permanently unreachable; a mistakenly or maliciously chosen value silently locks privileged functions.
+Scout's detector (`zero-or-test-address`) flags an `Address` argument stored or compared as an admin or owner without rejecting the all-zero account. Scout reports that the private key of the zero account is known, so anyone could take over a contract whose admin is set to it; that is not independently verified here. The demonstrable impact is lockout: an admin or owner set to an address nobody controls in practice leaves privileged functions uncallable, and a mistaken or malicious value does this silently.
 
 ## Vulnerable pattern
 
@@ -35,7 +35,7 @@ if admin == Address::from_string(&String::from_bytes(&e,
 
 ## False-positive caveats (Gate C / FP-10 evidence)
 
-- Scout asserts the zero account's private key is known; that is unverified here, so report takeover only with evidence and treat permanent lockout as the demonstrable impact.
+- The takeover claim (key known) comes from Scout and is not independently verified here: report takeover only with evidence, and treat lockout as the demonstrable impact.
 - A caller who must `require_auth` is already a signer; validation matters for addresses supplied by another party.
 - Rate lockout of a changeable admin lower than lockout of an immutable one.
 

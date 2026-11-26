@@ -9,7 +9,7 @@
 
 ## Description
 
-`.unwrap()` aborts the invocation when the value is `None` or `Err`. In a contract that means the whole call reverts with an opaque error. It matters when the `None` case is reachable by an attacker or by ordinary state drift (an archived or missing storage entry) on a path other users depend on.
+`.unwrap()` aborts the invocation when the value is `None` or `Err`. In a contract that means the whole call reverts with an opaque error. It is a finding only when an attacker can force the `None`/`Err` branch on another user's critical path. Ordinary state drift (an archived or missing storage entry) stays QA unless it locks funds or rights.
 
 ## Vulnerable pattern
 
@@ -26,7 +26,7 @@ let admin: Address = e.storage().instance().get(&DataKey::Admin).ok_or(Error::No
 ## Detection
 
 - Grep `.unwrap()` in non-test code; `get(...).unwrap()` on storage is the common shape.
-- Rank by whether the `None`/`Err` branch is attacker- or state-reachable.
+- Rank by whether the `None`/`Err` branch is attacker-forceable on another user's path (state drift alone is QA unless it locks funds or rights).
 
 ## False-positive caveats (Gate C / FP-10 evidence)
 

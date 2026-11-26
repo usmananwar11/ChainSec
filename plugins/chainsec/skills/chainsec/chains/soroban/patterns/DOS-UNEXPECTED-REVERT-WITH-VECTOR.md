@@ -21,8 +21,7 @@ state.candidates.push_back(candidate.clone());   // callable by anyone
 ## Secure pattern
 
 ```rust
-state.admin.require_auth();   // or caller.require_auth() + per-key storage:
-env.storage().instance().set(&DataKey::Candidate(candidate), &c);
+state.admin.require_auth();   // only the admin may add candidates
 ```
 
 ## Detection

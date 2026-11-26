@@ -34,7 +34,7 @@ let result = i;
 ## False-positive caveats (Gate C / FP-10 evidence)
 
 - Unsafe in a well-known audited dependency is out of scope.
-- Needed for FFI to the host? Contract code uses the SDK, not raw FFI; treat any use as suspicious.
+- Contract code talks to the host through the SDK, not raw FFI, so treat any `unsafe` in contract logic as suspicious until justified.
 - Default tier is QA/Low.
 
 ## Minimum tests (PoC and regression targets)

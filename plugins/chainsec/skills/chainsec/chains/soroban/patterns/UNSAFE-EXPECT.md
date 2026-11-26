@@ -30,8 +30,9 @@ let v: i128 = e.storage().persistent().get(&key).ok_or(Error::NoBalance)?;
 
 ## False-positive caveats (Gate C / FP-10 evidence)
 
-- Same as UNSAFE-UNWRAP: only a finding when an attacker or ordinary state drift forces the failing branch on a critical path.
+- Same as UNSAFE-UNWRAP: only a finding when an attacker forces the failing branch on another user's critical path; state drift alone stays QA unless it locks funds or rights.
 - An invariant-guarding `expect` right after a check is fine.
+- Default tier is QA/Low.
 
 ## Minimum tests (PoC and regression targets)
 

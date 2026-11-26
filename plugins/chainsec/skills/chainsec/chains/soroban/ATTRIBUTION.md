@@ -37,6 +37,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Stellar Development Foundation
+## Stellar Development Foundation — stellar-dev-skill
 
 Added in the next task.

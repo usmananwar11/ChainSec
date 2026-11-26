@@ -9,7 +9,7 @@
 
 ## Description
 
-`core::mem::forget` consumes a value without running its destructor. In `no_std` Soroban code the usual victims are host-object wrappers and guards whose `Drop` is meant to release or settle something; skipping it leaves leaks or half-applied logic.
+`core::mem::forget` consumes a value without running its destructor. It only matters for a type whose `Drop` does real work (a guard or custom wrapper meant to release or settle something); skipping it then leaves leaks or half-applied logic. SDK host values are plain handles, so forgetting those is harmless.
 
 ## Vulnerable pattern
 
@@ -30,7 +30,7 @@ let _ = n;   // or let the value drop
 ## False-positive caveats (Gate C / FP-10 evidence)
 
 - Forgetting a plain `Copy` or inert value changes nothing.
-- Soroban host values (`Vec`, `Map`, `Address`) are handles with no costly Drop; usually a code smell, not an exploit.
+- Soroban host values (`Vec`, `Map`, `Address`) are handles whose Drop does nothing that matters; forgetting them is a code smell, not an exploit.
 - Default tier is QA/Low.
 
 ## Minimum tests (PoC and regression targets)
