@@ -28,16 +28,18 @@ _STRIP = re.compile(
 ATTR = r'#\[[^\]]*\]'
 VIS = r'(?:pub(?:\([^)]*\))?\s+)?'
 CFG_RE = re.compile(r'#\[cfg\(([^\]]*)\)\]\s*(?:' + ATTR + r'\s*)*' + VIS + r'mod\s+\w+\s*\{')
-CONTRACT_RE = re.compile(r'#\[contract\]\s*(?:' + ATTR + r'\s*)*' + VIS + r'struct\s+([A-Za-z_]\w*)')
-IMPL_RE = re.compile(r'#\[contractimpl(?:\s*\(([^\]]*)\))?\]\s*(?:' + ATTR + r'\s*)*'
+CONTRACT_RE = re.compile(r'#\[(?:soroban_sdk::)?contract\]\s*(?:' + ATTR + r'\s*)*' + VIS + r'struct\s+([A-Za-z_]\w*)')
+IMPL_RE = re.compile(r'#\[(?:soroban_sdk::)?contractimpl(?:\s*\(([^\]]*)\))?\]\s*(?:' + ATTR + r'\s*)*'
                      r'impl(?:\s*<[^>{]*>)?\s+(?:([A-Za-z_][\w:]*)(?:<[^>{]*>)?\s+for\s+)?'
                      r'([A-Za-z_]\w*)[^{;]*\{')
-IFACE_RE = re.compile(r'#\[(?:contractclient|contracttrait)\b[^\]]*\]\s*(?:' + ATTR + r'\s*)*' + VIS +
+IFACE_RE = re.compile(r'#\[(?:soroban_sdk::)?(?:contractclient|contracttrait)\b[^\]]*\]\s*(?:' + ATTR + r'\s*)*' + VIS +
                       r'trait\s+([A-Za-z_]\w*)[^{;]*\{')
 FN_RE = re.compile(r'((?:' + ATTR + r'\s*)*)(pub(?:\([^)]*\))?\s+)?(?:(?:const|unsafe|async|extern)\s+)*'
                    r'fn\s+([A-Za-z_]\w*)\s*(?:<[^>{]*>)?\s*\(')
 WRITE_RE = re.compile(r'\.storage\(\)\s*\.\s*(instance|persistent|temporary)\(\)\s*\.\s*'
-                      r'(set|remove|update|try_update)\s*\(\s*&?\s*(?:mut\s+)?([\w:]+)')
+                      r'(set|remove|update|try_update)\s*(?:::\s*<[^>]*>)?\s*\(\s*&?\s*(?:mut\s+)?([\w:]+)')
+HANDLE_RE = re.compile(r'\blet\s+(?:mut\s+)?([A-Za-z_]\w*)\s*(?::[^=;]+)?=\s*[^;]*?\.storage\(\)\s*\.\s*'
+                       r'(instance|persistent|temporary)\(\)\s*;')
 CLIENT_RE = re.compile(r'\b(?:[A-Za-z_]\w*::)*[A-Za-z_]*Client\s*::\s*new\s*\(')
 EXT_RE = re.compile(r'\.(try_invoke_contract|invoke_contract)\b|\.(deployer)\s*\(\s*\)'
                     r'(?!\s*\.\s*update_current_contract_wasm)|\b(update_current_contract_wasm)\s*\(')
@@ -53,6 +55,18 @@ SDK_TOML_RE = re.compile(r'soroban-sdk\s*=\s*(?:"([^"]+)"|\{[^}\n]*?version\s*=\
 def strip(src):
     """Blank comments, strings and char literals, keeping offsets and newlines."""
     return _STRIP.sub(lambda m: re.sub(r'[^\n]', ' ', m.group(0)), src)
+
+
+def paren_end(text, open_idx):
+    depth = 0
+    for i in range(open_idx, len(text)):
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+    return open_idx
 
 
 def blank(text, a, b):
@@ -96,8 +110,9 @@ def functions(text, start, end):
         m = FN_RE.search(text, pos, end)
         if not m:
             return
-        brace = text.find("{", m.end(), end)
-        semi = text.find(";", m.end(), end)
+        params_end = paren_end(text, m.end() - 1)
+        brace = text.find("{", params_end, end)
+        semi = text.find(";", params_end, end)
         if brace == -1 or (semi != -1 and semi < brace):
             pos = m.end()
             continue
@@ -115,7 +130,12 @@ def analyze(text, b0, b1):
         ext.append((m.group(1) or m.group(2) or "upgrade", b0 + m.start()))
     auth = [(m.group(3), m.group(1) + ("()" if m.group(2) else ""), b0 + m.start())
             for m in AUTH_RE.finditer(body)]
-    return {"writes": [(f"{m.group(1)}:{m.group(3)}", b0 + m.start()) for m in WRITE_RE.finditer(body)],
+    writes = [(f"{m.group(1)}:{m.group(3)}", b0 + m.start()) for m in WRITE_RE.finditer(body)]
+    for h in HANDLE_RE.finditer(body):
+        handle_re = re.compile(r'(?<![\w.])' + re.escape(h.group(1)) + r'\s*\.\s*(?:set|remove|update|try_update)\s*'
+                               r'(?:::\s*<[^>]*>)?\s*\(\s*&?\s*(?:mut\s+)?([\w:]+)')
+        writes += [(f"{h.group(2)}:{m.group(1)}", b0 + m.start()) for m in handle_re.finditer(body, h.end())]
+    return {"writes": sorted(writes, key=lambda w: w[1]),
             "ext": ext, "auth": auth,
             "as_contract": [b0 + m.start() for m in AS_CONTRACT_RE.finditer(body)],
             "tokens": [b0 + m.start() for m in TOKEN_RE.finditer(body)],
@@ -171,11 +191,13 @@ def parse_file(rel, src):
 
 
 def resolve(parsed):
-    """Transitive effects and auth guards through helper functions defined in scope."""
+    """Transitive effects and auth guards through helper functions defined in the same crate.
+
+    Same-name candidates: effects are unioned, guards intersected (no guard unless all provide it)."""
     by_name = {}
     for p in parsed:
         for f in p["fns"]:
-            by_name.setdefault(f["name"], []).append(f)
+            by_name.setdefault((p["crate"], f["name"]), []).append(f)
     for f in (f for p in parsed for f in p["fns"]):
         f["effects"] = bool(f["writes"] or f["ext"] or f["tokens"])
         f["writes_t"] = bool(f["writes"])
@@ -183,14 +205,17 @@ def resolve(parsed):
     changed = True
     while changed:
         changed = False
-        for f in (f for p in parsed for f in p["fns"]):
-            for callee in f["callees"] - {f["name"]}:
-                for g in by_name.get(callee, []):
-                    if g["effects"] and not f["effects"]:
+        for p in parsed:
+            for f in p["fns"]:
+                for callee in f["callees"]:
+                    cands = [g for g in by_name.get((p["crate"], callee), []) if g is not f]
+                    if not cands:
+                        continue
+                    if any(g["effects"] for g in cands) and not f["effects"]:
                         f["effects"] = changed = True
-                    if g["writes_t"] and not f["writes_t"]:
+                    if any(g["writes_t"] for g in cands) and not f["writes_t"]:
                         f["writes_t"] = changed = True
-                    for guard in g["guards_t"]:
+                    for guard in set.intersection(*(g["guards_t"] for g in cands)):
                         via = guard if " via " in guard else f"{guard} via {callee}"
                         if guard not in f["guards_t"] and via not in f["guards_t"]:
                             f["guards_t"].add(via)
@@ -202,6 +227,7 @@ def build_facts(root, rels, facts):
     for rel in rels:
         with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
             parsed.append(parse_file(rel, fh.read()))
+        parsed[-1]["crate"] = crate_of(root, rel)
     resolve(parsed)
     crate_contracts = {}
     for p in parsed:
