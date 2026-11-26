@@ -14,7 +14,7 @@ upstream MIT license is kept unchanged in `LICENSE-scout-soroban`.
 
 This suite is a **regression check, not acceptance**: the Soroban pack's `patterns/` were ported
 from the same project's detector set, and the structural signals above survive the scrub, so
-recall here is optimistic. Contract struct names in some
+recall here is optimistic. Contract struct names in most
 cases still name the class.
 
 The generated projects are **not meant to build**: cases pin `=20.0.0`, `20.3.2` and `=21.3.0`,

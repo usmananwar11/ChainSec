@@ -4,6 +4,7 @@
 > [heuristics.md](../heuristics.md) or the pattern in [patterns/README.md](../patterns/README.md)
 > that holds the check. Sections 1 and 2 are adapted from Stellar's `stellar-dev-skill`
 > `security.md` (Apache-2.0; see [ATTRIBUTION.md](../ATTRIBUTION.md)).
+<!-- Ported from stellar/stellar-dev-skill skills/smart-contracts/security.md (Apache-2.0), sections 1 and 2; modified by ChainSec; see ATTRIBUTION.md -->
 
 ## 1. Threat model
 

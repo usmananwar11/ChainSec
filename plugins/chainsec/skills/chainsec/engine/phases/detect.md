@@ -157,7 +157,7 @@ For every entry point (external/public function), apply these seven question cat
 - **Q4.1**: What does this assume about the CALLER? (Identity, authorization, contract vs user account)
 - **Q4.2**: What does it assume about EXTERNAL DATA? (Token behavior, oracle freshness, API responses)
 - **Q4.3**: What does it assume about CURRENT STATE? (Not paused, initialized, non-empty, not migrated)
-- **Q4.4**: What does it assume about TIME/ORDERING? (the chain's block/ledger time can be manipulated within the chain's tolerance for block/ledger time; events may arrive out-of-order on L2s)
+- **Q4.4**: What does it assume about TIME/ORDERING? (the chain's block/ledger time can be manipulated within the chain's allowed drift; events may arrive out-of-order on L2s)
 - **Q4.5**: What does it assume about PRICES/RATES? (Can they be stale, zero, max, or manipulated within one tx?)
 - **Q4.6**: What does it assume about INPUT AMOUNTS? (What if 0? What if 1 unit? What if type(uint256).max?)
 

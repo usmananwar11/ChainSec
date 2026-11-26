@@ -21,6 +21,8 @@ contests:
     findings_repo: "code-423n4/2025-02-blend-findings"
     report: "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification"
     type: "Lending pool, backstop, emissions, pool factory, fee vault (scope table ~27k nSLOC)"
+    # Two Soroban roots (blend-contracts-v2/ and fee-vault/): run ChainSec once per root, merge both
+    # runs' findings for scoring, and split the baseline the same way.
     status: pending
 
   - id: k2

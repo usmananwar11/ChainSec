@@ -29,6 +29,11 @@ by `_` (`soroban_001`), because Rust test target names cannot contain `-`.
 - A project with existing tests: run its own `cargo test` once first, in a **scratch copy** (the helper
   runs only `--test <name>`, never the project's whole suite) to confirm the toolchain and dependencies
   resolve.
+- After making a scratch copy (to add `testutils` or `"lib"`), pass the **scratch copy's** crate folder
+  as `run-test.sh`'s first argument instead of `<TARGET>/<root>/<crate>`, so the test builds against the
+  fixed manifest and the user's tree stays untouched.
+- In a workspace with an integration-test crate (for example Blend's `test-suites`), `<crate>` may be
+  that crate: a PoC placed there can reuse its setup helpers to deploy the full protocol.
 
 ### 2. Choose the harness: native, wasm import, or ledger snapshot
 
@@ -130,6 +135,7 @@ invariant broken (as the skeleton asserts the attacker's token balance and the v
 | Error | Fix |
 |---|---|
 | `no method ... register` / `Address::generate` not found | `testutils` feature missing under `[dev-dependencies]`, `testutils::Address as _` / `testutils::Ledger as _` not imported, or `MockAuth` / `MockAuthInvoke` not imported from `soroban_sdk::testutils` |
+| `no test target named chainsec_poc_<id>` | the crate sets `autotests = false` (often with explicit `[[test]]` entries), so cargo does not find `tests/<name>.rs`: in a scratch copy add `[[test]]` with `name = "chainsec_poc_<id>"` and `path = "tests/chainsec_poc_<id>.rs"` and pass the copy's crate folder to the helper |
 | `unresolved import <crate>` | crate is cdylib-only: add `"lib"` in a scratch copy or use the wasm fallback; check the underscore name |
 | `Error(Auth, InvalidAction)` in a PoC meant to succeed | the target does call `require_auth`: the bug may not exist, or the PoC needs `mock_auths` for the right address |
 | `#![no_std]` crate | the test file is a separate crate and may use `std`; add `extern crate std;` only if the lib's macros need it |

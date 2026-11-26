@@ -216,7 +216,7 @@ The pack lives in `plugins/chainsec/skills/chainsec/chains/soroban/`. It is buil
 
 **Notable decisions**
 - **Lock-safe test runner.** `poc/run-test.sh` copies the test in, runs it with its target dir outside the audit target, then restores the crate: it removes what it added and puts `Cargo.lock` back byte for byte. It refuses to overwrite a user's file or a leftover lock backup.
-- **Snapshot-free test environments.** PoCs and fuzz tests use the native soroban-sdk testutils `Env` and turn off `capture_snapshot_at_drop`, so they leave no `test_snapshots/` folder and need no network. A ledger snapshot is only for an already-deployed contract.
+- **Snapshot-free test environments.** PoCs and fuzz tests use the native soroban-sdk testutils `Env` and turn off `capture_snapshot_at_drop`, so they leave no `test_snapshots/` folder and need no RPC or ledger snapshot (the first build still fetches crates). A ledger snapshot is only for an already-deployed contract.
 - **Regex extractor limits.** The facts extractor is regex-based, not a parser. It can miss or misread unusual syntax (macros, heavily nested generics), so facts are signals for the detector agents, not proof.
 - **Benchmark baseline** is the same agent and model with the official `stellar-dev-skill` loaded (no Soroban audit skill exists to compare against).
 - **LayerZero Stellar endpoint dropped** from the registry: its report lists 0 High/Medium findings, so recall cannot be scored.

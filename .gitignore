@@ -6,3 +6,4 @@ out/
 cache/
 .superpowers/
 target/
+tests/fixtures/soroban-basic/test_snapshots/
