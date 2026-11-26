@@ -16,21 +16,21 @@ Where the engine names a Solidity-era mandatory heuristic, use the Soroban equiv
 | SIG-01, SIG-02, REPLAY-01, PERMIT-01 | AUTH-04 (host-managed nonces for `require_auth`), ACCT-01, ACCT-02 (`__check_auth`), BYTES-02 (`ed25519_verify` / `secp256k1_recover` over app data needs its own replay key) |
 | PRX-01, PRX-02 | UPG-01 to UPG-03, INIT-01, INIT-02 |
 | AEC-01 to AEC-03 | XC-01, XC-02 |
-| RE-01, ROR-01, TOK-01, CALLBACK-01, HOOK-01 | XC-03: the host rejects re-entry into a contract already on the call stack, so classic reentrancy is not reachable; review ordering around failing calls instead |
+| RE-01, ROR-01, CALLBACK-01, HOOK-01 | XC-03: the host rejects re-entry only into a contract already on the call stack, so same-contract reentrancy is not reachable; review ordering around failing calls, and calls from an attacker-controlled callee (TOK-03, XC-01) into a DIFFERENT protocol contract that holds stale state |
 | ETH-01, ETH-02, MRV-01 | TOK-01 to TOK-05 (no value attached to calls; XLM is a Stellar Asset Contract) |
 | BRIDGE-01 to BRIDGE-04 | XC-04 plus `domains/defi/modules/cross-chain-bridge.md` (no native messaging layer) |
 | PACKED-01, HASH-01 | BYTES-01, BYTES-02, STOR-01 |
 | MODIFIER-01 | AUTH-05 (OpenZeppelin Stellar auth macros) |
 | TS-01, C2-01, C2-02 | No transient storage; deterministic deploys: DEPLOY-01 |
 
-Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` below (negative `i128` amounts); in this pack the IDs below win.
+Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` below (negative `i128` amounts); in this pack the IDs below win. The engine's `TOK-02` and `TOK-03` (decimals) map to pack TOK-05, and the engine's mandatory "TOK-01 to TOK-03" reads as pack TOK-01 to TOK-05 here.
 
 **Authorization (AUTH-01 to AUTH-06):**
 - **AUTH-01**: Every `mutating` entry point that moves value or rights of an `Address` argument calls `require_auth` on *that* address. For each `Address` argument ask: does the call spend, reduce or reconfigure something this address owns? Crediting a balance or reading public data needs no auth. Facts: empty `guards` on a `mutating` entry point, counter `unguarded_mutators` (MISSING-AUTH, SET-CONTRACT-STORAGE).
 - **AUTH-02**: Admin and privileged paths authorize the admin loaded from storage, never an address taken from a parameter. `who.require_auth()` on a caller-supplied `who` proves only that the caller controls `who` (MISSING-AUTH, UNPROTECTED-MAPPING-OPERATION).
 - **AUTH-03**: Re-authorize at every layer that spends a user's authority. A function that calls `token.transfer(&user, ..)` without `user.require_auth()` lets anyone consume a pre-signed auth tree that includes the inner call (AUTH-REPLAY-MIDDLEWARE).
 - **AUTH-04**: Replay protection (nonces, expirations) for `require_auth` is handled by the host. Do not report a missing nonce on it. `require_auth_for_args` binds only the arguments listed: check they cover everything the user is meant to sign off on (recipient, amount, token, limits).
-- **AUTH-05**: OpenZeppelin Stellar `#[only_owner]` / `#[only_role]` (and similar macro guards) are expected to expand to `require_auth` on the stored owner or role holder: verify in the macro source for the version in use. Then check role-admin paths (who can grant and revoke roles, ownership transfer, renounce).
+- **AUTH-05**: OpenZeppelin Stellar `#[only_owner]`, `#[only_admin]`, `#[only_role]` and `#[only_any_role]` authenticate (per OpenZeppelin's access-control docs they require auth from the stored holder; verify in the macro source for the version in use). `#[has_role]` and `#[has_any_role]` only check membership and do NOT call `require_auth`: the checked address must also be authorized explicitly (MISSING-AUTH). Then check role-admin paths (who can grant and revoke roles, ownership transfer, renounce).
 - **AUTH-06**: Tests that call `env.mock_all_auths()` cannot show missing auth. Check that tests assert `env.auths()` for the sensitive entry points; absence is a testing gap, not a contract bug (FP-S4).
 
 **Custom accounts (ACCT-01, ACCT-02):**
@@ -42,7 +42,7 @@ Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` bel
 - **INIT-02**: `__constructor` or `initialize` arguments (admin, token, fee recipient, oracle) stored without validity checks (ZERO-ADDRESS). Gate E applies when only the trusted deployer supplies the bad value.
 
 **Upgrades (UPG-01 to UPG-03):**
-- **UPG-01**: `update_current_contract_wasm` (newer SDKs: `update_current_contract`) sits behind admin auth, with a delay when users are promised one (UNPROTECTED-UPDATE-CURRENT-CONTRACT-WASM). There is no proxy and no `delegatecall`: the contract's own code is replaced in place.
+- **UPG-01**: `update_current_contract_wasm` (older API) and `update_current_contract(ContractExecutable::Wasm(hash))` (SDK 28 and later, per the Stellar guide) sit behind admin auth, with a delay when users are promised one (UNPROTECTED-UPDATE-CURRENT-CONTRACT-WASM). There is no proxy and no `delegatecall`: the contract's own code is replaced in place.
 - **UPG-02**: New code must read old storage. `#[contracttype]` enum keys and struct fields are matched by name and shape, so renames and reshaping strand or fail to decode existing entries. Look for a stored schema version and an idempotent, admin-gated `migrate`. Error codes are public ABI and must not be renumbered.
 - **UPG-03**: The upgrade takes effect after the current invocation; code in the same invocation still runs the old WASM. `__constructor` does not re-run on upgrade.
 
@@ -73,7 +73,7 @@ Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` bel
 **Cross-contract calls (XC-01 to XC-04):**
 - **XC-01**: The called contract address comes from arguments or user-writable storage: arbitrary code that can fail, trap, burn budget or return lies (ARBITRARY-CONTRACT-CALL).
 - **XC-02**: Return values from other contracts (prices, rates, balances) used without range, sign or freshness checks (UNTRUSTED-RETURN-VALUE).
-- **XC-03**: Reentrancy: the host blocks re-entry into a contract already on the call stack on normal cross-contract paths, so classic reentrancy is not reachable. An external call is still a failure, budget and side-effect boundary: order state updates deliberately, and do not open a finding on "reenter before the balance update" (FP-S1).
+- **XC-03**: Reentrancy: the host blocks re-entry only into a contract already on the call stack, so same-contract reentrancy is not reachable. It does not stop an attacker-controlled callee (arbitrary token or hook: TOK-03, XC-01) from calling a DIFFERENT protocol contract that is not on the stack and acting on stale state there (A calls the attacker's token before telling controller B to update; the attacker calls B directly). An external call is also a failure, budget and side-effect boundary: order state updates deliberately across contracts (FP-S1).
 - **XC-04**: `try_invoke_contract` / `try_*` client errors swallowed, or a `Result` ignored, so the flow continues after a failed call (UNUSED-RETURN-ENUM). A plain call that fails reverts the whole transaction. Budget exhaustion is not catchable by `try_` calls.
 
 **Resource limits (RES-01 to RES-03):**
@@ -214,7 +214,7 @@ Check EVERY integer cast and conversion: `as` between widths (truncates silently
 
 ### Question additions
 
-- **Q3.7 [ACCESS CONTROL EXHAUSTIVE CHECK]**: List EVERY entry point of every `#[contractimpl]` block (including `contracttrait` default methods generated by OpenZeppelin macros: open the trait) that writes storage, calls another contract or upgrades code. For each: WHO can call it? Which `Address` is authorized with `require_auth`, and is it the one whose rights are consumed (AUTH-01 to AUTH-03)? Especially: admin setters, `initialize`, `upgrade` / `migrate`, sync or checkpoint functions, and functions that pass a user's address to a token or another contract.
+- **Q3.7 [ACCESS CONTROL EXHAUSTIVE CHECK]**: List EVERY entry point of every `#[contractimpl]` block (including default methods of `#[contracttrait]` traits mixed in with `#[contractimpl(contracttrait)]`, from soroban-sdk or OpenZeppelin: open the trait) that writes storage, calls another contract or upgrades code. For each: WHO can call it? Which `Address` is authorized with `require_auth`, and is it the one whose rights are consumed (AUTH-01 to AUTH-03)? Especially: admin setters, `initialize`, `upgrade` / `migrate`, sync or checkpoint functions, and functions that pass a user's address to a token or another contract.
 - **Q6.3**: Can external calls FAIL SILENTLY? (`try_invoke_contract` / `try_*` client errors ignored; a `Result` dropped; a `let _ =` on a call result: XC-04)
 
 ### Rules
@@ -228,12 +228,20 @@ Soroban items for recon (`engine/phases/recon.md`).
 
 ### Analyzer command (Step 2b)
 
-(unverified: from Scout's README; confirm with `cargo scout-audit --help`.) `A` and `<root>` are absolute
-paths; `<root>` is the workspace root that holds `Cargo.toml`. Always pass `--output-path`:
+(unverified: from Scout's README; confirm with `cargo scout-audit --help`.) `A` is the audit folder
+(`<TARGET>/.audit/soroban`), `<root>` the workspace root that holds `Cargo.toml`; both absolute. Scout
+builds the project, so keep the build out of the user's tree the way `recon/extract.sh` does: target dir under
+`A`, and `Cargo.lock` backed up and restored byte-for-byte (or removed if it did not exist). Always pass `--output-path`:
 
 ```bash
 mkdir -p A/analyzers && rm -f A/analyzers/scout.json
-cd <root> && cargo scout-audit --output-format sarif --output-path A/analyzers/scout.json
+LOCK="$(dirname "$(cd <root> && cargo locate-project --workspace --message-format plain)")/Cargo.lock"
+HAD_LOCK=0
+if [ -f "$LOCK" ]; then cp -p "$LOCK" A/Cargo.lock.chainsec-backup && HAD_LOCK=1 || echo "cannot back up Cargo.lock; skip Scout"; fi
+# only if the backup (when needed) succeeded:
+(cd <root> && CARGO_TARGET_DIR=A/target cargo scout-audit --output-format sarif --output-path A/analyzers/scout.json)
+# restore, also when Scout failed:
+if [ "$HAD_LOCK" = 1 ]; then cp -p A/Cargo.lock.chainsec-backup "$LOCK" && rm -f A/Cargo.lock.chainsec-backup; else rm -f "$LOCK"; fi
 python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/analyzers/scout.md
 ```
 
@@ -247,7 +255,7 @@ python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/anal
 - **SDK version**: read `facts.json` `sdk`. Flag SDK below 22: `__constructor` is unavailable, so a guarded `initialize` is the only init path (INIT-01).
 - **Release profile**: read `[profile.release] overflow-checks` in the workspace root `Cargo.toml` (member manifests do not set profiles). Missing or `false` is OVERFLOW-CHECK (ARITH-01).
 - **Workspace members**: list every member crate; which build to wasm (`cdylib`) and which are libraries shared by several contracts.
-- **OpenZeppelin `stellar-contracts`**: `#[contractimpl(contracttrait)]` parents in `facts.json` `units[].parents` are macro-generated entry points the extractor cannot list: open the trait to enumerate them (they can be permissionless or guarded by macro attributes).
+- **OpenZeppelin `stellar-contracts`**: `#[contractimpl(contracttrait)]` parents in `facts.json` `units[].parents` (`#[contracttrait]` is a soroban-sdk macro; OpenZeppelin uses it too) have default methods that become live entry points the extractor cannot list: open the trait to enumerate them (they can be permissionless or guarded by macro attributes).
 - **Key dependencies**: OpenZeppelin `stellar-contracts`, `soroban-fixed-point-math`, Blend, Soroswap, Reflector oracle (SEP-40), Allbridge, other token and oracle crates.
 
 ### Extractor limits (read code, not just facts)
@@ -258,7 +266,8 @@ python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/anal
 - A storage tier handle passed into a helper as a parameter is not tracked: writes look like "view".
 - A `... via <helper>` guard can come from a same-name function in another in-scope crate when the caller's crate defines none: open the helper to confirm.
 - Nested block comments are not handled.
-- Default methods of OpenZeppelin `#[contractimpl(contracttrait)]` impls are macro-generated and invisible; `units[].parents` lists those traits.
+- Default methods of `#[contractimpl(contracttrait)]` impls (soroban-sdk `#[contracttrait]` traits, including OpenZeppelin's) are macro-generated and invisible; `units[].parents` lists those traits.
+- `#[has_role]` / `#[has_any_role]` are not treated as guards (membership check only, no `require_auth`); `only_owner`, `only_admin`, `only_role` and `only_any_role` are (`auth_macro` sites). Whether those expand to `require_auth` is read from the macro source, not verified by the extractor.
 - Not available in facts: function arguments, call targets, `extend_ttl` calls.
 
 So `view` and non-empty `guards` are hints, never proof; empty `guards` on a `mutating` entry point is a strong lead.
@@ -273,9 +282,9 @@ So `view` and non-empty `guards` are hints, never proof; empty `guards` on a `mu
 ### Risk-score counters (Step 3)
 
 Where (counted per file by `recon/extract.py`, weights in `pack.json` `risk_weights`):
-- **external_calls** (×5): `*Client::new(..)` constructions, `invoke_contract` / `try_invoke_contract`, `deployer()` calls and `update_current_contract_wasm` calls, inside functions. Client construction counts the callee, not each method call.
+- **external_calls** (×5): `*Client::new(..)` constructions, `invoke_contract` / `try_invoke_contract`, `deployer()` calls and `update_current_contract_wasm` / `update_current_contract` calls, inside functions. Client construction counts the callee, not each method call.
 - **state_writers** (×4): entry points that contain a storage write (`instance()` / `persistent()` / `temporary()` `set`, `remove`, `update`, `try_update`), including writes reached through followed same-crate helpers.
-- **upgrades** (×6): `update_current_contract_wasm` calls: code replacement is the highest-impact operation. The extractor matches only that name; the newer `update_current_contract` (SDK 28 and later) is not counted, so grep for it yourself.
+- **upgrades** (×6): `update_current_contract_wasm` and `update_current_contract` calls: code replacement is the highest-impact operation.
 - **token_transfers** (×5): method calls named `transfer`, `transfer_from`, `burn`, `burn_from`, `mint` or `clawback`. Soroban has no `payable`; this counter plays that role. Any method with one of those names counts, token or not.
 - **unchecked_math** (×2): `wrapping_*`, `overflowing_*` and `unchecked_*` calls plus `as` casts to a primitive integer type: silent wrap or truncation. Plain `+ - *` are not counted; whether they panic depends on `overflow-checks` (ARITH-01).
 - **unguarded_mutators** (×6): externally visible `mutating` entry points (not `__constructor` / `__check_auth`) with empty `guards`: the strongest signal for MISSING-AUTH (AUTH-01).

@@ -21,7 +21,7 @@ Assume the attacker controls:
 | Platform rule | What it removes | What it does not remove |
 |---|---|---|
 | No `delegatecall`: contracts cannot run foreign bytecode in their own context | Proxy-style code hijacks via a borrowed implementation | Upgrades still exist (`update_current_contract_wasm`) and need admin auth: UPG-01 |
-| No reentrancy: the host blocks reentrant calls, direct or indirect, on normal cross-contract paths | Classic reentrancy findings | External calls are still failure, budget and side-effect boundaries; order state updates deliberately: XC-01, XC-02, RES-01 |
+| No reentrancy into a contract already on the call stack: the host blocks reentrant calls, direct or indirect, on normal cross-contract paths | Same-contract reentrancy findings | It does not stop an attacker-controlled callee (arbitrary token or hook) from calling a DIFFERENT protocol contract that is not on the stack and acting on stale state there. External calls are also failure, budget and side-effect boundaries; order state updates deliberately: XC-01, XC-02, XC-03, RES-01 |
 | Host-managed auth replay protection: nonces and expirations on authorization entries are enforced by the host | Hand-rolled nonce and replay checks for `require_auth` | `require_auth_for_args` binds only the listed arguments (AUTH-04); a pre-signed auth tree can be consumed by a contract that never auths the user (AUTH-03) |
 | Explicit authorization: `require_auth()` is opt-in | Implicit-caller confusion | Forgetting `require_auth`, or authorizing the wrong address, is the bug to hunt: AUTH-01, AUTH-02 |
 
@@ -43,7 +43,8 @@ Assume the attacker controls:
 ## 4. Habits to drop
 
 - **Reentrancy findings.** The host blocks reentrant calls, so a "reenter before the balance update"
-  finding is unlikely to hold on normal cross-contract paths; XC-03 covers what to check instead.
+  finding is unlikely to hold for the same contract; but an attacker-controlled callee can still call a
+  different protocol contract that is not on the stack and act on stale state there. XC-03 covers what to check.
 - **Checking the boolean return of `transfer`.** SEP-41 token `transfer` panics on failure and
   returns no bool; an unchecked-return finding on it is a false positive. Look at what happens when
   the call fails or exhausts the budget instead (XC-04).

@@ -9,7 +9,7 @@ Soroban has no implicit caller. Each function authorizes the addresses it acts f
 
 ## 1. Auth Map
 
-List every entry point (`facts.json` `entry_points`, plus macro-generated methods of `contracttrait` parents) that writes storage, calls another contract or moves tokens:
+List every entry point (`facts.json` `entry_points`, plus default methods of `#[contracttrait]` parents, which become live entry points once mixed in) that writes storage, calls another contract or moves tokens:
 
 | Entry point | Address args | require_auth on | Source of authority |
 |---|---|---|---|
@@ -17,7 +17,7 @@ List every entry point (`facts.json` `entry_points`, plus macro-generated method
 - Every `Address` argument whose rights are spent, reduced or reconfigured must be authorized (AUTH-01). Crediting a balance or a pure read needs none.
 - Privileged paths authorize the admin or role holder **loaded from storage**, not a parameter (AUTH-02).
 - Empty `guards` on a `mutating` entry point is a strong lead; non-empty `guards` is a hint only: a `require_auth` inside an `if` branch, or in a helper the extractor did not follow, may not cover every path.
-- `#[only_owner]` / `#[only_role]` and similar macros: read what they expand to for the version in use, and check the role-admin paths (AUTH-05).
+- `#[only_owner]`, `#[only_admin]`, `#[only_role]`, `#[only_any_role]`: read what they expand to for the version in use, and check the role-admin paths (AUTH-05). `#[has_role]` / `#[has_any_role]` are membership-only checks that do NOT call `require_auth`: the checked address needs an explicit `require_auth`; the extractor does not count them as guards.
 
 ## 2. Middleware and Replay
 

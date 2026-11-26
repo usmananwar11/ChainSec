@@ -9,7 +9,7 @@ Soroban has no proxy and no `delegatecall`: an upgrade replaces the contract's o
 
 ## 1. Upgrade Gate
 
-- Who can reach `update_current_contract_wasm` (older name) or `update_current_contract` (SDK 28 and later per the Stellar guide)? The authorized address must be the stored admin, governance or timelock (UPG-01). The extractor counts only the older name: grep for both.
+- Who can reach `update_current_contract_wasm` (older name) or `update_current_contract` (SDK 28 and later per the Stellar guide)? The authorized address must be the stored admin, governance or timelock (UPG-01). The extractor counts both names (`upgrades` counter).
 - Is there a delay or governance step when users are promised one? Can users exit before it takes effect (Gate E exception)?
 - Is the new wasm hash caller-supplied to a function with no auth, or checked against an allowlist?
 - Is the admin itself changeable only by the admin; is the admin a single key or a custom account (`modules/soroban-auth.md`)?

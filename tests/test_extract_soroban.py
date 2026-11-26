@@ -222,6 +222,23 @@ class ExtractSorobanEdgeTest(unittest.TestCase):
         self.assertEqual([(w["function"], w["target"]) for w in facts["storage_writes"]], [("a", "instance:K::X")])
         self.assertEqual(facts["entry_points"][0]["mutability"], "mutating")
 
+    def test_has_role_is_membership_only_not_a_guard(self):
+        facts = self._facts(crate(
+            "#[contract]\npub struct V;\n#[contractimpl]\nimpl V {\n"
+            "    #[has_role(caller, \"minter\")]\n"
+            "    pub fn mint(e: Env, caller: Address) { e.storage().persistent().set(&K::A, &1); }\n}\n"))
+        self.assertEqual([(e["name"], e["guards"]) for e in facts["entry_points"]], [("mint", [])])
+        self.assertEqual(facts["auth_sites"], [])
+        self.assertEqual(facts["counters"]["src/lib.rs"]["unguarded_mutators"], 1)
+
+    def test_update_current_contract_is_an_upgrade(self):
+        facts = self._facts(crate(
+            "#[contract]\npub struct V;\n#[contractimpl]\nimpl V {\n"
+            "    pub fn up(e: Env, h: BytesN<32>) {\n"
+            "        e.deployer().update_current_contract(ContractExecutable::Wasm(h));\n    }\n}\n"))
+        self.assertEqual([c["kind"] for c in facts["external_calls"]], ["upgrade"])
+        self.assertEqual(facts["counters"]["src/lib.rs"]["upgrades"], 1)
+
     def test_fn_with_semicolon_in_return_type(self):
         facts = self._facts(crate(
             "#[contract]\npub struct V;\n#[contractimpl]\nimpl V {\n"

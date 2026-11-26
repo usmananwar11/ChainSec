@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "..", "script
 from _common import load_json, scope_files, write_json  # noqa: E402
 
 TOKEN_CALLS = ("transfer_from", "transfer", "burn_from", "burn", "mint", "clawback")
-AUTH_MACROS = ("only_owner", "only_admin", "only_role", "only_any_role", "has_role", "has_any_role")
+# has_role / has_any_role only check membership and do not call require_auth, so they are not guards.
+AUTH_MACROS = ("only_owner", "only_admin", "only_role", "only_any_role")
 
 _STRIP = re.compile(
     r'//[^\n]*|/\*.*?\*/'
@@ -42,7 +43,7 @@ HANDLE_RE = re.compile(r'\blet\s+(?:mut\s+)?([A-Za-z_]\w*)\s*(?::[^=;]+)?=\s*[^;
                        r'(instance|persistent|temporary)\(\))?\s*;')
 CLIENT_RE = re.compile(r'\b(?:[A-Za-z_]\w*::)*[A-Za-z_]*Client\s*::\s*new\s*\(')
 EXT_RE = re.compile(r'\.(try_invoke_contract|invoke_contract)\b|\.(deployer)\s*\(\s*\)'
-                    r'(?!\s*\.\s*update_current_contract_wasm)|\b(update_current_contract_wasm)\s*\(')
+                    r'(?!\s*\.\s*update_current_contract(?:_wasm)?\b)|\b(update_current_contract(?:_wasm)?)\s*\(')
 TOKEN_RE = re.compile(r'\.(' + "|".join(TOKEN_CALLS) + r')\s*\(')
 AUTH_RE = re.compile(r'([A-Za-z_][\w.]*)(\s*\([^()]*\))?\s*\.\s*(require_auth_for_args|require_auth)\s*\(')
 AS_CONTRACT_RE = re.compile(r'\.authorize_as_current_contract\s*\(')

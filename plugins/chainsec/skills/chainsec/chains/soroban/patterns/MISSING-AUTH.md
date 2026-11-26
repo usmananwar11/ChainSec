@@ -43,7 +43,7 @@ pub fn withdraw(env: Env, to: Address, amount: i128) {
 ## False-positive caveats (Gate C / FP-10 evidence)
 
 - The guard sits in a helper (`require_admin(&e)`): facts show it as `... via <helper>`; read the helper.
-- OpenZeppelin `#[only_owner]` / `#[only_role]` expand to `require_auth` on the stored holder and count as a guard.
+- OpenZeppelin `#[only_owner]`, `#[only_admin]`, `#[only_role]` and `#[only_any_role]` authenticate the stored holder and count as a guard. `#[has_role]` / `#[has_any_role]` only check membership and do NOT call `require_auth`: the checked address still needs an explicit `require_auth`, otherwise it is MISSING-AUTH.
 - Public-by-design writes (crediting a balance, permissionless `bump`/`extend_ttl`, price pokes that only store a value anyone may supply) need no auth; judge by what the write consumes.
 - A loaded-but-unused admin variable is the bug, not a guard.
 - Contracts whose only callers are other contracts that authorize upstream still need their own auth when they hold funds or rights themselves.

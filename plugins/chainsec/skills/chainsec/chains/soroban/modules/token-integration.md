@@ -14,7 +14,7 @@ A "token address" can be a custom SEP-41 contract, a wrapped classic asset's Ste
 
 - Source of address: hardcoded, set by an admin, allowlisted, or taken from a caller argument (TOK-03). Permissionless means class ARBITRARY-CONTRACT-CALL applies.
 - Decimals: SAC is 7; custom tokens can differ. Read `decimals()` at registration and normalize (TOK-05).
-- Freeze and clawback: SAC issuers can freeze (`set_authorized`) and `clawback`; accounts need trustlines. Does one frozen or unauthorised recipient block a shared flow (TOK-02)? Name the asset before reporting (Gate B).
+- Freeze and clawback: SAC issuers can freeze (`set_authorized`) and `clawback`; accounts need trustlines. Does one frozen or unauthorised recipient block a shared flow (TOK-02)? Name the asset before reporting (Gate B), unless token addresses are permissionless (factories, a token passed as an argument): then an attacker-issued classic asset with `AUTH_REVOCABLE` or clawback counts as the named token.
 
 ## 2. Amount Validation
 
@@ -31,6 +31,6 @@ A "token address" can be a custom SEP-41 contract, a wrapped classic asset's Ste
 
 ## 4. Custom and Fee-on-Transfer Tokens
 
-- A custom token can charge a fee, burn, or deliver less than requested. Where the contract credits an internal balance from the nominal amount, compare the balance before and after (only for tokens actually in the protocol's list: Gate B).
+- A custom token can charge a fee, burn, or deliver less than requested. Where the contract credits an internal balance from the nominal amount, compare the balance before and after (only for tokens actually in the protocol's list: Gate B; with permissionless token addresses an attacker-deployed fee-charging token counts).
 - A custom token can fail, trap or burn budget on any call: a shared flow that calls it (batch payout, liquidation) must not let one token break everyone's path (RES-02).
 - Standard event shapes (`transfer`, `approve`, `mint`, `burn`, `clawback`) emitted, so indexers and wallets see the flows.

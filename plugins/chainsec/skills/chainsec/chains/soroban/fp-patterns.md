@@ -5,8 +5,8 @@
 ### FP-3: OpenZeppelin Stellar Contracts Standard Protection
 The finding reports a vulnerability in code that embeds OpenZeppelin `stellar-contracts` building blocks:
 - Fungible and non-fungible token traits with checked `i128` arithmetic and balance/allowance accounting
-- Ownable and access-control helpers: `#[only_owner]`, `#[only_role]` and similar macros, expected to expand to `require_auth` on the stored owner or role holder
-- Pausable and upgradeable helpers, and any `#[contractimpl(contracttrait)]` default methods (macro-generated, invisible to `facts.json`)
+- Ownable and access-control helpers: `#[only_owner]`, `#[only_admin]`, `#[only_role]` and `#[only_any_role]`, expected to expand to `require_auth` on the stored owner or role holder. `#[has_role]` / `#[has_any_role]` only check membership and do NOT call `require_auth`: the checked address still needs an explicit `require_auth`
+- Pausable and upgradeable helpers, and default methods of `#[contracttrait]` traits mixed in with `#[contractimpl(contracttrait)]` (a soroban-sdk macro; macro-generated and invisible to `facts.json`, but live entry points once the contract mixes the trait in)
 
 **Check**: Verify the exact `stellar-contracts` version in `Cargo.toml` / `Cargo.lock` and read the macro or default method it relies on; do not assume. Check how the contract wires it: a helper that is only internal (no auth of its own) is only as safe as the entry point that calls it; check overridden default methods and any entry point the contract adds beside the library's. Protection from a library the contract does not actually call is no protection.
 
@@ -35,9 +35,9 @@ Soroban items of FP-9 (`engine/phases/verify.md`):
 - Interface-only items (`#[contractclient]` or `#[contracttrait]` traits with no implementation)
 
 ### FP-S1: Reentrancy claims
-The finding says an external call can re-enter the contract before state is updated. The host rejects calls into a contract already on the call stack (direct or indirect, on normal cross-contract paths), so classic reentrancy is not reachable.
+The finding says an external call can re-enter the contract before state is updated. The host rejects calls into a contract already on the call stack (direct or indirect, on normal cross-contract paths), so same-contract reentrancy is not reachable.
 
-**Check**: Kill reentrancy claims that rely on the callee calling back. Do not kill: a claim about a failing, budget-burning or swallowed call (XC-04, RES-01), or ordering that matters when a `try_` call lets the caller continue after a failed callee (XC-03).
+**Check**: Kill reentrancy claims that rely on the callee calling back. Do not kill: a claim about a failing, budget-burning or swallowed call (XC-04, RES-01), or ordering that matters when a `try_` call lets the caller continue after a failed callee (XC-03). Also do not kill: an attacker-controlled callee (arbitrary token or hook: TOK-03, XC-01) that calls a DIFFERENT protocol contract not on the call stack and acts on stale state there (A calls the attacker's token before telling controller B to update; the attacker calls B directly). Kill only when no such second contract holds coupled state.
 
 ### FP-S2: Replay claims against `require_auth`
 The finding says a signed authorization can be replayed or that a nonce is missing. Nonces and expirations on authorization entries are enforced by the host.
@@ -64,7 +64,7 @@ Soroban examples for the gates in `engine/kill-gates.md`, keyed by gate letter. 
 - Detection pre-filter: Do NOT report: quality-tier Scout classes as findings, generic "check `transfer`'s return value" (SEP-41 `transfer` panics on failure and returns no bool), generic centralization of a stored admin.
 
 ### Gate B — Theoretical or speculative
-- Kill: a frozen or clawback-affected SAC claim that does not name the specific asset in the protocol's token list (TOK-02).
+- Kill: a frozen or clawback-affected SAC claim that does not name the specific asset in the protocol's token list (TOK-02). Exception: when token addresses are permissionless (pool or market factories, a token passed as an argument), an attacker-issued classic asset with `AUTH_REVOCABLE` or clawback enabled counts as the named token.
 - Kill: `i128` overflow on values provably bounded far below the limit (a counter bumped once per call) — but state the bound.
 - Kill: "TTL could lapse" for an entry the contract extends on every hot path, or that anyone can extend and the protocol keeps alive; survive when nothing extends it and funds would be stuck (TTL-01).
 
