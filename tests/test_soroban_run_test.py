@@ -106,7 +106,8 @@ class RunTestFakeCargo(unittest.TestCase):
         self.assertEqual(snapshot(self.crate).keys() - before.keys(), {"test_snapshots/x.json"})
 
     def test_stale_backup_refused(self):
-        for name in ("Cargo.lock.chainsec-runtest-backup", "Cargo.lock.chainsec-extract-backup"):
+        for name in ("Cargo.lock.chainsec-runtest-backup", "Cargo.lock.chainsec-extract-backup",
+                     "Cargo.lock.chainsec-scout-backup"):
             bak = os.path.join(self.work, name)
             with open(bak, "w") as f:
                 f.write("ORIGINAL")

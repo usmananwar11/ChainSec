@@ -228,32 +228,27 @@ Soroban items for recon (`engine/phases/recon.md`).
 
 ### Analyzer command (Step 2b)
 
-(unverified: from Scout's README; confirm with `cargo scout-audit --help`.) `A` is the audit folder
-(`<TARGET>/.audit/soroban`), `<root>` the workspace root that holds `Cargo.toml`; both absolute. Scout
-builds the project, so keep the build out of the user's tree the way `recon/extract.sh` does: target dir under
-`A`, and `Cargo.lock` backed up and restored byte-for-byte (or removed if it did not exist). Always pass `--output-path`:
+(unverified: Scout's flags are from its README and Scout is not installed here; confirm with
+`cargo scout-audit --help`.) `A` is the audit folder (`<TARGET>/.audit/soroban`), `<ROOT>` the workspace root
+that holds `Cargo.toml`; both absolute. Step 1, the tool run:
 
 ```bash
-mkdir -p A/analyzers && rm -f A/analyzers/scout.json
-WS="$(cd <root> && cargo locate-project --workspace --message-format plain 2>/dev/null)"
-LOCK="$(dirname "${WS:-<root>/Cargo.toml}")/Cargo.lock"
-BACKUP=A/Cargo.lock.chainsec-backup
-HAD_LOCK=0; SAFE=1
-if [ -f "$LOCK" ]; then
-  if cp -p "$LOCK" "$BACKUP"; then HAD_LOCK=1; else SAFE=0; echo "cannot back up Cargo.lock; skipping Scout" >&2; fi
-fi
-if [ "$SAFE" = 1 ]; then
-  (cd <root> && CARGO_TARGET_DIR=A/target cargo scout-audit --output-format sarif --output-path A/analyzers/scout.json) \
-    || { echo "scout failed" >&2; rm -f A/analyzers/scout.json; }
-  # restore from the backup if the lock existed; remove only a lock this run created
-  if [ "$HAD_LOCK" = 1 ]; then cp -p "$BACKUP" "$LOCK" && rm -f "$BACKUP"; else rm -f "$LOCK"; fi
-fi
-[ -f A/analyzers/scout.json ] && python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/analyzers/scout.md
+bash CORE/chains/soroban/recon/run-scout.sh <ROOT> A
 ```
 
-- Scout compiles the project and uses a pinned nightly through `cargo-dylint`; it can fail on a project whose toolchain or SDK it does not support. Failure is not a ChainSec error: treat the pre-scan as failed ("scout pre-scan: SKIPPED (failed)") and delete both files.
-- `recon/scout-summary.py` lists every SARIF level. The engine's recon step extracts only HIGH and MEDIUM signal: treat SARIF `error` as High/Medium signal and `warning` / `note` as lower. Many Scout detectors are quality tier (unwrap, expect, panic, iterators, `mem::forget`, SDK version).
-- Scout rule IDs, upper-cased, are the pack's pattern IDs (`patterns/README.md`): a hit is a lead for that pattern, not a finding.
+`recon/run-scout.sh` keeps the build out of the user's tree the way `recon/extract.sh` does: target dir under
+`A`, `Cargo.lock` backed up to `A/Cargo.lock.chainsec-scout-backup` and restored byte-for-byte (or removed if it
+did not exist), also when the run is interrupted. It refuses (exit 2) while any `A/Cargo.lock.chainsec-*-backup`
+is left over from an earlier run: restore that lock first, as the message says. It writes SARIF to
+`A/analyzers/scout.json` and keeps it whenever it is JSON with a `runs` list, even if Scout exits non-zero on
+findings (exit 0); with no usable SARIF it removes the file and exits 1. A cold first run builds Scout's nightly
+toolchain and dylint drivers and can take many minutes: give the command a long tool timeout (or run it in the
+background and wait for it). Step 2, the analyzer `run` script from `pack.json`, is then
+`python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/analyzers/scout.md`.
+
+- Scout compiles the project and uses a pinned nightly through `cargo-dylint`; it can fail on a project whose toolchain or SDK it does not support. Failure (exit 1) is not a ChainSec error: treat the pre-scan as failed ("scout pre-scan: SKIPPED (failed)") and delete both files.
+- `recon/scout-summary.py` maps each SARIF `ruleId` to its pattern ID and tier from `patterns/README.md` and lists security-tier rows first. Scout declares every lint `Warn` (its severity lives only in lint metadata), so the SARIF level carries no severity: security-tier classes are the H/M signal; quality-tier classes are QA (unwrap, expect, panic, iterators, `mem::forget`, SDK version). An `unknown` tier is a detector not in `patterns/README.md`: read its message before ranking it.
+- Scout rule IDs map to the pack's pattern IDs (`patterns/README.md`): `_` becomes `-`, upper-cased, a `scout::` style prefix dropped, and three lint names that differ from their detector mapped (`unexpected_revert_warn`, `integer_overflow_underflow`, `iterator_over_indexing`). A hit is a lead for that pattern, not a finding.
 
 ### Project identification (Step 1)
 

@@ -201,7 +201,7 @@ The pack lives in `plugins/chainsec/skills/chainsec/chains/soroban/`. It is buil
 
 **What was built**
 - `pack.json` (soroban-sdk detection, scope rules, `cargo` required, `stellar` and `cargo-scout-audit` optional).
-- Recon: `recon/extract.sh` + `extract.py` (facts extractor) and `recon/scout-summary.py` (turns Scout output into a signal table).
+- Recon: `recon/extract.sh` + `extract.py` (facts extractor), `recon/run-scout.sh` (lock-safe Scout run) and `recon/scout-summary.py` (turns Scout output into a signal table by pattern tier).
 - 34 patterns under `patterns/`: 23 ported from Scout and 11 from the Stellar security guide.
 - `heuristics.md`, `fp-patterns.md`, `module-triggers.md` and 6 modules: `soroban-auth`, `storage-and-ttl`, `token-integration`, `cross-contract-calls`, `upgrades-and-init`, `resource-limits`.
 - `primers/soroban-vs-evm.md`.

@@ -22,7 +22,8 @@ if [ "${CHAINSEC_NO_COMPILE:-0}" != "1" ] && command -v cargo >/dev/null 2>&1 &&
     else rm -f "$LOCK"; fi
   }
   SAFE=1
-  for B in "$BACKUP" "$OUTDIR/Cargo.lock.chainsec-runtest-backup"; do
+  # Any ChainSec script's leftover backup (extract, runtest, scout) means an earlier run did not restore the lock.
+  for B in "$OUTDIR"/Cargo.lock.chainsec-*-backup; do
     if [ -e "$B" ]; then
       SAFE=0
       echo "stale backup $B exists (an earlier run did not restore Cargo.lock); skipping cargo check. Restore it first: cp -p \"$B\" \"$LOCK\" && rm \"$B\"" >&2

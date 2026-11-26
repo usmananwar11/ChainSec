@@ -21,8 +21,9 @@ HAD_SNAPS=0; [ -e "$CRATE/test_snapshots" ] && HAD_SNAPS=1
 WS="$(cd "$CRATE" && cargo locate-project --workspace --message-format plain 2>/dev/null)"
 LOCK="$(dirname "${WS:-$CRATE/Cargo.toml}")/Cargo.lock"
 BACKUP="$WORK/Cargo.lock.chainsec-runtest-backup"
-# A leftover backup (either script's) means an earlier run died before restoring Cargo.lock: never overwrite it.
-for B in "$BACKUP" "$WORK/Cargo.lock.chainsec-extract-backup"; do
+# A leftover backup (any ChainSec script's: runtest, extract, scout) means an earlier run died before restoring
+# Cargo.lock: never overwrite it.
+for B in "$WORK"/Cargo.lock.chainsec-*-backup; do
   if [ -e "$B" ]; then
     echo "refusing: stale backup $B exists (an earlier run did not restore Cargo.lock). Restore it first: cp -p \"$B\" \"$LOCK\" && rm \"$B\"" >&2
     exit 2

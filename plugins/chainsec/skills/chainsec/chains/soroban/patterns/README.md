@@ -16,8 +16,9 @@ How the engine uses them:
 - **Tier**: `security` classes are reported at the severity their impact earns. `quality` classes
   are QA/Low unless an attacker can force the panic or cost onto another user's critical path.
 - **Naming**: findings keep the pack's `SOROBAN-<n>` ID; a finding that matches a class cites the
-  class ID (for example in its `category`) so it can be traced back. Scout's detector ID, upper-cased,
-  is the pattern ID, which is how `recon/scout-summary.py` links Scout SARIF results to patterns.
+  class ID (for example in its `category`) so it can be traced back. Scout's detector ID, upper-cased
+  with `_` as `-`, is the pattern ID, which is how `recon/scout-summary.py` links Scout SARIF results to
+  patterns and reads their tier from the tables below.
 
 | ID | Lens | Category | Tier | One-line description |
 |---|---|---|---|---|

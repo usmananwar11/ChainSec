@@ -284,7 +284,8 @@ class ExtractSorobanEdgeTest(unittest.TestCase):
                     'echo ran > "%s/cargo-ran"; exit 0\n' % (root, bindir))
         os.chmod(fake, 0o755)
         outdir = tempfile.mkdtemp()
-        for name in ("Cargo.lock.chainsec-extract-backup", "Cargo.lock.chainsec-runtest-backup"):
+        for name in ("Cargo.lock.chainsec-extract-backup", "Cargo.lock.chainsec-runtest-backup",
+                     "Cargo.lock.chainsec-scout-backup"):
             bak = os.path.join(outdir, name)
             with open(bak, "w") as f:
                 f.write("ORIGINAL")
