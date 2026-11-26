@@ -33,6 +33,7 @@ pub fn upgrade(e: Env, new_wasm_hash: BytesN<32>) {
 ## Detection
 
 - `external_calls` with kind `upgrade` in `facts.json` whose entry point has empty `guards`.
+- Both API names: `update_current_contract_wasm(hash)` and, on SDK 28 and later, `e.deployer().update_current_contract(ContractExecutable::Wasm(hash))`; the extractor reports both as `upgrade`, but grep for each.
 - Auth taken from a caller-supplied `Address` argument instead of the stored admin.
 
 ## False-positive caveats (Gate C / FP-10 evidence)

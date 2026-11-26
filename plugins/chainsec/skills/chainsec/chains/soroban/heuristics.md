@@ -23,7 +23,7 @@ Where the engine names a Solidity-era mandatory heuristic, use the Soroban equiv
 | MODIFIER-01 | AUTH-05 (OpenZeppelin Stellar auth macros) |
 | TS-01, C2-01, C2-02 | No transient storage; deterministic deploys: DEPLOY-01 |
 
-Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` below (negative `i128` amounts); in this pack the IDs below win. The engine's `TOK-02` and `TOK-03` (decimals) map to pack TOK-05, and the engine's mandatory "TOK-01 to TOK-03" reads as pack TOK-01 to TOK-05 here.
+Note the engine's `TOK-01` (callback reentrancy) is not the Soroban `TOK-01` below (negative `i128` amounts); in this pack the IDs below win (the engine's callback-reentrancy `TOK-01` maps to XC-03). The engine's `TOK-02` and `TOK-03` (decimals) map to pack TOK-05, and the engine's mandatory "TOK-01 to TOK-03" reads as pack TOK-01 to TOK-05 here.
 
 **Authorization (AUTH-01 to AUTH-06):**
 - **AUTH-01**: Every `mutating` entry point that moves value or rights of an `Address` argument calls `require_auth` on *that* address. For each `Address` argument ask: does the call spend, reduce or reconfigure something this address owns? Crediting a balance or reading public data needs no auth. Facts: empty `guards` on a `mutating` entry point, counter `unguarded_mutators` (MISSING-AUTH, SET-CONTRACT-STORAGE).
@@ -235,14 +235,20 @@ builds the project, so keep the build out of the user's tree the way `recon/extr
 
 ```bash
 mkdir -p A/analyzers && rm -f A/analyzers/scout.json
-LOCK="$(dirname "$(cd <root> && cargo locate-project --workspace --message-format plain)")/Cargo.lock"
-HAD_LOCK=0
-if [ -f "$LOCK" ]; then cp -p "$LOCK" A/Cargo.lock.chainsec-backup && HAD_LOCK=1 || echo "cannot back up Cargo.lock; skip Scout"; fi
-# only if the backup (when needed) succeeded:
-(cd <root> && CARGO_TARGET_DIR=A/target cargo scout-audit --output-format sarif --output-path A/analyzers/scout.json)
-# restore, also when Scout failed:
-if [ "$HAD_LOCK" = 1 ]; then cp -p A/Cargo.lock.chainsec-backup "$LOCK" && rm -f A/Cargo.lock.chainsec-backup; else rm -f "$LOCK"; fi
-python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/analyzers/scout.md
+WS="$(cd <root> && cargo locate-project --workspace --message-format plain 2>/dev/null)"
+LOCK="$(dirname "${WS:-<root>/Cargo.toml}")/Cargo.lock"
+BACKUP=A/Cargo.lock.chainsec-backup
+HAD_LOCK=0; SAFE=1
+if [ -f "$LOCK" ]; then
+  if cp -p "$LOCK" "$BACKUP"; then HAD_LOCK=1; else SAFE=0; echo "cannot back up Cargo.lock; skipping Scout" >&2; fi
+fi
+if [ "$SAFE" = 1 ]; then
+  (cd <root> && CARGO_TARGET_DIR=A/target cargo scout-audit --output-format sarif --output-path A/analyzers/scout.json) \
+    || { echo "scout failed" >&2; rm -f A/analyzers/scout.json; }
+  # restore from the backup if the lock existed; remove only a lock this run created
+  if [ "$HAD_LOCK" = 1 ]; then cp -p "$BACKUP" "$LOCK" && rm -f "$BACKUP"; else rm -f "$LOCK"; fi
+fi
+[ -f A/analyzers/scout.json ] && python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/analyzers/scout.md
 ```
 
 - Scout compiles the project and uses a pinned nightly through `cargo-dylint`; it can fail on a project whose toolchain or SDK it does not support. Failure is not a ChainSec error: treat the pre-scan as failed ("scout pre-scan: SKIPPED (failed)") and delete both files.
@@ -266,6 +272,7 @@ python3 CORE/chains/soroban/recon/scout-summary.py A/analyzers/scout.json A/anal
 - A storage tier handle passed into a helper as a parameter is not tracked: writes look like "view".
 - A `... via <helper>` guard can come from a same-name function in another in-scope crate when the caller's crate defines none: open the helper to confirm.
 - Nested block comments are not handled.
+- Any call named `update_current_contract(...)` or `update_current_contract_wasm(...)` counts as an upgrade, including a project helper with that name: confirm it reaches the deployer.
 - Default methods of `#[contractimpl(contracttrait)]` impls (soroban-sdk `#[contracttrait]` traits, including OpenZeppelin's) are macro-generated and invisible; `units[].parents` lists those traits.
 - `#[has_role]` / `#[has_any_role]` are not treated as guards (membership check only, no `require_auth`); `only_owner`, `only_admin`, `only_role` and `only_any_role` are (`auth_macro` sites). Whether those expand to `require_auth` is read from the macro source, not verified by the extractor.
 - Not available in facts: function arguments, call targets, `extend_ttl` calls.
