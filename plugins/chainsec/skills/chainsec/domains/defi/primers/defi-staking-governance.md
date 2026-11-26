@@ -96,8 +96,8 @@ If admin changes `reservePrice`, `cooldownDuration`, `interestRate`, or `entropy
 **Check**: For EVERY admin setter, ask: what happens to operations that started under the old value?
 
 ### 20. Permissionless Dust Calls Reset Timers
-If `distribute(amount)` is permissionless and resets a distribution timer → attacker calls `distribute(1 wei)` repeatedly to extend distribution period indefinitely.
-**Check**: Can any permissionless function be called with dust (0, 1 (the smallest unit)) to manipulate timing state?
+If `distribute(amount)` is permissionless and resets a distribution timer → attacker calls `distribute(1 unit)` repeatedly to extend distribution period indefinitely.
+**Check**: Can any permissionless function be called with dust (0, 1 unit) to manipulate timing state?
 
 ### 21. Cross-Contract Call Chain Modifier Propagation
 If `unstake()` calls `getRewards()` which calls `mint()` which has a pause guard → pausing the minter blocks unstaking even though unstaking should always be available.
