@@ -17,24 +17,34 @@ by `_` (`soroban_001`), because Rust test target names cannot contain `-`.
 
   ```toml
   [dev-dependencies]
-  soroban-sdk = { version = "26.1.0", features = ["testutils"] }
+  soroban-sdk = { version = "<same as [dependencies]>", features = ["testutils"] }
   ```
+
+  Use the same `soroban-sdk` version as `[dependencies]`.
 
   If it is missing, add it in a **scratch copy** of the project, never in the user's tree.
 - `[lib] crate-type` must include `"lib"` or `"rlib"` so an integration test can
   `use <crate_name>::...`. If it is `["cdylib"]` only, use the wasm fallback in step 2.
 - Note `[package] name`: dashes become underscores in `use` (`chainsec-vault` -> `chainsec_vault`).
-- A project with existing tests: run `cargo test` once first (in a scratch copy, or through the helper
-  with a trivial test) to confirm the toolchain and dependencies resolve.
+- A project with existing tests: run its own `cargo test` once first, in a **scratch copy** (the helper
+  runs only `--test <name>`, never the project's whole suite) to confirm the toolchain and dependencies
+  resolve.
 
 ### 2. Choose the harness: native, wasm import, or ledger snapshot
 
 - **Native (default):** link the crate and `env.register(Contract, (ctor args,))`. Fast, full testutils.
-- **Wasm fallback** (cdylib-only crate, or the bug depends on the compiled artifact): build with
-  `stellar contract build --out-dir <TARGET>/.audit/soroban/wasm`, then in the test
-  `mod c { soroban_sdk::contractimport!(file = "<path>.wasm"); }` and `env.register(c::WASM, (args,))`.
+- **Wasm fallback** (cdylib-only crate, or the bug depends on the compiled artifact): never build in
+  the user's tree. Copy `<TARGET>/<root>` to `<TARGET>/.audit/soroban/wasm-src/` (excluding `target/` and
+  `.audit/`) and build there with `CARGO_TARGET_DIR=<TARGET>/.audit/soroban/target stellar contract build
+  --out-dir <TARGET>/.audit/soroban/wasm`. Path dependencies outside `<root>` break in the copy; if so,
+  stop and report. Then in the test
+  `mod c { soroban_sdk::contractimport!(file = "<TARGET>/.audit/soroban/wasm/<name>.wasm"); }` and
+  `env.register(c::WASM, (args,))`. Use the absolute path: it resolves against the user crate's
+  `CARGO_MANIFEST_DIR`.
 - **Ledger snapshot** (contract already deployed): `stellar snapshot create --address <C> --output json
   --out <file>` and `Env::from_ledger_snapshot_file`. Needs an RPC/archive; without one, stay native.
+  `from_ledger_snapshot_file` hard-codes the default config (snapshots on), so write
+  `let mut env = Env::from_ledger_snapshot_file(..); env.set_config(EnvTestConfig { capture_snapshot_at_drop: false });`
 
 ### 3. Write the test
 
@@ -49,9 +59,12 @@ created are removed, `Cargo.lock` is restored byte-for-byte (or removed if it di
 Create the `Env` with `Env::new_with_config(EnvTestConfig { capture_snapshot_at_drop: false })`, not
 `Env::default()`: the default writes `test_snapshots/*.json` into the audited crate every time an `Env`
 drops. `EnvTestConfig` exists in soroban-sdk 21 and later; for older SDKs the helper removes a
-`test_snapshots/` folder it created (one that already existed is left alone).
+`test_snapshots/` folder it created (one that already existed is left alone). That is why every `Env` must be snapshot-free: a
+pre-existing `test_snapshots/` is not cleaned, so new files would leak into it.
 
 Verified skeleton (planted bug: `withdraw` debits `from` without `from.require_auth()`):
+
+<!-- chainsec:verified-poc-skeleton -->
 
 ```rust
 //! PoC SOROBAN-001: withdraw debits `from` without `from.require_auth()`.
@@ -100,9 +113,9 @@ Run through the helper on a copy of the fixture, it prints
 | Real token | `env.register_stellar_asset_contract_v2(admin)`, `token::Client`, `token::StellarAssetClient::mint` |
 | Auth: allow everything | `env.mock_all_auths()` (use only for setup) |
 | Auth: nothing signed | `env.set_auths(&[])`, then assert `env.auths().is_empty()` |
-| Auth: specific signer | `env.mock_auths(&[MockAuth { address, invoke: &MockAuthInvoke { .. } }])` |
+| Auth: specific signer | `env.mock_auths(&[MockAuth { address, invoke: &MockAuthInvoke { .. } }])` (import `soroban_sdk::testutils::{MockAuth, MockAuthInvoke}`) |
 | Which auths were required | `env.auths()` |
-| Time / ledger | `env.ledger().set_timestamp(t)`, `env.ledger().with_mut(\|li\| li.sequence_number = n)` |
+| Time / ledger | `env.ledger().set_timestamp(t)` (needs `use soroban_sdk::testutils::Ledger as _;`), `env.ledger().with_mut(\|li\| li.sequence_number = n)` |
 | Assert an error | `client.try_<fn>(..)` returns `Result`; match the `Err` |
 | Resource DoS | `env.cost_estimate().budget()` / resources, after `env.cost_estimate().budget().reset_unlimited()` when setting up |
 
@@ -112,15 +125,15 @@ Follow `engine/poc/assertion-protocol.md`: assert balances moved, admin changed,
 invariant broken (as the skeleton asserts the attacker's token balance and the victim's vault balance).
 "The call did not panic" is not harm.
 
-### 6. Compile -> run -> fix
+### 6. Compile → run → fix
 
 | Error | Fix |
 |---|---|
-| `no method ... register` / `Address::generate` not found | `testutils` feature missing under `[dev-dependencies]`, or `testutils::Address as _` not imported |
+| `no method ... register` / `Address::generate` not found | `testutils` feature missing under `[dev-dependencies]`, `testutils::Address as _` / `testutils::Ledger as _` not imported, or `MockAuth` / `MockAuthInvoke` not imported from `soroban_sdk::testutils` |
 | `unresolved import <crate>` | crate is cdylib-only: add `"lib"` in a scratch copy or use the wasm fallback; check the underscore name |
 | `Error(Auth, InvalidAction)` in a PoC meant to succeed | the target does call `require_auth`: the bug may not exist, or the PoC needs `mock_auths` for the right address |
 | `#![no_std]` crate | the test file is a separate crate and may use `std`; add `extern crate std;` only if the lib's macros need it |
 | Bug depends on `[profile.release] overflow-checks` | pass extra args through the helper: `... <work-dir> --release` |
-| `test_snapshots/` appears | the `Env` was built with `Env::default()`; use `EnvTestConfig` as above |
+| `test_snapshots/` appears | some `Env` still captures snapshots: `Env::default()`, or `from_ledger_snapshot_file` without `set_config(EnvTestConfig { capture_snapshot_at_drop: false })` |
 
 After 5 failed compiles, stop and keep the finding at `[CODE-TRACE]` (see `engine/poc/workflow.md`).

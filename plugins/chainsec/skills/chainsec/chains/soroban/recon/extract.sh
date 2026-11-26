@@ -14,13 +14,21 @@ STATUS=unknown
 if [ "${CHAINSEC_NO_COMPILE:-0}" != "1" ] && command -v cargo >/dev/null 2>&1 && [ -f "$ROOT/Cargo.toml" ]; then
   WS="$(cd "$ROOT" && cargo locate-project --workspace --message-format plain 2>/dev/null)"
   LOCK="$(dirname "${WS:-$ROOT/Cargo.toml}")/Cargo.lock"
-  BACKUP="$OUTDIR/Cargo.lock.chainsec-backup"
+  BACKUP="$OUTDIR/Cargo.lock.chainsec-extract-backup"
   HAD_LOCK=0
   restore_lock() {
-    if [ "$HAD_LOCK" = 1 ]; then cp -p "$BACKUP" "$LOCK" && rm -f "$BACKUP"; else rm -f "$LOCK"; fi
+    if [ "$HAD_LOCK" = 1 ]; then
+      cp -p "$BACKUP" "$LOCK" && rm -f "$BACKUP" || echo "FAILED to restore Cargo.lock; original kept at $BACKUP" >&2
+    else rm -f "$LOCK"; fi
   }
   SAFE=1
-  if [ -f "$LOCK" ]; then
+  for B in "$BACKUP" "$OUTDIR/Cargo.lock.chainsec-runtest-backup"; do
+    if [ -e "$B" ]; then
+      SAFE=0
+      echo "stale backup $B exists (an earlier run did not restore Cargo.lock); skipping cargo check. Restore it first: cp -p \"$B\" \"$LOCK\" && rm \"$B\"" >&2
+    fi
+  done
+  if [ "$SAFE" = 1 ] && [ -f "$LOCK" ]; then
     if cp -p "$LOCK" "$BACKUP"; then HAD_LOCK=1; else SAFE=0; echo "cannot back up Cargo.lock; skipping cargo check" >&2; fi
   fi
   if [ "$SAFE" = 1 ]; then

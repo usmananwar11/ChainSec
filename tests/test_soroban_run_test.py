@@ -15,6 +15,9 @@ case "$1" in
   locate-project) echo "$FAKE_CRATE/Cargo.toml"; exit 0 ;;
   test)
     echo "fake cargo test $*"
+    echo "CARGO_TARGET_DIR=$CARGO_TARGET_DIR"
+    ls "$FAKE_CRATE/tests/" | sed 's/^/COPIED:/'
+    [ -n "$FAKE_RO_LOCK" ] && { echo x >> "$FAKE_CRATE/Cargo.lock"; chmod 444 "$FAKE_CRATE/Cargo.lock"; }
     echo "changed" >> "$FAKE_CRATE/Cargo.lock"
     mkdir -p "$FAKE_CRATE/test_snapshots"; echo '{}' > "$FAKE_CRATE/test_snapshots/x.json"
     ls "$FAKE_CRATE/tests" > /dev/null || exit 99
@@ -55,9 +58,9 @@ class RunTestFakeCargo(unittest.TestCase):
         os.chmod(cargo, os.stat(cargo).st_mode | stat.S_IXUSR)
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
-    def go(self, code=0):
+    def go(self, code=0, **extra):
         env = dict(os.environ, PATH=self.bin + os.pathsep + os.environ["PATH"],
-                   FAKE_CRATE=self.crate, FAKE_EXIT=str(code))
+                   FAKE_CRATE=self.crate, FAKE_EXIT=str(code), **extra)
         return run(["bash", RUN_TEST, self.crate, self.testfile, self.work, "--", "--nocapture"], env=env)
 
     def check(self, code=0, lock=None, tests_dir=False):
@@ -73,6 +76,8 @@ class RunTestFakeCargo(unittest.TestCase):
         self.assertIn("fake cargo test", r.stdout)
         self.assertIn("--test chainsec_poc_x_001", r.stdout)
         self.assertIn("--nocapture", r.stdout)
+        self.assertIn("COPIED:chainsec_poc_x_001.rs", r.stdout)
+        self.assertIn("CARGO_TARGET_DIR=" + self.work + "/target", r.stdout)
         self.assertEqual(snapshot(self.crate), before_crate)
         self.assertEqual(snapshot(self.work), before_work)
 
@@ -100,6 +105,45 @@ class RunTestFakeCargo(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(self.crate, "test_snapshots")))
         self.assertEqual(snapshot(self.crate).keys() - before.keys(), {"test_snapshots/x.json"})
 
+    def test_stale_backup_refused(self):
+        for name in ("Cargo.lock.chainsec-runtest-backup", "Cargo.lock.chainsec-extract-backup"):
+            bak = os.path.join(self.work, name)
+            with open(bak, "w") as f:
+                f.write("ORIGINAL")
+            with open(os.path.join(self.crate, "Cargo.lock"), "w") as f:
+                f.write("MODIFIED")
+            before_c, before_w = snapshot(self.crate), snapshot(self.work)
+            r = self.go()
+            self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+            self.assertNotIn("fake cargo test", r.stdout)
+            self.assertIn(name, r.stderr)
+            self.assertEqual(snapshot(self.crate), before_c)
+            self.assertEqual(snapshot(self.work), before_w)
+            os.remove(bak)
+
+    def test_backup_failure_not_run(self):
+        with open(os.path.join(self.crate, "Cargo.lock"), "w") as f:
+            f.write("L")
+        os.chmod(self.work, 0o555)
+        self.addCleanup(os.chmod, self.work, 0o755)
+        before = snapshot(self.crate)
+        r = self.go()
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertNotIn("fake cargo test", r.stdout)
+        self.assertEqual(snapshot(self.crate), before)
+
+    def test_restore_failure_is_nonzero(self):
+        with open(os.path.join(self.crate, "Cargo.lock"), "w") as f:
+            f.write("L")
+        self.addCleanup(lambda: os.chmod(os.path.join(self.crate, "Cargo.lock"), 0o644))
+        r = self.go(FAKE_RO_LOCK="1")
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("FAILED to restore", r.stderr)
+        os.remove(os.path.join(self.work, "Cargo.lock.chainsec-runtest-backup"))
+        os.chmod(os.path.join(self.crate, "Cargo.lock"), 0o644)
+        r = self.go(1, FAKE_RO_LOCK="1")
+        self.assertEqual(r.returncode, 1)
+
     def test_existing_test_file_refused(self):
         os.makedirs(os.path.join(self.crate, "tests"))
         mine = os.path.join(self.crate, "tests", "chainsec_poc_x_001.rs")
@@ -123,7 +167,7 @@ class RunTestRealCargo(unittest.TestCase):
         shutil.copytree(FIXTURE, crate)
         with open(os.path.join(CORE, "chains", "soroban", "poc", "guide.md"), encoding="utf-8") as gf:
             guide = gf.read()
-        start = guide.index("```rust\n", guide.index("Verified skeleton")) + len("```rust\n")
+        start = guide.index("```rust\n", guide.index("<!-- chainsec:verified-poc-skeleton -->")) + len("```rust\n")
         src = guide[start:guide.index("```", start)]
         work = os.path.join(tmp, "audit")
         poc = os.path.join(work, "poc", "SOROBAN-001")
