@@ -54,6 +54,6 @@
     "proxy-upgradeable": ["modules/upgrades-and-init.md"],
     "wallet-aa": ["modules/soroban-auth.md"]
   },
-  "poc": { "framework": "soroban-sdk-testutils", "run": "cd <TARGET>/<root>/<crate> && mkdir -p tests && cp <TARGET>/.audit/soroban/poc/<ID>/<test file> tests/ && CARGO_TARGET_DIR=<TARGET>/.audit/soroban/target cargo test --test chainsec_poc_<id> 2>&1; rm -f tests/<test file>", "guide": "poc/guide.md" },
-  "fuzz": { "framework": "soroban-sdk-testutils-seeded", "run": "cd <TARGET>/<root>/<crate> && mkdir -p tests && cp <TARGET>/.audit/soroban/fuzz/tests/chainsec_fuzz.rs tests/ && CARGO_TARGET_DIR=<TARGET>/.audit/soroban/target cargo test --test chainsec_fuzz -- --nocapture 2>&1; rm -f tests/chainsec_fuzz.rs", "guide": "fuzz/guide.md" }
+  "poc": { "framework": "soroban-sdk-testutils", "run": "bash <CORE>/chains/soroban/poc/run-test.sh <TARGET>/<root>/<crate> <TARGET>/.audit/soroban/poc/<ID>/chainsec_poc_<id>.rs <TARGET>/.audit/soroban 2>&1", "guide": "poc/guide.md" },
+  "fuzz": { "framework": "soroban-sdk-testutils-seeded", "run": "bash <CORE>/chains/soroban/poc/run-test.sh <TARGET>/<root>/<crate> <TARGET>/.audit/soroban/fuzz/tests/chainsec_fuzz.rs <TARGET>/.audit/soroban -- --nocapture 2>&1", "guide": "fuzz/guide.md" }
 }
