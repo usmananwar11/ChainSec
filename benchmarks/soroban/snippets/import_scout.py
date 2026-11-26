@@ -23,6 +23,8 @@ TOKENS = re.compile(r'(?<![\w])b?r(#*)".*?"\1|(?<![\w])b?"(?:\\.|[^"\\])*"'
                     r'|//[^\n]*|/\*.*?\*/', re.S)
 CFG_TEST = re.compile(r'#\[cfg\(test\)\]\s*(?:pub\s+)?mod\s+\w+\s*\{')
 WS_DEP = re.compile(r'^(\s*soroban-sdk\s*=\s*\{)\s*workspace\s*=\s*true\s*(,?)', re.M)
+SAFE_PREFIX = re.compile(r"\b(?:un)?safe_(?=\w)")
+FIXED_PREFIX = re.compile(r"\b(?:FIXED|fixed)_(?=\w)")
 LEAK = re.compile(r'(?i)_?(?:vulnerable|remediated)(?:_example)?_?')
 SDK_PIN = re.compile(r'soroban-sdk\s*=\s*(?:"([^"]+)"|\{[^}\n]*?version\s*=\s*"([^"]+)")')
 
@@ -46,8 +48,13 @@ def drop_test_mods(src):
 
 
 def scrub(text):
-    """Remove the words that reveal the expected answer from identifiers and names."""
-    return LEAK.sub(lambda m: "_" if m.group(0)[:1] == "_" and m.group(0)[-1:] == "_" else "", text)
+    """Remove the words that reveal the expected answer from identifiers and names.
+
+    `safe_`/`unsafe_` prefixes become `op_`; a leading `FIXED_`/`fixed_` is dropped.
+    """
+    text = LEAK.sub(lambda m: "_" if m.group(0)[:1] == "_" and m.group(0)[-1:] == "_" else "", text)
+    text = SAFE_PREFIX.sub("op_", text)
+    return FIXED_PREFIX.sub("", text)
 
 
 def clean_toml(text, pin):

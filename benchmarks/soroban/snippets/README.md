@@ -5,12 +5,16 @@
 CoinFabrik) at commit `53157fd4ddd9e388bf91138699f4e27a500aaef3`, by `import_scout.py`.
 92 cases across 22 detector classes, 46 with `expected_detect: true` and 46 clean. Each case keeps
 the crate's `Cargo.toml` and `src/**/*.rs` with comments, `#[cfg(test)]` modules and the
-"vulnerable"/"remediated" names removed, so the case files do not state the answer. `source_url`
-still points at the upstream crate. `soroban-version` is skipped: its cases differ only in the
-shared workspace pin.
+"vulnerable"/"remediated" names removed, so the case files do not state the answer. Identifiers
+are also scrubbed: `safe_`/`unsafe_` prefixes become `op_` and a leading `FIXED_`/`fixed_` is
+dropped. Structural signals remain (for example an error enum in a fixed case, or the shape of a
+remediated loop), so the scrub hides names, not design. `source_url` still points at the upstream
+crate. `soroban-version` is skipped: its cases differ only in the shared workspace pin. The
+upstream MIT license is kept unchanged in `LICENSE-scout-soroban`.
 
 This suite is a **regression check, not acceptance**: the Soroban pack's `patterns/` were ported
-from the same project's detector set, so recall here is optimistic. Contract struct names in some
+from the same project's detector set, and the structural signals above survive the scrub, so
+recall here is optimistic. Contract struct names in some
 cases still name the class.
 
 The generated projects are **not meant to build**: cases pin `=20.0.0`, `20.3.2` and `=21.3.0`,

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,8 @@ class SorobanSnippetSuiteTest(unittest.TestCase):
                 self.assertNotIn("vulnerable", low, f"{case['case_id']}:{name}")
                 self.assertNotIn("remediated", low, f"{case['case_id']}:{name}")
                 self.assertNotIn("#[cfg(test)]\nmod", text, f"{case['case_id']}:{name}")
+                self.assertIsNone(re.search(r"\b(?:un)?safe_\w", text), f"{case['case_id']}:{name}")
+                self.assertIsNone(re.search(r"\b(?:FIXED|fixed)_\w", text), f"{case['case_id']}:{name}")
 
     def test_make_and_score(self):
         out = tempfile.mkdtemp()
