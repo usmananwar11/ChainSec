@@ -4,12 +4,16 @@
 > **Inject into**: Lens B
 > **Category**: Arithmetic
 > **Tier**: security
-> **Related heuristics** (heuristics.md): ARITH-01, ARITH-02
+> **Related heuristics** (heuristics.md): ARITH-01, ARITH-02, TOK-01
 > <!-- Ported from CoinFabrik scout-soroban (MIT), detectors/integer-overflow-or-underflow/src/lib.rs lint text, vulnerabilities/integer-overflow-or-underflow and test-cases (no standalone detector doc); see ATTRIBUTION.md -->
 
 ## Description
 
 Unchecked `+`, `-`, `*`, `pow` or negation on contract integers either panics (overflow-checks on) or wraps (off). A wrap on a balance, counter or price produces a wrong value the contract trusts. Scout rates the class Critical. With overflow checks on it is a revert-DoS instead of silent corruption.
+
+<!-- Ported from stellar/stellar-dev-skill skills/smart-contracts/security.md (Apache-2.0), class 5; modified by ChainSec; see ATTRIBUTION.md -->
+
+`overflow-checks = true` in the release profile catches overflows at runtime (a panic), but explicit checked math fails more cleanly and survives profile mistakes (`let new_balance = balance.checked_add(amount).expect("overflow");`; prefer a typed error over `expect`). Also validate sign and range on inputs: `i128` amounts can be negative, and `transfer(from, to, -1000)` is a withdrawal from `to` if unchecked. For 256-bit types use the `checked_*` methods (protocol 26 and later).
 
 ## Vulnerable pattern
 

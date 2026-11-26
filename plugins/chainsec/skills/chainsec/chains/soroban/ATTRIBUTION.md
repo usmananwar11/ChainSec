@@ -39,4 +39,13 @@ SOFTWARE.
 
 ## Stellar Development Foundation — stellar-dev-skill
 
-Added in the next task.
+- Repository: [github.com/stellar/stellar-dev-skill](https://github.com/stellar/stellar-dev-skill) (Apache-2.0)
+- Commit: `9098e8ba24de3299cda24b21bb5cb80aa1cb5d2b`
+- Ported: `skills/smart-contracts/security.md` into 11 files under `patterns/` (class 5 extends the
+  Scout `INTEGER-OVERFLOW-OR-UNDERFLOW` pattern), sections 1 and 2 of `primers/soroban-vs-evm.md`
+  (threat model, what the platform rules out), code examples from the same guide, and the
+  heuristics in `heuristics.md` (added in a later task).
+- Modifications: ChainSec modified this material: reorganized into per-class files, rewrote
+  detection/FP/test sections, added Soroban engine mappings.
+- License: the full Apache License 2.0 text is in [LICENSE-APACHE-2.0.txt](LICENSE-APACHE-2.0.txt),
+  unchanged from the upstream `LICENSE`.

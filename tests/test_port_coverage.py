@@ -63,6 +63,17 @@ class PortCoverageTest(unittest.TestCase):
         missing = [i for i in ids if not os.path.isfile(os.path.join(SOROBAN_PATTERNS, i + ".md"))]
         self.assertEqual(missing, [], f"{len(missing)} Scout classes have no patterns/<ID>.md")
 
+    def test_every_stellar_class_has_a_pattern(self):
+        missing = [i for i in STELLAR_CLASSES.values()
+                   if not os.path.isfile(os.path.join(SOROBAN_PATTERNS, i + ".md"))]
+        self.assertEqual(missing, [], f"{len(missing)} Stellar classes have no patterns/<ID>.md")
+        sec = os.path.join(STELLAR_SRC, "skills", "smart-contracts", "security.md")
+        if not os.path.isfile(sec):
+            self.skipTest(f"stellar-dev-skill source not found at {STELLAR_SRC}")
+        with open(sec, encoding="utf-8") as f:
+            numbers = [int(n) for n in re.findall(r"^### (\d+)\.", f.read(), re.M)]
+        self.assertEqual(sorted(numbers), sorted(STELLAR_CLASSES), "source classes changed; update the map")
+
 
 if __name__ == "__main__":
     unittest.main()
