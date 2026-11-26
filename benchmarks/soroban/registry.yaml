@@ -1,0 +1,36 @@
+# ChainSec Soroban benchmark registry.
+# Acceptance targets: public Code4rena Soroban (Stellar) contests with official High/Medium reports.
+# Baseline: the same agent and model with the official stellar-dev-skill loaded, asked for a
+# High/Medium audit of the same commit and scope. Pass: ChainSec recall >= baseline recall,
+# ChainSec FP <= baseline FP.
+# Scoring rules: benchmarks/solidity/scoring.md (exact 1, partial 0.5).
+# Commits are pinned when a run starts (latest contest-era commit) and recorded in the result.
+# Official totals are filled in only after both audits' outputs are frozen.
+# Facts confirmed 2026-11-26 from code4rena.com audit and report pages.
+# Dropped: LayerZero Stellar endpoint (2026-04-layerzero): its report states 0 High/Medium
+# findings in total, so it cannot be scored for recall.
+
+contests:
+  - id: blend-v2
+    chain: soroban
+    name: "Blend v2 (+ fee vault)"
+    contest: "2025-02-blend"
+    repo: "https://github.com/code-423n4/2025-02-blend"
+    # findings repo named on the contest page but not publicly reachable on 2026-11-26 (404)
+    findings_repo: "code-423n4/2025-02-blend-findings"
+    report: "https://code4rena.com/reports/2025-02-blend-v2-audit-certora-formal-verification"
+    official: { high: 3, medium: 18 }
+    type: "Lending pool, backstop, emissions, pool factory, fee vault (scope table ~27k nSLOC)"
+    status: pending
+
+  - id: k2
+    chain: soroban
+    name: "K2 (optional second target)"
+    contest: "2026-04-k2"
+    repo: "https://github.com/code-423n4/2026-04-k2"
+    # findings repo named on the contest page but not publicly reachable on 2026-11-26 (404)
+    findings_repo: "code-423n4/2026-04-k2-findings"
+    report: "https://code4rena.com/reports/2026-04-k2"
+    official: { high: 18, medium: 42 }
+    type: "Aave V3-style lending on Soroban (scope table ~15.5k SLoC)"
+    status: optional
