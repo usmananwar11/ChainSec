@@ -68,5 +68,11 @@ class DetectChainTest(unittest.TestCase):
                                                          {"chain": "soroban", "root": "contracts/b"}])
 
 
+    def test_real_soroban_pack_detects_fixture(self):
+        r = run_py("detect-chain.py", os.path.join(FIXTURES, "soroban-basic"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "soroban", "root": "."}])
+
+
 if __name__ == "__main__":
     unittest.main()
