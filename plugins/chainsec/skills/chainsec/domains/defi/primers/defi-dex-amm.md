@@ -18,7 +18,7 @@ If ANY pricing function reads `balanceOf(pool)` or pool reserves directly → fl
 
 ### 4. Missing Slippage Protection
 Every function that swaps, adds liquidity, or removes liquidity MUST have `minAmountOut`/`amountOutMinimum` parameter. `amountOutMin=0` or hardcoded = sandwich attack.
-**Check**: Every swap/addLiquidity/removeLiquidity call. Is there a user-supplied minimum? Is deadline != `block.timestamp`?
+**Check**: Every swap/addLiquidity/removeLiquidity call. Is there a user-supplied minimum? Is deadline != the chain's block/ledger time?
 
 ### 5. Factory Owner Drains Router Approvals
 If router has blanket token approvals and factory owner can deploy malicious pools → factory owner drains user funds via crafted pool.

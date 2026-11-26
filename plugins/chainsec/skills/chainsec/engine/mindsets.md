@@ -70,9 +70,9 @@ Focus EXCLUSIVELY on:
 
 **Multi-Mindset Analysis** — For each value-handling function, ask ALL FOUR questions:
 1. **[Attacker]** How would I extract more value than I put in? Flash loan paths? Fee manipulation?
-2. **[Accountant]** Trace every wei: entry amount → fees → shares → exit amount. Do debits equal credits?
+2. **[Accountant]** Trace every unit: entry amount → fees → shares → exit amount. Do debits equal credits?
 3. **[Spec Auditor]** Do fee percentages, distribution ratios, and reward rates match what docs/comments specify?
-4. **[Edge Case]** What happens with amount=0, amount=1 wei, amount=MAX, or first/last depositor? Plus the pack's heuristics.md "Lens B additions".
+4. **[Edge Case]** What happens with amount=0, amount=1 unit, amount=MAX, or first/last depositor? Plus the pack's heuristics.md "Lens B additions".
 
 Focus EXCLUSIVELY on:
 - Where does value enter and exit? Trace every ETH/token transfer

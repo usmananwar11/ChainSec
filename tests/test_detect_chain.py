@@ -45,6 +45,34 @@ class DetectChainTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout)["chains"], [])
 
+    def test_real_soroban_pack_ignores_plain_rust(self):
+        from helpers import make_tree
+        root = make_tree({"Cargo.toml": "[package]\nname = \"cli\"\n[dependencies]\nserde = \"1\"\n"})
+        r = run_py("detect-chain.py", root)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [])
+
+    def test_real_soroban_pack_workspace_roots(self):
+        from helpers import make_tree
+        member = "[package]\nname = \"{}\"\n[dependencies]\nsoroban-sdk = {{ workspace = true }}\n"
+        with_dep = make_tree({
+            "Cargo.toml": "[workspace]\nmembers = [\"contracts/*\"]\n[workspace.dependencies]\nsoroban-sdk = \"23\"\n",
+            "contracts/a/Cargo.toml": member.format("a"), "contracts/b/Cargo.toml": member.format("b")})
+        without_dep = make_tree({
+            "Cargo.toml": "[workspace]\nmembers = [\"contracts/*\"]\n",
+            "contracts/a/Cargo.toml": member.format("a"), "contracts/b/Cargo.toml": member.format("b")})
+        r = run_py("detect-chain.py", with_dep)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "soroban", "root": "."}])
+        r = run_py("detect-chain.py", without_dep)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "soroban", "root": "contracts/a"},
+                                                         {"chain": "soroban", "root": "contracts/b"}])
+
+
+    def test_real_soroban_pack_detects_fixture(self):
+        r = run_py("detect-chain.py", os.path.join(FIXTURES, "soroban-basic"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["chains"], [{"chain": "soroban", "root": "."}])
+
 
 if __name__ == "__main__":
     unittest.main()

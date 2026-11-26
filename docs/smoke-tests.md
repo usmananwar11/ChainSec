@@ -83,3 +83,20 @@ Codex CLI 0.162.1, plain-skills install (`install.sh --tool agents`), `codex exe
 the skill was discovered and preflight passed (Slither missing, degraded), then the turn failed with
 Codex's usage limit. One sandbox rule rejected an `rm -f` in the model's setup command. No final
 findings, report or delegation data; the Codex item remains open ([events](smoke-tests/2026-10-17/codex/events.json)).
+
+## Soroban pack
+
+Target: `tests/fixtures/soroban-basic` (planted bug: `withdraw(from, to, amount)` debits `from` without `from.require_auth()`).
+Command: `chainsec-audit --quick`, run in a scratch copy outside the repo with skills installed by `install.sh`.
+
+**Pass criteria:**
+1. `.audit/soroban/findings.json` exists.
+2. `validate-findings.py` accepts it (exit 0).
+3. A High or Critical finding on `withdraw` missing `from.require_auth()`.
+4. No finding claims reentrancy.
+5. `.audit/report.md` exists.
+
+| Tool | Version / model | Install | Result | Time | Notes |
+|---|---|---|---|---|---|
+| Claude Code | — | `install.sh --tool claude` | pending | — | — |
+| OpenCode | — | `install.sh --tool opencode` | pending | — | — |

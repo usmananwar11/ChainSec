@@ -67,7 +67,7 @@ source and re-run the exploit:
 Re-running the exact exploit against the fix is **not sufficient** — and is often
 *tautological*. When the fix constrains the very variable the exploit sets, re-running passes
 by construction and tells you nothing. Example: a fix that rejects a **zero-amount** input,
-tested against an exploit that used amount = 0, will always pass — yet a **1-wei** variant can
+tested against an exploit that used amount = 0, will always pass — yet a **1-unit** variant can
 reproduce the identical harm because the fix closed the literal value, not the mechanism.
 
 So evaluating the recommended fix requires a **variant sweep of the parameter(s) the fix

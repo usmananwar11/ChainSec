@@ -10,7 +10,7 @@ If collateral/debt pricing uses spot AMM price or stale oracle → flash loan ma
 
 ### 2. First Depositor Share Inflation (Vault-Based)
 If lending vault uses share-based accounting (like ERC4626) without virtual offset → first depositor inflates share price, subsequent depositors lose funds to rounding.
-**Check**: Does vault have dead shares or virtual offset? Test: deposit 1 wei, donate large amount, deposit again. Does second depositor get 0 shares?
+**Check**: Does vault have dead shares or virtual offset? Test: deposit 1 unit, donate large amount, deposit again. Does second depositor get 0 shares?
 
 ### 3. Liquidation Profitability Threshold
 At what collateral ratio does liquidation become unprofitable? If gas + slippage > liquidation bonus → nobody liquidates → bad debt accumulates.

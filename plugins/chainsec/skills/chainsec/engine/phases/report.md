@@ -117,7 +117,7 @@ Apply when the critic recorded a trust dependency on a finding that **survived**
 |---|---|---|
 | **Fully trusted** | governance multisig, DAO, timelock | Already killed by gate E — nothing to do here |
 | **Semi-trusted** | keeper, operator, relayer, sequencer, oracle updater, whitelisted caller | **−1 severity tier**, floor Informational, plus the note below |
-| **Untrusted** | any EOA, any contract | No adjustment — full severity |
+| **Untrusted** | any user account, any contract | No adjustment — full severity |
 
 Print the adjustment on the finding so the reader can re-rate it themselves:
 

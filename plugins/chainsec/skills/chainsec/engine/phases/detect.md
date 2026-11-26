@@ -138,7 +138,7 @@ For every entry point (external/public function), apply these seven question cat
 - **Q2.3**: Where is the FIRST state write? Where is the LAST state read? Is there a gap where external calls happen between them?
 - **Q2.4**: If the function reverts halfway, what state persists? (Events emitted before revert are still logged; side effects from external calls may persist.)
 - **Q2.5**: Can the ORDER in which users call this function matter? → Front-running, race conditions.
-- **Q2.6 [CEI MANDATORY CHECK]**: For EVERY external call (transfer, safeTransfer, call, delegatecall), list ALL state updates. Are ALL state updates BEFORE the external call? If ANY state update (burn, balance decrement, flag reset) happens AFTER an external call → CEI violation → reentrancy candidate. This is the #1 missed HIGH across shadow audits.
+- **Q2.6 [CEI MANDATORY CHECK]**: For EVERY external call (token transfers and any other call into another contract), list ALL state updates. Are ALL state updates BEFORE the external call? If ANY state update (burn, balance decrement, flag reset) happens AFTER an external call → CEI violation → reentrancy candidate. This is the #1 missed HIGH across shadow audits.
 
 #### Category 3: CONSISTENCY — Why does A have it but B doesn't?
 
@@ -154,12 +154,12 @@ For every entry point (external/public function), apply these seven question cat
 
 #### Category 4: ASSUMPTIONS — What is implicitly trusted?
 
-- **Q4.1**: What does this assume about the CALLER? (Identity, authorization, contract vs EOA)
+- **Q4.1**: What does this assume about the CALLER? (Identity, authorization, contract vs user account)
 - **Q4.2**: What does it assume about EXTERNAL DATA? (Token behavior, oracle freshness, API responses)
 - **Q4.3**: What does it assume about CURRENT STATE? (Not paused, initialized, non-empty, not migrated)
-- **Q4.4**: What does it assume about TIME/ORDERING? (block.timestamp can be manipulated ±15s; events may arrive out-of-order on L2s)
+- **Q4.4**: What does it assume about TIME/ORDERING? (the chain's block/ledger time can be manipulated within the chain's allowed drift; events may arrive out-of-order on L2s)
 - **Q4.5**: What does it assume about PRICES/RATES? (Can they be stale, zero, max, or manipulated within one tx?)
-- **Q4.6**: What does it assume about INPUT AMOUNTS? (What if 0? What if 1 wei? What if type(uint256).max?)
+- **Q4.6**: What does it assume about INPUT AMOUNTS? (What if 0? What if 1 unit? What if type(uint256).max?)
 
 #### Category 5: BOUNDARIES & EDGE CASES
 
@@ -378,7 +378,7 @@ For protocols with batch/multicall/router patterns:
 
 1. **Intra-batch balance deltas**: In multicall systems, can a user reference token balances from earlier interactions that haven't been finalized? If the batch wraps tokens in step 1 but spends them in step 2, can step 2 reference the wrapped balance before step 1's transfer settles?
 2. **Ocean-style delta accounting**: If the system tracks deltas rather than absolute balances, verify net settlement is correct. Can a user generate negative deltas in one interaction and positive in another, netting to zero cost but extracting real tokens?
-3. **Shared state mutation order**: If batch operations A and B both read/write the same storage slot, does the order matter? Can reordering interactions within a batch create a different (exploitable) outcome?
+3. **Shared state mutation order**: If batch operations A and B both read/write the same storage location, does the order matter? Can reordering interactions within a batch create a different (exploitable) outcome?
 4. **Balance snapshot timing**: When are balances snapshotted for each operation in the batch? Before the batch starts (stale for later ops) or inline (affected by earlier ops)?
 
 #### Module U: → See `domains/defi/modules/external-protocol-integration.md` and `domains/defi/modules/oracle-analysis.md`, and the pack's modules of the same names, if present
@@ -563,7 +563,7 @@ Separate pass focused exclusively on MISSING code. Do NOT combine with Pass 1/2:
 4. **Missing restriction coverage**: If protocol has pause/blocklist/freeze, list ALL value-exit functions. Does EVERY exit path enforce it? If one doesn't → candidate.
 5. **Missing validation on paired operations**: For every deposit/lock/stake, find the corresponding withdraw/unlock/unstake. Compare parameter validation — if one validates but the other doesn't → candidate.
 6. **Parameter transition safety**: For every admin setter (`setFee`, `setCooldown`, `setRate`, `setReserveRatio`, `setDuration`), ask: "What happens to IN-FLIGHT operations when this parameter changes?" If a user started an action (cooldown, auction, loan, vote) under old parameters, does the new value retroactively break them? If yes → candidate.
-7. **DoS on core functions**: For every core lifecycle function (settle, liquidate, withdraw, claim, repay, unstake), check: (a) Does it loop over a user-controlled array? If unbounded → candidate. (b) Does it make an external call to a user-controlled address that can revert? If yes and no try/catch → candidate. (c) Can a permissionless function be called with dust (0, 1 wei) to grief state (reset timers, inflate arrays, block others)? If yes → candidate.
+7. **DoS on core functions**: For every core lifecycle function (settle, liquidate, withdraw, claim, repay, unstake), check: (a) Does it loop over a user-controlled array? If unbounded → candidate. (b) Does it make an external call to a user-controlled address that can revert? If yes and no try/catch → candidate. (c) Can a permissionless function be called with dust (0, 1 unit) to grief state (reset timers, inflate arrays, block others)? If yes → candidate.
 
 `A/facts.json` helps make the sweep mechanical: `entry_points[]` with `storage_writes[]` for check 2,
 `auth_sites[]` and `entry_points[].guards` for checks 2 and 4, `external_calls[]` for check 7(b).

@@ -1,0 +1,61 @@
+{
+  "chain": "soroban",
+  "id_prefix": "SOROBAN",
+  "extensions": [".rs"],
+  "detect": {
+    "markers": ["Cargo.toml"],
+    "contains": ["soroban-sdk"]
+  },
+  "scope": {
+    "include": ["src/**/*.rs", "contracts/**/src/**/*.rs", "crates/**/src/**/*.rs", "packages/**/src/**/*.rs",
+                "*/src/**/*.rs"],
+    "exclude": ["**/target/**", "**/tests/**", "**/test/**", "**/test.rs", "**/tests.rs", "**/test_*.rs",
+                "**/*_test.rs", "**/testutils*", "**/testutils/**", "**/test-utils/**", "**/test-suites/**",
+                "**/integration-tests/**", "**/mock/**", "**/mocks/**", "**/fuzz/**", "**/benches/**",
+                "**/build.rs"],
+    "fallback_include": ["**/*.rs"]
+  },
+  "tools": {
+    "required": [
+      { "name": "python3", "check": "python3 --version", "install": "https://www.python.org/downloads/", "purpose": "ChainSec scripts" },
+      { "name": "cargo", "check": "cargo --version", "install": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh", "purpose": "compile check, PoC and fuzz tests (soroban-sdk testutils)" }
+    ],
+    "optional": [
+      { "name": "stellar", "check": "stellar --version", "install": "cargo install --locked stellar-cli", "purpose": "wasm build for the PoC fallback and ledger snapshots" },
+      { "name": "cargo-scout-audit", "check": "cargo scout-audit --version", "install": "cargo install cargo-dylint dylint-link && cargo install cargo-scout-audit", "purpose": "Scout static-analysis signal table during recon" }
+    ]
+  },
+  "extractor": "recon/extract.sh",
+  "analyzers": [ { "name": "scout", "run": "recon/scout-summary.py", "requires": "cargo-scout-audit" } ],
+  "risk_weights": { "external_calls": 5, "state_writers": 4, "upgrades": 6, "token_transfers": 5,
+                    "unchecked_math": 2, "unguarded_mutators": 6 },
+  "loc_weight": 0.05,
+  "novelty_bonus": 15,
+  "value_bonus": 10,
+  "novelty_allowlist": ["**/stellar-contracts/**", "**/openzeppelin*/**"],
+  "unit_of_analysis": "contract_crate",
+  "clustering": "recon/clustering.md",
+  "value_unit": { "name": "stroop", "decimals": 7 },
+  "code_fence": "rust",
+  "modules_by_protocol": {
+    "always": ["../../domains/defi/modules/access-control-state.md", "modules/soroban-auth.md",
+               "modules/storage-and-ttl.md", "primers/soroban-vs-evm.md"],
+    "dex-amm": ["../../domains/defi/modules/amm-mev-deep.md", "../../domains/defi/modules/economic-design.md",
+                "../../domains/defi/modules/flash-loan-interaction.md", "../../domains/defi/primers/defi-dex-amm.md",
+                "modules/token-integration.md"],
+    "lending": ["../../domains/defi/modules/lending-liquidation-deep.md", "../../domains/defi/modules/oracle-analysis.md",
+                "../../domains/defi/modules/economic-design.md", "../../domains/defi/primers/defi-lending.md",
+                "modules/token-integration.md"],
+    "vault": ["../../domains/defi/modules/vault-share-accounting.md", "../../domains/defi/modules/flash-loan-interaction.md",
+              "modules/token-integration.md"],
+    "governance": ["../../domains/defi/modules/governance-voting.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "staking": ["../../domains/defi/modules/economic-design.md", "../../domains/defi/primers/defi-staking-governance.md"],
+    "nft-gamefi": ["../../domains/defi/primers/gamefi-nft.md"],
+    "bridge": ["../../domains/defi/modules/cross-chain-bridge.md", "modules/cross-contract-calls.md",
+               "../../domains/defi/primers/bridge-crosschain.md"],
+    "proxy-upgradeable": ["modules/upgrades-and-init.md"],
+    "wallet-aa": ["modules/soroban-auth.md"]
+  },
+  "poc": { "framework": "soroban-sdk-testutils", "run": "bash <CORE>/chains/soroban/poc/run-test.sh <TARGET>/<root>/<crate> <TARGET>/.audit/soroban/poc/<ID>/chainsec_poc_<id>.rs <TARGET>/.audit/soroban 2>&1", "guide": "poc/guide.md" },
+  "fuzz": { "framework": "soroban-sdk-testutils-seeded", "run": "bash <CORE>/chains/soroban/poc/run-test.sh <TARGET>/<root>/<crate> <TARGET>/.audit/soroban/fuzz/tests/chainsec_fuzz.rs <TARGET>/.audit/soroban -- --nocapture 2>&1", "guide": "fuzz/guide.md" }
+}
