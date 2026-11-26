@@ -7,9 +7,11 @@
     "contains": ["soroban-sdk"]
   },
   "scope": {
-    "include": ["src/**/*.rs", "contracts/**/src/**/*.rs", "crates/**/src/**/*.rs", "packages/**/src/**/*.rs"],
+    "include": ["src/**/*.rs", "contracts/**/src/**/*.rs", "crates/**/src/**/*.rs", "packages/**/src/**/*.rs",
+                "*/src/**/*.rs"],
     "exclude": ["**/target/**", "**/tests/**", "**/test/**", "**/test.rs", "**/tests.rs", "**/test_*.rs",
-                "**/*_test.rs", "**/testutils*", "**/mock/**", "**/mocks/**", "**/fuzz/**", "**/benches/**",
+                "**/*_test.rs", "**/testutils*", "**/testutils/**", "**/test-utils/**", "**/test-suites/**",
+                "**/integration-tests/**", "**/mock/**", "**/mocks/**", "**/fuzz/**", "**/benches/**",
                 "**/build.rs"],
     "fallback_include": ["**/*.rs"]
   },

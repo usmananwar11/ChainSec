@@ -29,7 +29,8 @@ The finding claims state manipulation via a view function:
 
 ### FP-9: Test/Mock/Interface-Only (Soroban test files)
 Soroban items of FP-9 (`engine/phases/verify.md`):
-- Test files and folders: `test.rs`, `tests.rs`, `test_*.rs`, `*_test.rs`, `tests/`, `test/`, `testutils` modules
+- Test files and folders: `test.rs`, `tests.rs`, `test_*.rs`, `*_test.rs`, `tests/`, `test/`, `testutils` modules,
+  `testutils/`, `test-utils/`, `test-suites/` and `integration-tests/` (test-harness crates and folders)
 - Test-only code inside source files: `#[cfg(test)]` modules, `#[test]` functions and code behind the `testutils` feature
 - Mocks (`mock/`, `mocks/`), `fuzz/`, `benches/`, `build.rs` and deployment scripts
 - Interface-only items (`#[contractclient]` or `#[contracttrait]` traits with no implementation)

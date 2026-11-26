@@ -126,6 +126,26 @@ class ExtractSorobanEdgeTest(unittest.TestCase):
         self.assertEqual([(e["name"], e["mutability"]) for e in facts["entry_points"]], [("go", "mutating")])
         self.assertEqual(facts["sdk"], "23.0.2")
 
+    def test_top_level_crate_workspace_scope(self):
+        root = make_tree({
+            "Cargo.toml": '[workspace]\nmembers = ["pool", "backstop", "test-suites", "mocks"]\n',
+            "pool/Cargo.toml": '[package]\nname = "pool"\n',
+            "pool/src/lib.rs": "#[contract]\npub struct Pool;\n#[contractimpl]\nimpl Pool { pub fn go(e: Env) "
+                               "{ e.storage().instance().set(&K::X, &1); } }\n",
+            "pool/src/testutils/mod.rs": "pub fn setup(e: &Env) { e.storage().instance().set(&K::T, &1); }\n",
+            "backstop/Cargo.toml": '[package]\nname = "backstop"\n',
+            "backstop/src/lib.rs": "#[contract]\npub struct Backstop;\n",
+            "backstop/src/test-utils/mod.rs": "pub fn u() {}\n",
+            "test-suites/Cargo.toml": '[package]\nname = "test-suites"\n',
+            "test-suites/src/setup.rs": "pub fn setup(e: &Env) { e.storage().instance().set(&K::S, &1); }\n",
+            "integration-tests/src/lib.rs": "pub fn it() {}\n",
+            "mocks/Cargo.toml": '[package]\nname = "mocks"\n',
+            "mocks/src/lib.rs": "pub fn m() {}\n",
+        })
+        r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(sorted(facts["counters"]), ["backstop/src/lib.rs", "pool/src/lib.rs"])
+
     def _facts(self, root):
         r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
         self.assertEqual(r.returncode, 0, r.stderr)
