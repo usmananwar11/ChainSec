@@ -27,6 +27,7 @@ fn __check_auth(
     signature: BytesN<64>,
     auth_contexts: Vec<Context>,
 ) -> Result<(), AccError> {
+    let pk: BytesN<32> = env.storage().instance().get(&DataKey::Owner).unwrap();
     // BAD: verifies a constant instead of signature_payload, ignores auth_contexts
     env.crypto().ed25519_verify(&pk, &Bytes::from_array(&env, &[0u8; 32]), &signature);
     Ok(())

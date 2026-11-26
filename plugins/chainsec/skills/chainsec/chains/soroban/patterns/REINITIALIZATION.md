@@ -10,7 +10,7 @@
 
 ## Description
 
-A guarded `initialize` function that does not refuse a second call lets anyone call it first (or again) and capture admin. Even a correctly guarded `initialize` leaves a window between deploy and init in which a front-runner can initialize the contract. A `__constructor` (soroban-sdk 22 and later) runs once, atomically, at deploy time and cannot be re-run, so it removes both problems. A contract deployed without one cannot gain one later.
+An `initialize` function that does not refuse a second call lets anyone call it first (or again) and capture admin. Even a correctly guarded `initialize` leaves a window between deploy and init in which a front-runner can initialize the contract. A `__constructor` (soroban-sdk 22 and later) runs once, atomically, at deploy time and cannot be re-run, so it removes both problems. The source notes a contract deployed without a constructor cannot retroactively gain one.
 
 ## Vulnerable pattern
 
@@ -46,7 +46,7 @@ pub fn __constructor(env: Env, admin: Address, initial_value: u32) {
 ## False-positive caveats (Gate C / FP-10 evidence)
 
 - The contract uses `__constructor`; there is then no callable `initialize`.
-- The init authorizes a deployer-known address (for example one baked into the wasm or checked against `current_contract_address` deployer) so a front-runner cannot satisfy it.
+- The init calls `require_auth` on an address fixed in the wasm or otherwise known only to the deployer, so a front-runner cannot satisfy it.
 - The "flag" check exists but guards a different key from the one written.
 - Front-running of a correctly guarded `initialize` is a deployment-process issue; report it only when the deploy flow in scope does not initialize atomically.
 

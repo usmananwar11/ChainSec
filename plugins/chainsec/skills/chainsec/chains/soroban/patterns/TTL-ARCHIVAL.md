@@ -41,7 +41,7 @@ env.storage().persistent().extend_ttl(&key, threshold, extend_to);
 ## Detection
 
 - `storage_writes` to `temporary:` targets for balances, positions, admin, nonces or anything that must survive.
-- Persistent or instance writes with no `extend_ttl` on the path or anywhere in the contract (check for `extend_ttl` calls in `storage_writes`/call sites).
+- Persistent or instance writes with no `extend_ttl` on the path or anywhere in the contract (grep the source; `extend_ttl` is not a facts.json field).
 - Logic that treats the presence or absence of an entry as a time-limited right, with no stored deadline.
 
 ## False-positive caveats (Gate C / FP-10 evidence)

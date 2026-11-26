@@ -35,7 +35,7 @@ pub fn settle(env: Env, user: Address, amount: i128) {
 
 ## Detection
 
-- `external_calls` of kind `client` (or `invoke_contract`) whose arguments include an `Address` parameter of the entry point, in an entry point whose `auth_sites` do not cover that parameter.
+- Use `facts.json` to find entry points with `external_calls` of kind `client` or `invoke_contract` and `auth_sites` that do not include `require_auth`; then read the signature and call site to see whether an `Address` parameter is forwarded into the downstream call without being authorized.
 - `require_auth_for_args` that binds fewer arguments than the downstream call consumes (the signed payload no longer pins amount or recipient).
 - Helper or router contracts (settlers, relayers, batchers, aggregators) that forward user addresses into token or protocol calls.
 

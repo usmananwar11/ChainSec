@@ -51,17 +51,17 @@ The 12 classes of the `security.md` guide in Stellar's `stellar-dev-skill` (Apac
 1 to 12 in the source; 11 are new files and class 5 (integer overflow) extends Scout's
 INTEGER-OVERFLOW-OR-UNDERFLOW (see [ATTRIBUTION.md](../ATTRIBUTION.md)). All are `security` tier.
 
-| ID | Lens | Category | One-line description |
-|---|---|---|---|
-| [MISSING-AUTH](MISSING-AUTH.md) | A | Access control | Mutating entry point never authorizes the address whose rights it consumes, or authorizes a caller-supplied one |
-| [AUTH-REPLAY-MIDDLEWARE](AUTH-REPLAY-MIDDLEWARE.md) | A + C | Access control | Middleware calls a token or contract with a user's address without authorizing the user, consuming a pre-signed auth tree |
-| [REINITIALIZATION](REINITIALIZATION.md) | A | Initialization | Unguarded or front-runnable `initialize`; prefer `__constructor` |
-| [ARBITRARY-CONTRACT-CALL](ARBITRARY-CONTRACT-CALL.md) | C | Cross-contract calls | Token or contract address from arguments is called without an allowlist |
-| [STORAGE-KEY-COLLISION](STORAGE-KEY-COLLISION.md) | D | Storage | Untyped or user-shaped keys overwrite unrelated entries |
-| [CHECK-THEN-ACT](CHECK-THEN-ACT.md) | D | State consistency | Check and act split across transactions, or no caller-supplied slippage bound |
-| [TTL-ARCHIVAL](TTL-ARCHIVAL.md) | D | Storage | Critical state expires or archives, or TTL is used as a security mechanism |
-| [UNTRUSTED-RETURN-VALUE](UNTRUSTED-RETURN-VALUE.md) | C | Cross-contract calls | Returned price, rate or balance used without range, sign or freshness checks |
-| [RESOURCE-EXHAUSTION](RESOURCE-EXHAUSTION.md) | D | DoS | Attacker-shaped input pushes cost past network limits; fee griefing |
-| [CUSTOM-ACCOUNT-CHECK-AUTH](CUSTOM-ACCOUNT-CHECK-AUTH.md) | A | Account abstraction | `__check_auth` skips `signature_payload`, ignores `auth_contexts` or trusts delegates |
-| [MALFORMED-BYTES](MALFORMED-BYTES.md) | B | Input validation | Short or odd `Bytes` input traps in `slice`, `copy_into_slice` or `from_xdr` |
-| [INTEGER-OVERFLOW-OR-UNDERFLOW](INTEGER-OVERFLOW-OR-UNDERFLOW.md) | B | Arithmetic | Stellar class 5: also validate input sign and range; `i128` amounts can be negative |
+| ID | Lens | Category | Tier | One-line description |
+|---|---|---|---|---|
+| [MISSING-AUTH](MISSING-AUTH.md) | A | Access control | security | Mutating entry point never authorizes the address whose rights it consumes, or authorizes a caller-supplied one |
+| [AUTH-REPLAY-MIDDLEWARE](AUTH-REPLAY-MIDDLEWARE.md) | A + C | Access control | security | Middleware calls a token or contract with a user's address without authorizing the user, consuming a pre-signed auth tree |
+| [REINITIALIZATION](REINITIALIZATION.md) | A | Initialization | security | Unguarded or front-runnable `initialize`; prefer `__constructor` |
+| [ARBITRARY-CONTRACT-CALL](ARBITRARY-CONTRACT-CALL.md) | C | Cross-contract calls | security | Token or contract address from arguments is called without an allowlist |
+| [STORAGE-KEY-COLLISION](STORAGE-KEY-COLLISION.md) | D | Storage | security | Untyped or user-shaped keys overwrite unrelated entries |
+| [CHECK-THEN-ACT](CHECK-THEN-ACT.md) | D | State consistency | security | Check and act split across transactions, or no caller-supplied slippage bound |
+| [TTL-ARCHIVAL](TTL-ARCHIVAL.md) | D | Storage | security | Critical state expires or archives, or TTL is used as a security mechanism |
+| [UNTRUSTED-RETURN-VALUE](UNTRUSTED-RETURN-VALUE.md) | C | Cross-contract calls | security | Returned price, rate or balance used without range, sign or freshness checks |
+| [RESOURCE-EXHAUSTION](RESOURCE-EXHAUSTION.md) | D | DoS | security | Attacker-shaped input pushes cost past network limits; fee griefing |
+| [CUSTOM-ACCOUNT-CHECK-AUTH](CUSTOM-ACCOUNT-CHECK-AUTH.md) | A | Account abstraction | security | `__check_auth` skips `signature_payload`, ignores `auth_contexts` or trusts delegates |
+| [MALFORMED-BYTES](MALFORMED-BYTES.md) | B | Input validation | security | Short or odd `Bytes` input traps in `slice`, `copy_into_slice` or `from_xdr` |
+| [INTEGER-OVERFLOW-OR-UNDERFLOW](INTEGER-OVERFLOW-OR-UNDERFLOW.md) | B | Arithmetic | security | Stellar class 5: also validate input sign and range; `i128` amounts can be negative |

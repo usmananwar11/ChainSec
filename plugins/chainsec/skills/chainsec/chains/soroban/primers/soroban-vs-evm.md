@@ -39,12 +39,11 @@ Assume the attacker controls:
 | Constructor runs at deploy; `initialize` only on proxies | `__constructor` (SDK 22 and later) runs atomically at deploy time; a guarded `initialize` leaves a front-run window | INIT-01, REINITIALIZATION |
 | Gas limit bounds loops | Per-transaction CPU, memory and ledger read/write limits, set by network configuration | RES-01, RESOURCE-EXHAUSTION |
 | Contracts and EOAs are different | Any contract can be an account by implementing `__check_auth`; the host calls it with the signature payload and the auth contexts | ACCT-01, ACCT-02 |
-| `^` is exponentiation in some mental models | In Rust `^` is XOR; use `pow` or `checked_pow` | ARITH-04 |
 
 ## 4. Habits to drop
 
 - **Reentrancy findings.** The host blocks reentrant calls, so a "reenter before the balance update"
-  finding needs a concrete non-reentrant path; XC-03 covers what to check instead.
+  finding is unlikely to hold on normal cross-contract paths; XC-03 covers what to check instead.
 - **Checking the boolean return of `transfer`.** SEP-41 token `transfer` panics on failure and
   returns no bool; an unchecked-return finding on it is a false positive. Look at what happens when
   the call fails or exhausts the budget instead (XC-04).

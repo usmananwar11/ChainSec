@@ -15,9 +15,13 @@ Untyped keys (raw `Symbol`s, tuples, strings or bytes) can silently overwrite un
 ## Vulnerable pattern
 
 ```rust
-// Risky: two modules each write a bare symbol or tuple; the same shape means the same key
-env.storage().persistent().set(&symbol_short!("bal"), &value);
-env.storage().persistent().set(&(user.clone(), 1u32), &other_value);
+// BAD: the user-supplied Symbol is the whole key, so it can equal the admin key
+env.storage().instance().set(&symbol_short!("admin"), &admin);
+pub fn set_note(env: Env, user: Address, name: Symbol, value: Address) {
+    user.require_auth();
+    // a caller passing name = symbol_short!("admin") overwrites the admin entry
+    env.storage().instance().set(&name, &value);
+}
 ```
 
 ## Secure pattern
@@ -35,7 +39,7 @@ env.storage().persistent().set(&DataKey::Balance(user), &value);
 ## Detection
 
 - `storage_writes` whose target key is a bare symbol, string, bytes or tuple rather than a `#[contracttype]` enum variant.
-- The same key expression used for different value types or in different storage tiers.
+- The same key expression written by two code paths or modules for different meanings (same tier).
 - Key components taken from arguments without a distinguishing variant (a user-chosen `Symbol` or `Bytes` used as the whole key).
 
 ## False-positive caveats (Gate C / FP-10 evidence)

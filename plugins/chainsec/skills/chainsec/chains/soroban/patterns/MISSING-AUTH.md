@@ -10,7 +10,7 @@
 
 ## Description
 
-Soroban authorization is opt-in: nothing runs `require_auth` unless the contract does. A `mutating` entry point that moves value or changes rights and never authorizes anyone is callable by everyone. This is the most common High in Soroban audits, and forgetting the call is the failure mode to hunt for.
+Soroban authorization is opt-in: nothing runs `require_auth` unless the contract does. A `mutating` entry point that moves value or changes rights and never authorizes anyone is callable by everyone. Forgetting the call is the failure mode to hunt for first.
 
 "Authorize" must also mean the *right* address: the one holding policy authority, loaded from storage (the admin, the owner, the account whose balance is debited). `who.require_auth()` on a caller-supplied `who` only proves the caller controls `who`, not that `who` may do anything. For each `Address` argument, ask whether the call spends, reduces or reconfigures something that address owns; if so that address must be authorized. Crediting a balance or reading public data needs no auth.
 
@@ -36,7 +36,7 @@ pub fn withdraw(env: Env, to: Address, amount: i128) {
 
 ## Detection
 
-- `entry_points` in `facts.json` with `mutability: mutating`, visibility `external`, empty `guards`, and arguments that include an `Address` whose balance or rights the body reduces. Counter `unguarded_mutators` ranks the contracts.
+- Use `facts.json` to find candidates: `entry_points` with `mutability: mutating`, visibility `external` and empty `guards`; counter `unguarded_mutators` ranks the contracts. Then read each function signature and body to see whether an `Address` parameter loses balance or rights.
 - `auth_sites` that call `require_auth` on an `Address` taken from an argument while the privileged action belongs to a stored admin/owner (the stored-authority check is missing).
 - `storage_writes` or `value_transfers` in entry points with no `require_auth`, `require_auth_for_args`, `auth_macro` or helper guard on the path.
 

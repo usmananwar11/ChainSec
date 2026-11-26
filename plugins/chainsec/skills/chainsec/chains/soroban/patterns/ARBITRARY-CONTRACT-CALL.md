@@ -17,6 +17,7 @@ Calling whichever address a user passes lets an attacker substitute a contract t
 ```rust
 pub fn swap(env: Env, token: Address, amount: i128) {
     let client = TokenClient::new(&env, &token);
+    let user: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
     client.transfer(&env.current_contract_address(), &user, &amount);
 }
 ```
@@ -37,7 +38,7 @@ pub fn swap(env: Env, token: Address, amount: i128) {
 
 ## Detection
 
-- `external_calls` of kind `client`, `invoke_contract` or `try_invoke_contract` whose target is an `Address` entry-point argument rather than a value read from storage.
+- Use `facts.json` `external_calls` of kind `client`, `invoke_contract` or `try_invoke_contract` to find the calls, then read each call site to see whether the callee address comes from a function parameter rather than from storage.
 - Permissionless registration of a token or oracle address that later flows into calls (factories, pool creation, listing).
 - No comparison of the argument against a stored or allowlisted address on the path to the call.
 
