@@ -1,3 +1,27 @@
 #!/usr/bin/env bash
-echo "soroban extractor: not implemented yet" >&2
-exit 1
+# Soroban facts extractor. Usage: extract.sh <project-root> <facts.json>
+# Runs `cargo check` with its target dir next to facts.json (the project's own target/ is not
+# touched, and a Cargo.lock the check creates is removed again) to record compile status, then
+# parses source. Env: CHAINSEC_NO_COMPILE=1 skips the check; CHAINSEC_PACK overrides the manifest.
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${1:-.}" 2>/dev/null && pwd)" || { echo "no such root: ${1:-.}" >&2; exit 2; }
+OUT="${2:-$ROOT/.audit/soroban/facts.json}"
+PACK="${CHAINSEC_PACK:-$HERE/../pack.json}"
+mkdir -p "$(dirname "$OUT")"
+OUTDIR="$(cd "$(dirname "$OUT")" && pwd)"
+STATUS=unknown
+if [ "${CHAINSEC_NO_COMPILE:-0}" != "1" ] && command -v cargo >/dev/null 2>&1 && [ -f "$ROOT/Cargo.toml" ]; then
+  WS="$(cd "$ROOT" && cargo locate-project --workspace --message-format plain 2>/dev/null)"
+  LOCK="$(dirname "${WS:-$ROOT/Cargo.toml}")/Cargo.lock"
+  HAD_LOCK=0
+  if [ -f "$LOCK" ]; then HAD_LOCK=1; fi
+  if (cd "$ROOT" && CARGO_TARGET_DIR="$OUTDIR/target" cargo check --quiet >/dev/null 2>&1); then
+    STATUS=ok
+  else
+    STATUS=failed
+    echo "cargo check failed; facts come from source only" >&2
+  fi
+  if [ "$HAD_LOCK" = 0 ]; then rm -f "$LOCK"; fi
+fi
+python3 "$HERE/extract.py" --root "$ROOT" --pack "$PACK" --out "$OUT" --compile "$STATUS"
