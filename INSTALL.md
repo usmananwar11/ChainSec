@@ -71,7 +71,9 @@ install.sh --tool agents
 - `python3` ≥ 3.11.
 - The tools `chainsec-init` reports for your chain. For Solidity: `forge` (required), `slither`
   (optional). For Cairo: `scarb` and `snforge` (required for PoC and fuzz), `caracal` (optional;
-  it supports only older Cairo versions). Cairo 0 is not supported.
+  it supports only older Cairo versions). Cairo 0 is not supported. For Soroban: `cargo` (required;
+  PoC and fuzz use soroban-sdk testutils), `stellar` CLI (optional: wasm PoC fallback, ledger
+  snapshots), `cargo-scout-audit` (optional).
 
 ## Updating
 

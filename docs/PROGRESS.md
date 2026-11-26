@@ -21,7 +21,7 @@ ChainSec is a set of smart-contract audit skills: one audit engine shared by eve
 | Smoke test, Codex | Plugin installation recorded; audit blocked by usage limit 2026-10-17 |
 | Benchmark against Krait (5 contests) | All five graded: 18.66% recall (baseline 17.16%) but 6 FP vs 0 allowed — acceptance FAIL |
 | Sub-project 2: Cairo pack | Planned |
-| Sub-project 3: Soroban pack | Planned |
+| Sub-project 3: Soroban pack | Built on `feat/soroban-pack`; smoke test and benchmark pending |
 
 ---
 
@@ -195,20 +195,39 @@ Write its own spec, then plan, then build, reusing the engine and the DeFi domai
 - **Reuse, with credit:** Trail of Bits' Cairo scanner, and starknet-skills' `cairo-auditor`.
 - **Benchmark:** `benchmarks/cairo/` built from known Cairo audit reports.
 
-### Sub-project 3 — Soroban pack (for the Stellar work)
+### Sub-project 3 — Soroban pack (built on `feat/soroban-pack`; smoke test and benchmark pending)
 
-- **Tools:** CoinFabrik Scout, the `stellar` CLI and the soroban-sdk test utilities. The facts extractor uses `syn`.
-- **What to cover:**
-  - missing or wrong-address `require_auth`;
-  - the scope of `require_auth_for_args`;
-  - auth trees across sub-invocations;
-  - instance vs persistent vs temporary storage, and TTL extension and archival;
-  - instance storage bloat;
-  - `overflow-checks` in the release profile;
-  - `panic!` vs `Result` errors;
-  - auth on `update_current_contract_wasm`;
-  - SAC tokens use 7 decimals.
-- **Benchmark:** `benchmarks/soroban/`.
+The pack lives in `plugins/chainsec/skills/chainsec/chains/soroban/`. It is built and tested locally; no real audit run or benchmark has been done yet.
+
+**What was built**
+- `pack.json` (soroban-sdk detection, scope rules, `cargo` required, `stellar` and `cargo-scout-audit` optional).
+- Recon: `recon/extract.sh` + `extract.py` (facts extractor) and `recon/scout-summary.py` (turns Scout output into a signal table).
+- 34 patterns under `patterns/`: 23 ported from Scout and 11 from the Stellar security guide.
+- `heuristics.md`, `fp-patterns.md`, `module-triggers.md` and 6 modules: `soroban-auth`, `storage-and-ttl`, `token-integration`, `cross-contract-calls`, `upgrades-and-init`, `resource-limits`.
+- `primers/soroban-vs-evm.md`.
+- `poc/guide.md` and `poc/run-test.sh` (PoC test runner); `fuzz/guide.md` (seeded stateful invariant harness, verified on the fixture).
+- Fixture `tests/fixtures/soroban-basic` (planted bug: `withdraw(from, to, amount)` debits `from` without `from.require_auth()`).
+- `benchmarks/soroban/snippets/`: 92 Scout test cases with an import script, project generator and scorer.
+- `benchmarks/soroban/registry.yaml`: Blend v2 (+ fee vault) and K2.
+
+**Sources, with licenses** (see `chains/soroban/ATTRIBUTION.md`)
+- CoinFabrik Scout for Soroban, MIT: the 23 Scout patterns and the 92 snippet cases.
+- Stellar Development Foundation `stellar-dev-skill`, Apache-2.0: the 11 security-guide patterns, parts of the primer and the heuristics. Modified by ChainSec; the license text is in `chains/soroban/LICENSE-APACHE-2.0.txt`.
+
+**Notable decisions**
+- **Lock-safe test runner.** `poc/run-test.sh` copies the test in, runs it with its target dir outside the audit target, then restores the crate: it removes what it added and puts `Cargo.lock` back byte for byte. It refuses to overwrite a user's file or a leftover lock backup.
+- **Snapshot-free test environments.** PoCs and fuzz tests use the native soroban-sdk testutils `Env` and turn off `capture_snapshot_at_drop`, so they leave no `test_snapshots/` folder and need no network. A ledger snapshot is only for an already-deployed contract.
+- **Regex extractor limits.** The facts extractor is regex-based, not a parser. It can miss or misread unusual syntax (macros, heavily nested generics), so facts are signals for the detector agents, not proof.
+- **Benchmark baseline** is the same agent and model with the official `stellar-dev-skill` loaded (no Soroban audit skill exists to compare against).
+- **LayerZero Stellar endpoint dropped** from the registry: its report lists 0 High/Medium findings, so recall cannot be scored.
+- Official totals in the registry are left unfilled until both audits' outputs are frozen.
+
+**Pending**
+- Smoke test on Claude Code and OpenCode against the fixture (see [`smoke-tests.md`](smoke-tests.md)).
+- Benchmark runs: Blend v2 (and optionally K2), ChainSec vs the baseline.
+- `tools/score_benchmark.py` needs Soroban support before the contest runs can be scored.
+- Workspaces without a root `soroban-sdk` dependency produce several roots, and the engine stops ("one root per chain"). Same limit as Cairo; deferred.
+- The branch sits on `feat/cairo-pack`, which is unmerged; rebase onto `main` after Cairo merges.
 
 ### Later (optional)
 
