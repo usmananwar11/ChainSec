@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 
 from helpers import CORE, FIXTURES, SCRIPTS, load, make_tree, run
@@ -145,6 +146,34 @@ class ExtractSorobanEdgeTest(unittest.TestCase):
         r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(sorted(facts["counters"]), ["backstop/src/lib.rs", "pool/src/lib.rs"])
+
+    def test_same_name_contracts_in_two_crates_stay_separate(self):
+        root = make_tree({
+            "Cargo.toml": '[workspace]\nmembers = ["contracts/*"]\n',
+            "contracts/a/Cargo.toml": '[package]\nname = "a"\n',
+            "contracts/b/Cargo.toml": '[package]\nname = "b"\n',
+            "contracts/a/src/lib.rs": "#[contract]\npub struct Contract;\n#[contractimpl]\nimpl Ownable for Contract {}\n"
+                                      "#[contractimpl]\nimpl Contract {\n    pub fn a(e: Env) {}\n}\n",
+            "contracts/b/src/lib.rs": "#[contract]\npub struct Contract;\n#[contractimpl]\nimpl Contract { pub fn b(e: Env) {} }\n",
+        })
+        r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([(u["name"], u["file"], u["parents"], u["loc"]) for u in facts["units"]],
+                         [("Contract", "contracts/a/src/lib.rs", ["Ownable"], 5),
+                          ("Contract", "contracts/b/src/lib.rs", [], 2)])
+
+    def test_sdk_version_table_forms(self):
+        for toml, want in (
+                ('[workspace]\nmembers = ["c"]\n\n[workspace.dependencies.soroban-sdk]\nversion = "22.0.7"\n'
+                 'features = ["alloc"]\n', "22.0.7"),
+                ('[package]\nname = "x"\n\n[dependencies.soroban-sdk]\nfeatures = ["alloc"]\nversion = "=21.7.1"\n',
+                 "21.7.1")):
+            root = make_tree({"Cargo.toml": toml,
+                              "c/Cargo.toml": '[package]\nname = "c"\n[dependencies]\nsoroban-sdk = { workspace = true }\n',
+                              "c/src/lib.rs": "pub fn f() {}\n"})
+            r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(facts["sdk"], want)
 
     def _facts(self, root):
         r, facts = extract(root, CHAINSEC_NO_COMPILE="1")
@@ -302,6 +331,49 @@ class ExtractSorobanEdgeTest(unittest.TestCase):
                 self.assertEqual(fh.read(), "ORIGINAL")
             os.remove(bak)
         shutil.rmtree(outdir, ignore_errors=True)
+
+    def test_compile_timeout_still_writes_facts_and_restores_lock(self):
+        for had_lock in (True, False):
+            files = {"Cargo.toml": '[package]\nname = "x"\n', "src/lib.rs": "pub fn f() {}\n"}
+            if had_lock:
+                files["Cargo.lock"] = "ORIGINAL"
+            root = make_tree(files)
+            bindir = make_tree({})
+            fake = os.path.join(bindir, "cargo")
+            with open(fake, "w") as f:
+                f.write('#!/usr/bin/env bash\n[ "$1" = locate-project ] && { echo "%s/Cargo.toml"; exit 0; }\n'
+                        'echo changed >> "%s/Cargo.lock"; sleep 30; exit 0\n' % (root, root))
+            os.chmod(fake, 0o755)
+            outdir = tempfile.mkdtemp()
+            out = os.path.join(outdir, "facts.json")
+            start = time.time()
+            r = run(["bash", EXTRACT, root, out], timeout=20,
+                    env=dict(os.environ, CHAINSEC_PACK=PACK, CHAINSEC_COMPILE_TIMEOUT="1",
+                             PATH=bindir + os.pathsep + os.environ["PATH"]))
+            self.assertLess(time.time() - start, 8)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(load(out)["compile"], "timeout")
+            self.assertIn("CHAINSEC_COMPILE_TIMEOUT", r.stderr)
+            if had_lock:
+                with open(os.path.join(root, "Cargo.lock")) as fh:
+                    self.assertEqual(fh.read(), "ORIGINAL")
+            else:
+                self.assertFalse(os.path.exists(os.path.join(root, "Cargo.lock")))
+            self.assertEqual([n for n in os.listdir(outdir) if n.startswith("Cargo.lock")], [])
+            shutil.rmtree(outdir, ignore_errors=True)
+
+    def test_compile_status_from_fake_cargo(self):
+        for code, status in ((0, "ok"), (101, "failed")):
+            root = make_tree({"Cargo.toml": '[package]\nname = "x"\n', "src/lib.rs": "pub fn f() {}\n"})
+            bindir = make_tree({})
+            fake = os.path.join(bindir, "cargo")
+            with open(fake, "w") as f:
+                f.write('#!/usr/bin/env bash\n[ "$1" = locate-project ] && { echo "%s/Cargo.toml"; exit 0; }\n'
+                        '[ "$1" = check ] && [ -n "$CARGO_TARGET_DIR" ] || exit 64\nexit %d\n' % (root, code))
+            os.chmod(fake, 0o755)
+            r, facts = extract(root, PATH=bindir + os.pathsep + os.environ["PATH"])
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(facts["compile"], status)
 
     @unittest.skipUnless(shutil.which("cargo") and SLOW, "needs cargo and CHAINSEC_SLOW_TESTS=1")
     def test_stale_cargo_lock_is_left_byte_identical(self):

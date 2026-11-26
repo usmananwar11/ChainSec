@@ -2,7 +2,7 @@
 """Soroban (Stellar) facts extractor for ChainSec.
 
 Usage:
-  extract.py --root DIR --pack PACK_JSON --out FACTS_JSON [--compile ok|failed|unknown]
+  extract.py --root DIR --pack PACK_JSON --out FACTS_JSON [--compile ok|failed|timeout|unknown]
 
 Parses comment- and string-stripped Rust source of soroban-sdk contracts (mode "regex");
 `--compile` records the result of the optional `cargo check` run by extract.sh.
@@ -51,6 +51,9 @@ UNCHECKED_RE = re.compile(r'\.(?:wrapping|overflowing|unchecked)_\w+\s*\(|\bas\s
 CALL_RE = re.compile(r'(?<![\w.:])(?:[A-Za-z_]\w*::)*([a-z_]\w*)\s*\(')
 SDK_LOCK_RE = re.compile(r'name\s*=\s*"soroban-sdk"\s*\nversion\s*=\s*"([^"]+)"')
 SDK_TOML_RE = re.compile(r'soroban-sdk\s*=\s*(?:"([^"]+)"|\{[^}\n]*?version\s*=\s*"([^"]+)")')
+# Table form: [workspace.dependencies.soroban-sdk] or [dependencies.soroban-sdk], then `version = "x"`.
+SDK_TABLE_RE = re.compile(r'^\[\s*(?:workspace\.)?dependencies\.soroban-sdk\s*\][^\n]*\n'
+                          r'(?:(?!\s*\[)[^\n]*\n)*?\s*version\s*=\s*"([^"]+)"', re.M)
 
 
 def strip(src):
@@ -180,10 +183,10 @@ def sdk_version(root):
     for dirpath, dirnames, files in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d not in {"target", ".git", ".audit", "node_modules"})
         if "Cargo.toml" in files:
-            m = SDK_TOML_RE.search(open(os.path.join(dirpath, "Cargo.toml"), encoding="utf-8",
-                                        errors="replace").read())
+            toml = open(os.path.join(dirpath, "Cargo.toml"), encoding="utf-8", errors="replace").read()
+            m = SDK_TOML_RE.search(toml) or SDK_TABLE_RE.search(toml)
             if m:
-                return (m.group(1) or m.group(2)).lstrip("=^~ ")
+                return next(g for g in m.groups() if g).lstrip("=^~ ")
     return None
 
 
@@ -261,14 +264,14 @@ def build_facts(root, rels, facts):
     for p in parsed:
         for name, _ in p["contracts"]:
             crate_contracts.setdefault(crate_of(root, p["rel"]), []).append(name)
-    units = {}
+    units = {}  # keyed by (crate, name): same-name contracts in different crates stay separate
     for p in parsed:
         for name, line in p["contracts"]:
-            units[name] = {"name": name, "kind": "contract", "file": p["rel"], "line": line, "loc": 1,
-                           "parents": []}
+            units[(p["crate"], name)] = {"name": name, "kind": "contract", "file": p["rel"], "line": line,
+                                         "loc": 1, "parents": []}
     for p in parsed:
         for i in p["impls"]:
-            u = units.get(i["type"])
+            u = units.get((p["crate"], i["type"]))
             if u is None:
                 continue
             u["loc"] += p["text"].count("\n", i["open"], i["close"]) + 1
@@ -277,8 +280,8 @@ def build_facts(root, rels, facts):
                 if parent not in u["parents"]:
                     u["parents"].append(parent)
         for name, line, loc in p["ifaces"]:
-            units.setdefault(name, {"name": name, "kind": "interface", "file": p["rel"], "line": line,
-                                    "loc": loc, "parents": []})
+            units.setdefault((p["crate"], name), {"name": name, "kind": "interface", "file": p["rel"],
+                                                  "line": line, "loc": loc, "parents": []})
     facts["units"] = sorted(units.values(), key=lambda u: (u["file"], u["line"]))
     for p in parsed:
         rel, text = p["rel"], p["text"]
@@ -331,7 +334,7 @@ def main(argv=None):
     ap.add_argument("--root", required=True)
     ap.add_argument("--pack", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--compile", default="unknown", choices=("ok", "failed", "unknown"))
+    ap.add_argument("--compile", default="unknown", choices=("ok", "failed", "timeout", "unknown"))
     args = ap.parse_args(argv)
     root = os.path.abspath(args.root)
     pack = load_json(args.pack)

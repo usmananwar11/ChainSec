@@ -253,6 +253,7 @@ background and wait for it). Step 2, the analyzer `run` script from `pack.json`,
 ### Project identification (Step 1)
 
 - Manifests: workspace root `Cargo.toml` (`[workspace] members`, `[profile.release]`), each crate's `Cargo.toml` (`soroban-sdk` version, `crate-type = ["cdylib"]`), `Cargo.lock`, `stellar` CLI config.
+- **Compile status**: `facts.json` `compile` is `ok` (`cargo check` passed), `failed`, `timeout` (`cargo check` ran past `CHAINSEC_COMPILE_TIMEOUT`, default 100 seconds) or `unknown` (no `cargo`, `CHAINSEC_NO_COMPILE=1`, or a stale `Cargo.lock` backup). Facts come from source either way. `failed`, `timeout` and `unknown` are a PoC prerequisite risk: note the status in recon.md, and before the PoC phase confirm the crate builds (a cold first build can take minutes).
 - **SDK version**: read `facts.json` `sdk`. Flag SDK below 22: `__constructor` is unavailable, so a guarded `initialize` is the only init path (INIT-01).
 - **Release profile**: read `[profile.release] overflow-checks` in the workspace root `Cargo.toml` (member manifests do not set profiles). Missing or `false` is OVERFLOW-CHECK (ARITH-01).
 - **Workspace members**: list every member crate; which build to wasm (`cdylib`) and which are libraries shared by several contracts.
