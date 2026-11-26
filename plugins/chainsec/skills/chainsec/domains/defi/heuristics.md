@@ -59,7 +59,7 @@ real finding. Treat those as mandatory whenever their trigger appears.
 **Precision (PR-01 to PR-03):**
 - PR-01: Small amount division → Rounds to zero? Repeated small tx profit? **Can attacker FORCE rounding to zero via flash loan (inflate denominator)?** If division uses totalSupply or reserve as denominator, and attacker can inflate it → zero-amount exploit.
 - PR-02: Price/rate as integer → Rounding direction safe? One-sided manipulation?
-- PR-03: Dual conversion (assets↔shares) → Round OPPOSITE directions? mint(1 wei) paying 0?
+- PR-03: Dual conversion (assets↔shares) → Round OPPOSITE directions? mint(1 unit) paying 0?
 
 **External Protocol Integration (EXT-01 to EXT-03):**
 - EXT-01: Permissionless external calls → Can anyone call getReward/claim/harvest on behalf of the contract? If yes → front-running breaks assumed state.
