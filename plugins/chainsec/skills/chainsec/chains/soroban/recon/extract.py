@@ -38,8 +38,8 @@ FN_RE = re.compile(r'((?:' + ATTR + r'\s*)*)(pub(?:\([^)]*\))?\s+)?(?:(?:const|u
                    r'fn\s+([A-Za-z_]\w*)\s*(?:<[^>{]*>)?\s*\(')
 WRITE_RE = re.compile(r'\.storage\(\)\s*\.\s*(instance|persistent|temporary)\(\)\s*\.\s*'
                       r'(set|remove|update|try_update)\s*(?:::\s*<[^>]*>)?\s*\(\s*&?\s*(?:mut\s+)?([\w:]+)')
-HANDLE_RE = re.compile(r'\blet\s+(?:mut\s+)?([A-Za-z_]\w*)\s*(?::[^=;]+)?=\s*[^;]*?\.storage\(\)\s*\.\s*'
-                       r'(instance|persistent|temporary)\(\)\s*;')
+HANDLE_RE = re.compile(r'\blet\s+(?:mut\s+)?([A-Za-z_]\w*)\s*(?::[^=;]+)?=\s*[^;]*?\.storage\(\)\s*(?:\.\s*'
+                       r'(instance|persistent|temporary)\(\))?\s*;')
 CLIENT_RE = re.compile(r'\b(?:[A-Za-z_]\w*::)*[A-Za-z_]*Client\s*::\s*new\s*\(')
 EXT_RE = re.compile(r'\.(try_invoke_contract|invoke_contract)\b|\.(deployer)\s*\(\s*\)'
                     r'(?!\s*\.\s*update_current_contract_wasm)|\b(update_current_contract_wasm)\s*\(')
@@ -67,6 +67,22 @@ def paren_end(text, open_idx):
             if depth == 0:
                 return i
     return open_idx
+
+
+def body_open(text, start, end):
+    """Index of the `{` opening a fn body, or -1 if a `;` at bracket depth 0 comes first."""
+    depth = 0
+    for i in range(start, end):
+        c = text[i]
+        if c in "[(<":
+            depth += 1
+        elif c in "])" or (c == ">" and text[i - 1] != "-"):
+            depth = max(depth - 1, 0)
+        elif depth == 0 and c == "{":
+            return i
+        elif depth == 0 and c == ";":
+            return -1
+    return -1
 
 
 def blank(text, a, b):
@@ -111,9 +127,8 @@ def functions(text, start, end):
         if not m:
             return
         params_end = paren_end(text, m.end() - 1)
-        brace = text.find("{", params_end, end)
-        semi = text.find(";", params_end, end)
-        if brace == -1 or (semi != -1 and semi < brace):
+        brace = body_open(text, params_end + 1, end)
+        if brace == -1:
             pos = m.end()
             continue
         close = block_end(text, brace)
@@ -132,9 +147,12 @@ def analyze(text, b0, b1):
             for m in AUTH_RE.finditer(body)]
     writes = [(f"{m.group(1)}:{m.group(3)}", b0 + m.start()) for m in WRITE_RE.finditer(body)]
     for h in HANDLE_RE.finditer(body):
-        handle_re = re.compile(r'(?<![\w.])' + re.escape(h.group(1)) + r'\s*\.\s*(?:set|remove|update|try_update)\s*'
-                               r'(?:::\s*<[^>]*>)?\s*\(\s*&?\s*(?:mut\s+)?([\w:]+)')
-        writes += [(f"{h.group(2)}:{m.group(1)}", b0 + m.start()) for m in handle_re.finditer(body, h.end())]
+        via = '' if h.group(2) else r'\.\s*(?P<tier>instance|persistent|temporary)\(\)\s*'
+        handle_re = re.compile(r'(?<![\w.])' + re.escape(h.group(1)) + r'\s*' + via + r'\.\s*'
+                               r'(?:set|remove|update|try_update)\s*(?:::\s*<[^>]*>)?\s*\(\s*&?\s*(?:mut\s+)?'
+                               r'(?P<key>[\w:]+)')
+        writes += [(f"{h.group(2) or m.groupdict().get('tier')}:{m.group('key')}", b0 + m.start())
+                   for m in handle_re.finditer(body, h.end())]
     return {"writes": sorted(writes, key=lambda w: w[1]),
             "ext": ext, "auth": auth,
             "as_contract": [b0 + m.start() for m in AS_CONTRACT_RE.finditer(body)],
@@ -190,14 +208,21 @@ def parse_file(rel, src):
             "ifaces": ifaces, "fns": fns}
 
 
-def resolve(parsed):
-    """Transitive effects and auth guards through helper functions defined in the same crate.
+def common_guards(cands):
+    """Guards every candidate provides, compared ignoring the ` via` suffix (first spelling kept)."""
+    sets = [{x.split(" via ")[0]: x for x in sorted(g["guards_t"], reverse=True)} for g in cands]
+    return [sets[0][b] for b in sorted(set.intersection(*(set(m) for m in sets)))]
 
-    Same-name candidates: effects are unioned, guards intersected (no guard unless all provide it)."""
+
+def resolve(parsed):
+    """Transitive effects and auth guards through helper functions defined in scope.
+
+    Same-name candidates: effects are unioned over all of them; guards are intersected over the
+    caller's own crate when it has any, else over all candidates (never a guard not all provide)."""
     by_name = {}
     for p in parsed:
         for f in p["fns"]:
-            by_name.setdefault((p["crate"], f["name"]), []).append(f)
+            by_name.setdefault(f["name"], []).append((p["crate"], f))
     for f in (f for p in parsed for f in p["fns"]):
         f["effects"] = bool(f["writes"] or f["ext"] or f["tokens"])
         f["writes_t"] = bool(f["writes"])
@@ -208,17 +233,19 @@ def resolve(parsed):
         for p in parsed:
             for f in p["fns"]:
                 for callee in f["callees"]:
-                    cands = [g for g in by_name.get((p["crate"], callee), []) if g is not f]
+                    cands = [(c, g) for c, g in by_name.get(callee, []) if g is not f]
                     if not cands:
                         continue
+                    same = [g for c, g in cands if c == p["crate"]]
+                    cands = [g for _, g in cands]
                     if any(g["effects"] for g in cands) and not f["effects"]:
                         f["effects"] = changed = True
                     if any(g["writes_t"] for g in cands) and not f["writes_t"]:
                         f["writes_t"] = changed = True
-                    for guard in set.intersection(*(g["guards_t"] for g in cands)):
-                        via = guard if " via " in guard else f"{guard} via {callee}"
-                        if guard not in f["guards_t"] and via not in f["guards_t"]:
-                            f["guards_t"].add(via)
+                    for guard in common_guards(same or cands):
+                        base = guard.split(" via ")[0]
+                        if not any(x.split(" via ")[0] == base for x in f["guards_t"]):
+                            f["guards_t"].add(guard if " via " in guard else f"{guard} via {callee}")
                             changed = True
 
 

@@ -19,16 +19,21 @@ if [ "${CHAINSEC_NO_COMPILE:-0}" != "1" ] && command -v cargo >/dev/null 2>&1 &&
   restore_lock() {
     if [ "$HAD_LOCK" = 1 ]; then cp -p "$BACKUP" "$LOCK" && rm -f "$BACKUP"; else rm -f "$LOCK"; fi
   }
-  if [ -f "$LOCK" ]; then HAD_LOCK=1; cp -p "$LOCK" "$BACKUP"; fi
-  trap restore_lock EXIT
-  trap 'exit 130' INT TERM
-  if (cd "$ROOT" && CARGO_TARGET_DIR="$OUTDIR/target" cargo check --quiet >/dev/null 2>&1); then
-    STATUS=ok
-  else
-    STATUS=failed
-    echo "cargo check failed; facts come from source only" >&2
+  SAFE=1
+  if [ -f "$LOCK" ]; then
+    if cp -p "$LOCK" "$BACKUP"; then HAD_LOCK=1; else SAFE=0; echo "cannot back up Cargo.lock; skipping cargo check" >&2; fi
   fi
-  restore_lock
-  trap - EXIT INT TERM
+  if [ "$SAFE" = 1 ]; then
+    trap restore_lock EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    if (cd "$ROOT" && CARGO_TARGET_DIR="$OUTDIR/target" cargo check --quiet >/dev/null 2>&1); then
+      STATUS=ok
+    else
+      STATUS=failed
+      echo "cargo check failed; facts come from source only" >&2
+    fi
+  fi
+  if [ "$SAFE" = 1 ]; then restore_lock; trap - EXIT INT TERM; fi
 fi
 python3 "$HERE/extract.py" --root "$ROOT" --pack "$PACK" --out "$OUT" --compile "$STATUS"
